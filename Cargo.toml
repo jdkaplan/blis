@@ -1,0 +1,31 @@
+[package]
+name = "blis"
+version = "0.0.1"
+edition = "2021"
+license = "BlueOak-1.0.0"
+publish = false
+repository = "https://github.com/jdkaplan/blis"
+
+[dependencies]
+clap = { version = "4.5.3", features = ["derive"] }
+color-eyre = "0.6.3"
+eyre = "0.6.12"
+itertools = "0.12.1"
+strum = { version = "0.26.2", features = ["derive"] }
+thiserror = "1.0.58"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[dev-dependencies]
+insta = "1.36.1"
+proptest = "1.4.0"
+rstest = "0.18.2"
+
+[profile.dev.package.backtrace]
+opt-level = 3
+
+[profile.dev.package.insta]
+opt-level = 3
+
+[profile.dev.package.similar]
+opt-level = 3
