@@ -10,25 +10,30 @@ pub type CompileResult<T> = Result<T, CompileError>;
 pub struct CompileError;
 
 impl Compiler {
-    pub fn compile(file: &File) -> CompileResult<Chunk> {
+    pub fn compile(file: &Program) -> CompileResult<Chunk> {
         let mut constants = Vec::new();
         let mut code = Vec::new();
 
         for decl in &file.decls {
-            let Decl::Stmt(Stmt::Expr(Expr::Literal(Literal::U64(value)))) = decl;
+            let Declaration::Statement(Statement::Expression(Expression::Literal(literal))) = decl;
+
+            let constant = match literal {
+                Literal::Integer(int) => Constant::Integer(*int),
+                Literal::Float(float) => Constant::Float(*float),
+            };
 
             let idx = constants.len();
             assert!(idx < u8::MAX.into());
             let idx = idx as u8;
 
-            constants.push(Constant::U64(*value));
+            constants.push(constant);
 
             code.extend(Op::Constant(idx).to_bytes());
             code.extend(Op::Return.to_bytes());
         }
 
         Ok(Chunk {
-            name: file.name.clone(),
+            name: String::from("(program)"),
             constants,
             code,
         })

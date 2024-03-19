@@ -4,9 +4,10 @@ pub struct Chunk {
     pub code: Vec<u8>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Constant {
-    U64(u64),
+    Integer(u64),
+    Float(f64),
 }
 
 #[derive(

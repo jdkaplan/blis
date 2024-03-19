@@ -70,15 +70,7 @@ impl Run {
         file.read_to_string(&mut contents)
             .wrap_err_with(|| format!("read file: {:?}", self.path))?;
 
-        let ast = match Parser::parse(&self.path, &contents) {
-            Ok(ast) => ast,
-            Err((_ast, errors)) => {
-                for err in errors {
-                    eprintln!("{:?}", err);
-                }
-                return Err(eyre::eyre!("parse errors"));
-            }
-        };
+        let ast = Parser::parse(&contents).wrap_err("parse file")?;
 
         let chunk = Compiler::compile(&ast)?;
 

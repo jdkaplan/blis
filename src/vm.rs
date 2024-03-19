@@ -2,13 +2,15 @@ use crate::bytecode::{Chunk, Constant, Op, OpError};
 
 #[derive(Debug)]
 pub enum Value {
-    U64(u64),
+    Integer(u64),
+    Float(f64),
 }
 
 impl From<Constant> for Value {
     fn from(constant: Constant) -> Self {
         match constant {
-            Constant::U64(v) => Value::U64(v),
+            Constant::Integer(v) => Value::Integer(v),
+            Constant::Float(v) => Value::Float(v),
         }
     }
 }
