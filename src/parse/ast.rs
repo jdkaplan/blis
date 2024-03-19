@@ -17,4 +17,5 @@ pub enum Expression {
 pub enum Literal {
     Integer(u64),
     Float(f64),
+    String(String),
 }

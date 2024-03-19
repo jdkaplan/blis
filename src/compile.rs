@@ -20,6 +20,7 @@ impl Compiler {
             let constant = match literal {
                 Literal::Integer(int) => Constant::Integer(*int),
                 Literal::Float(float) => Constant::Float(*float),
+                Literal::String(string) => Constant::String(string.clone()),
             };
 
             let idx = constants.len();

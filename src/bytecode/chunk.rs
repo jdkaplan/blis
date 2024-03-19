@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Constant {
     Integer(u64),
     Float(f64),
+    String(String),
 }
 
 #[derive(Serialize, Deserialize)]

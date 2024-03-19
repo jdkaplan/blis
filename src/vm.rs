@@ -4,6 +4,7 @@ use crate::bytecode::{Chunk, Constant, Op, OpError};
 pub enum Value {
     Integer(u64),
     Float(f64),
+    String(String),
 }
 
 impl From<Constant> for Value {
@@ -11,6 +12,7 @@ impl From<Constant> for Value {
         match constant {
             Constant::Integer(v) => Value::Integer(v),
             Constant::Float(v) => Value::Float(v),
+            Constant::String(v) => Value::String(v),
         }
     }
 }
@@ -49,8 +51,8 @@ impl Vm {
                     dbg!(self.stack.pop());
                 }
                 Op::Constant(idx) => {
-                    let constant = chunk.constants[idx as usize];
-                    self.stack.push(Value::from(constant));
+                    let constant = &chunk.constants[idx as usize];
+                    self.stack.push(Value::from(constant.clone()));
                 }
             }
         }

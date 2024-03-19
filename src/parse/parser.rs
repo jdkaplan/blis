@@ -1,3 +1,7 @@
+use std::iter::Peekable;
+use std::num::{ParseFloatError, ParseIntError};
+use std::str::Chars;
+
 use itertools::{peek_nth, PeekNth};
 
 use crate::parse::ast::*;
@@ -25,6 +29,12 @@ impl std::fmt::Display for ParseErrors {
 pub enum ParseError {
     #[error("{0}")]
     Other(String),
+
+    #[error(transparent)]
+    ParseInt(ParseIntError),
+
+    #[error(transparent)]
+    ParseFloat(ParseFloatError),
 }
 
 pub struct Parser<'source> {
@@ -139,8 +149,7 @@ impl<'source> Parser<'source> {
             match int.text.parse::<u64>() {
                 Ok(value) => Some(Literal::Integer(value)),
                 Err(err) => {
-                    let msg = format!("invalid integer: {}", err);
-                    self.error(ParseError::Other(msg));
+                    self.error(ParseError::ParseInt(err));
                     None
                 }
             }
@@ -148,15 +157,132 @@ impl<'source> Parser<'source> {
             match float.text.parse::<f64>() {
                 Ok(value) => Some(Literal::Float(value)),
                 Err(err) => {
-                    let msg = format!("invalid float: {}", err);
-                    self.error(ParseError::Other(msg));
+                    self.error(ParseError::ParseFloat(err));
                     None
                 }
             }
+        } else if let Some(string) = self.take(Token::String) {
+            let text = string.text;
+            let content = text
+                .strip_prefix('"')
+                .expect("string literal starts with double-quote")
+                .strip_suffix('"')
+                .expect("string literal ends with double-quote");
+
+            let value = unescape_string(content);
+            Some(Literal::String(value))
         } else {
-            let msg = format!("expected literal number, got {:?}", self.peek());
+            let msg = format!("expected literal value, got {:?}", self.peek());
             self.error(ParseError::Other(msg));
             None
         }
     }
+}
+
+fn unescape_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => out.extend(unescape_sequence(&mut chars).into_iter()),
+            c => out.push(c),
+        };
+    }
+    out
+}
+
+fn unescape_sequence(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
+    let Some(ty) = chars.next() else {
+        return Vec::new();
+    };
+
+    match ty {
+        '"' => vec!['"'],
+        '\'' => vec!['\''],
+        '\\' => vec!['\\'],
+        '0' => vec!['\0'],
+        'n' => vec!['\n'],
+        'r' => vec!['\r'],
+        't' => vec!['\t'],
+        'x' => unescape_ascii(chars),
+        'u' => unescape_unicode(chars),
+
+        // This was not a recognized escape sequence. Treat it as the literal text it was: a
+        // backslash and whatever character came after.
+        c => vec!['\\', c],
+    }
+}
+
+fn unescape_ascii(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
+    let mut taken = vec!['\\', 'x'];
+
+    macro_rules! next_digit {
+        () => {{
+            let Some(c) = chars.next() else {
+                return taken;
+            };
+            taken.push(c);
+
+            let Some(d) = c.to_digit(16) else {
+                return taken;
+            };
+            d
+        }};
+    }
+
+    let hi = next_digit!();
+    let lo = next_digit!();
+    char::from_u32((hi << 4) | lo)
+        .map(|c| vec![c])
+        .unwrap_or(taken)
+}
+
+fn unescape_unicode(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
+    let mut v = 0u32;
+    let mut taken = vec!['\\', 'u'];
+
+    macro_rules! next_digit {
+        () => {{
+            let Some(c) = chars.next() else {
+                return taken;
+            };
+            taken.push(c);
+
+            let Some(d) = c.to_digit(16) else {
+                return taken;
+            };
+            d
+        }};
+    }
+
+    macro_rules! peek {
+        () => {{
+            let Some(c) = chars.peek() else {
+                return taken;
+            };
+            c
+        }};
+    }
+
+    if peek!() != &'{' {
+        return taken;
+    }
+    taken.push(chars.next().unwrap()); // peek {
+
+    loop {
+        if peek!() == &'}' {
+            taken.push(chars.next().unwrap()); // peek }
+            break;
+        }
+
+        // If there wasn't a closing brace after `\u{` + 6 digits, this escape sequence is invalid.
+        // Treat it as literal text and restart the unescaping process.
+        if taken.len() > 3 + 6 {
+            return taken;
+        }
+        let d = next_digit!();
+        v = (v << 4) | d;
+    }
+
+    char::from_u32(v).map(|c| vec![c]).unwrap_or(taken)
 }
