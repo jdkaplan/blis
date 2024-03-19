@@ -1,15 +1,3 @@
-pub struct Chunk {
-    pub name: String,
-    pub constants: Vec<Constant>,
-    pub code: Vec<u8>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Constant {
-    Integer(u64),
-    Float(f64),
-}
-
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, strum::Display, strum::FromRepr,
 )]

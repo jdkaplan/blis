@@ -32,10 +32,6 @@ impl Compiler {
             code.extend(Op::Return.to_bytes());
         }
 
-        Ok(Chunk {
-            name: String::from("(program)"),
-            constants,
-            code,
-        })
+        Ok(Chunk { constants, code })
     }
 }
