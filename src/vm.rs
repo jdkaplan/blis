@@ -1,13 +1,5 @@
 use crate::bytecode::{Chunk, Constant, Op, OpError};
-
-#[derive(Debug)]
-pub enum Value {
-    Nil,
-    Boolean(bool),
-    Integer(u64),
-    Float(f64),
-    String(String),
-}
+use crate::runtime::Value;
 
 impl From<Constant> for Value {
     fn from(constant: Constant) -> Self {
@@ -40,6 +32,33 @@ pub enum VmError {
 }
 
 impl Vm {
+    fn pop(&mut self) -> VmResult<Value> {
+        self.stack.pop().ok_or(VmError::NoValue {
+            depth: 0,
+            len: self.stack.len(),
+        })
+    }
+
+    fn pop_n(&mut self, n: usize) -> VmResult<()> {
+        let len = self.stack.len();
+
+        let new_len = len.checked_sub(n);
+        let new_len = new_len.ok_or(VmError::NoValue { depth: n, len })?;
+
+        dbg!(&self.stack[new_len..]);
+        self.stack.truncate(new_len);
+        Ok(())
+    }
+
+    fn peek(&mut self, depth: usize) -> VmResult<&Value> {
+        self.stack.rget(depth).ok_or(VmError::NoValue {
+            depth,
+            len: self.stack.len(),
+        })
+    }
+}
+
+impl Vm {
     pub fn new() -> Self {
         Self { stack: Vec::new() }
     }
@@ -49,10 +68,27 @@ impl Vm {
 
         loop {
             let op = Op::scan(&chunk.code[pc..])?;
+            dbg!(op);
             let Some(op) = op else {
                 return Ok(());
             };
             pc += op.size_bytes();
+
+            macro_rules! jump {
+                ($delta:expr) => {{
+                    // pc was already moved past this op. Put it back before jumping.
+                    pc = pc.checked_sub(op.size_bytes()).unwrap();
+
+                    let delta = $delta;
+                    if delta.is_negative() {
+                        pc = pc
+                            .checked_sub((delta as isize).try_into().unwrap())
+                            .unwrap();
+                    } else {
+                        pc = pc.checked_add(delta as usize).unwrap();
+                    }
+                }};
+            }
 
             match op {
                 Op::Return => {
@@ -61,17 +97,10 @@ impl Vm {
                 }
 
                 Op::Pop => {
-                    dbg!(self.stack.pop());
+                    dbg!(self.pop()?);
                 }
                 Op::PopN(n) => {
-                    let n = n as usize;
-                    let len = self.stack.len();
-
-                    let new_len = len.checked_sub(n);
-                    let new_len = new_len.ok_or(VmError::NoValue { depth: n, len })?;
-
-                    dbg!(&self.stack[new_len..]);
-                    self.stack.truncate(new_len);
+                    self.pop_n(n as usize)?;
                 }
 
                 Op::Constant(idx) => {
@@ -88,7 +117,39 @@ impl Vm {
                 Op::True => {
                     self.stack.push(Value::Boolean(true));
                 }
+
+                Op::Jump(delta) => jump!(delta),
+                Op::JumpFalsePeek(delta) => {
+                    if !self.peek(0)?.truthy() {
+                        jump!(delta);
+                    }
+                }
+                Op::JumpFalsePop(delta) => {
+                    if !self.pop()?.truthy() {
+                        jump!(delta);
+                    }
+                }
+                Op::JumpTruePeek(delta) => {
+                    if self.peek(0)?.truthy() {
+                        jump!(delta);
+                    }
+                }
+                Op::JumpTruePop(delta) => {
+                    if self.pop()?.truthy() {
+                        jump!(delta);
+                    }
+                }
             }
         }
+    }
+}
+
+trait VecExt<T> {
+    fn rget(&self, index: usize) -> Option<&T>;
+}
+
+impl<T> VecExt<T> for Vec<T> {
+    fn rget(&self, index: usize) -> Option<&T> {
+        self.get(self.len() - 1 - index)
     }
 }

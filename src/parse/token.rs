@@ -5,6 +5,23 @@ pub struct Lexeme<'source> {
     pub line: usize,
 }
 
+impl Lexeme<'_> {
+    pub fn to_owned(&self) -> LexemeOwned {
+        LexemeOwned {
+            token: self.token,
+            text: String::from(self.text),
+            line: self.line,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct LexemeOwned {
+    pub token: Token,
+    pub text: String,
+    pub line: usize,
+}
+
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, Hash)]
 pub enum Token {
     // Single-character tokens

@@ -1,3 +1,5 @@
+use tracing::instrument;
+
 use crate::parse::{Lexeme, Token};
 
 pub struct Lexer<'source> {
@@ -5,6 +7,17 @@ pub struct Lexer<'source> {
     start: usize,
     current: usize,
     line: usize,
+}
+
+impl std::fmt::Debug for Lexer<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Lexer")
+            .field("source", &format!("({} bytes)", self.source.bytes().len()))
+            .field("start", &self.start)
+            .field("current", &self.current)
+            .field("line", &self.line)
+            .finish()
+    }
 }
 
 impl<'source> Iterator for Lexer<'source> {
@@ -25,6 +38,7 @@ impl<'source> Lexer<'source> {
         }
     }
 
+    #[instrument(level = "trace", ret)]
     pub fn scan_next(&mut self) -> Lexeme<'source> {
         self.skip_ignored();
 

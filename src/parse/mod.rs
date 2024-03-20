@@ -5,4 +5,4 @@ pub mod token;
 
 pub use lexer::Lexer;
 pub use parser::{ParseError, ParseErrors, Parser};
-pub use token::{Lexeme, Token};
+pub use token::{Lexeme, LexemeOwned, Token};

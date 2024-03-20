@@ -30,6 +30,9 @@ pub enum CompileError {
     Other(String),
 }
 
+type Fallible<T> = Result<T, FailedCodegen>;
+struct FailedCodegen;
+
 impl Compiler {
     fn new() -> Self {
         Self {
@@ -40,7 +43,7 @@ impl Compiler {
 
     pub fn compile(program: &Program) -> Result<Chunk, CompileErrors> {
         let mut compiler = Self::new();
-        compiler.program(program);
+        let _ = compiler.program(program); // Errors checked below
 
         if compiler.errors.is_empty() {
             Ok(compiler.chunk)
@@ -49,30 +52,74 @@ impl Compiler {
         }
     }
 
-    fn program(&mut self, program: &Program) {
+    fn program(&mut self, program: &Program) -> Fallible<()> {
         for decl in &program.decls {
-            self.declaration(decl);
+            self.declaration(decl)?;
         }
         self.chunk.push(Op::Return);
+        Ok(())
     }
 
-    fn declaration(&mut self, decl: &Declaration) {
+    fn block(&mut self, block: &Block) -> Fallible<()> {
+        for decl in &block.decls {
+            self.declaration(decl)?;
+        }
+        self.chunk.push(Op::Nil); // TODO: Use trailing expr value instead
+        Ok(())
+    }
+
+    fn declaration(&mut self, decl: &Declaration) -> Fallible<()> {
         let Declaration::Statement(stmt) = decl;
-        self.statement(stmt);
+        self.statement(stmt)
     }
 
-    fn statement(&mut self, stmt: &Statement) {
+    fn statement(&mut self, stmt: &Statement) -> Fallible<()> {
         let Statement::Expression(expr) = stmt;
-        self.expression(expr);
+        self.expression(expr)?;
+
         self.chunk.push(Op::Pop);
+        Ok(())
     }
 
-    fn expression(&mut self, expr: &Expression) {
-        let Expression::Literal(lit) = expr;
-        self.literal(lit);
+    fn expression(&mut self, expr: &Expression) -> Fallible<()> {
+        match expr {
+            Expression::If(if_) => self.expr_if(if_),
+            Expression::Literal(lit) => self.literal(lit),
+        }
     }
 
-    fn literal(&mut self, lit: &Literal) {
+    fn expr_if(&mut self, if_: &If) -> Fallible<()> {
+        // <cond>
+        self.expression(&if_.condition)?;
+
+        // jump_false_pop 'skip_conseq [peek cond]
+        let skip_conseq = self.chunk.prepare_jump(Op::JumpFalsePop(i16::MAX));
+
+        // <consequent>
+        self.block(&if_.consequent)?;
+
+        let Some(alt) = &if_.alternative else {
+            // 'skip_conseq:
+            self.chunk.set_jump_target(skip_conseq);
+            return Ok(());
+        };
+
+        // jump 'skip_alt
+        let skip_alt = self.chunk.prepare_jump(Op::Jump(i16::MAX));
+
+        // 'skip_conseq:
+        self.chunk.set_jump_target(skip_conseq);
+
+        // <alternative>
+        self.block(alt)?;
+
+        // 'skip_alt:
+        self.chunk.set_jump_target(skip_alt);
+
+        Ok(())
+    }
+
+    fn literal(&mut self, lit: &Literal) -> Fallible<()> {
         match lit {
             Literal::Nil => {
                 self.chunk.push(Op::Nil);
@@ -98,5 +145,7 @@ impl Compiler {
                 self.chunk.push(Op::Constant(id));
             }
         }
+
+        Ok(())
     }
 }

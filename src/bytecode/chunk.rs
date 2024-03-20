@@ -29,6 +29,32 @@ impl Chunk {
     }
 }
 
+#[must_use]
+#[derive(Debug)]
+pub struct PendingJump(usize);
+
+impl Chunk {
+    #[must_use = "set_jump_target"]
+    pub fn prepare_jump(&mut self, op: Op) -> PendingJump {
+        let idx = self.code.len();
+        self.push(op);
+        PendingJump(idx)
+    }
+
+    pub fn set_jump_target(&mut self, jump: PendingJump) {
+        let idx = jump.0;
+        let target = self.code.len();
+
+        let offset: i16 = (target - idx)
+            .try_into()
+            .expect("jump offset fits in two bytes");
+
+        let [hi, lo] = offset.to_be_bytes();
+        self.code[idx + 1] = hi;
+        self.code[idx + 2] = lo;
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum ChunkReadError {
     #[error(transparent)]

@@ -3,9 +3,10 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::Chars;
 
 use itertools::{peek_nth, PeekNth};
+use tracing::{debug, instrument};
 
 use crate::parse::ast::*;
-use crate::parse::{Lexeme, Lexer, Token};
+use crate::parse::{Lexeme, LexemeOwned, Lexer, Token};
 
 #[derive(thiserror::Error, Debug)]
 pub struct ParseErrors(Vec<ParseError>);
@@ -25,10 +26,16 @@ impl std::fmt::Display for ParseErrors {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum ParseError {
     #[error("{0}")]
     Other(String),
+
+    #[error("synatx error: {}", .0.text)]
+    Lexer(LexemeOwned),
+
+    #[error(transparent)]
+    Syntax(#[from] SyntaxError),
 
     #[error(transparent)]
     ParseInt(ParseIntError),
@@ -42,6 +49,24 @@ pub struct Parser<'source> {
     lexer: PeekNth<Lexer<'source>>,
     errors: Vec<ParseError>,
     panicking: bool,
+}
+
+impl std::fmt::Debug for Parser<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Parser")
+            .field("previous", &self.previous)
+            .field("lexer", &"(...)")
+            .field("errors", &format!("({} errors)", self.errors.len()))
+            .field("panicking", &self.panicking)
+            .finish()
+    }
+}
+
+#[derive(thiserror::Error, Debug, Clone)]
+#[error("syntax error: expected {:?}, got {:?}", expected, actual)]
+pub struct SyntaxError {
+    expected: Token,
+    actual: Option<LexemeOwned>,
 }
 
 impl<'source> Parser<'source> {
@@ -67,6 +92,9 @@ impl<'source> Parser<'source> {
     }
 }
 
+type Fallible<T> = Result<T, FailedParse>;
+struct FailedParse;
+
 impl<'source> Parser<'source> {
     fn peek(&mut self) -> &Lexeme<'source> {
         self.peek_nth(0)
@@ -83,14 +111,32 @@ impl<'source> Parser<'source> {
     }
 
     fn advance(&mut self) {
-        self.previous = self.lexer.next().expect("Lexer Iterator always emits Some");
+        loop {
+            self.previous = self.lexer.next().expect("Lexer Iterator always emits Some");
+            if self.previous.token != Token::Error {
+                break;
+            }
+            self.error(ParseError::Lexer(self.previous.to_owned()));
+        }
     }
 
+    #[instrument(level = "trace", ret)]
     fn take(&mut self, token: Token) -> Option<Lexeme<'source>> {
         if self.check(token) {
             return self.lexer.next();
         }
         None
+    }
+
+    fn must_take(&mut self, token: Token) -> Fallible<Lexeme<'source>> {
+        self.take(token).ok_or_else(|| {
+            let err = ParseError::Syntax(SyntaxError {
+                expected: token,
+                actual: self.lexer.peek().map(|l| l.to_owned()),
+            });
+            self.error(err);
+            FailedParse
+        })
     }
 
     fn error(&mut self, err: ParseError) {
@@ -99,21 +145,25 @@ impl<'source> Parser<'source> {
     }
 
     fn synchronize(&mut self) {
+        debug!("synchronizing parser");
         self.panicking = false;
 
         while !self.check(Token::Eof) {
-            // We just consumed a semicolon, so we should be ready for another statement.
-            if self.previous.token == Token::Semicolon {
-                return;
+            // We just consumed a terminator, so we should be ready for another statement.
+            match self.previous.token {
+                Token::Semicolon | Token::RightBrace => return,
+                _ => {}
             }
 
             // The next token could start a statement, so resume from here.
             match self.peek().token {
                 Token::Func | Token::Let | Token::Loop | Token::If | Token::Return => return,
-
-                // No obvious recovery, so keep going.
-                _ => self.advance(),
+                _ => {}
             }
+
+            // No obvious recovery, so keep going.
+            self.advance();
+            debug!({ x =? self.peek() }, "hmm");
         }
     }
 }
@@ -124,49 +174,79 @@ impl<'source> Parser<'source> {
 
         while !self.check(Token::Eof) {
             match self.declaration() {
-                Some(decl) => decls.push(decl),
-                None => self.synchronize(),
+                Ok(decl) => decls.push(decl),
+                Err(_) => self.synchronize(),
             };
         }
 
         Program { decls }
     }
 
-    fn declaration(&mut self) -> Option<Declaration> {
+    fn block(&mut self) -> Fallible<Block> {
+        self.must_take(Token::LeftBrace)?;
+
+        let mut decls = Vec::new();
+
+        while !self.check(Token::Eof) && !self.check(Token::RightBrace) {
+            match self.declaration() {
+                Ok(decl) => decls.push(decl),
+                Err(_) => self.synchronize(),
+            };
+        }
+
+        self.must_take(Token::RightBrace)?;
+        Ok(Block { decls })
+    }
+
+    fn declaration(&mut self) -> Fallible<Declaration> {
         self.statement().map(Declaration::Statement)
     }
 
-    fn statement(&mut self) -> Option<Statement> {
-        self.expression().map(Statement::Expression)
+    fn statement(&mut self) -> Fallible<Statement> {
+        let expr = self.expression()?;
+
+        if !expr.self_terminating() {
+            self.must_take(Token::Semicolon)?;
+        }
+
+        Ok(Statement::Expression(expr))
     }
 
-    fn expression(&mut self) -> Option<Expression> {
-        self.literal().map(Expression::Literal)
+    fn expression(&mut self) -> Fallible<Expression> {
+        if let Some(if_) = self.take(Token::If) {
+            self.expr_if(if_).map(Expression::If)
+        } else {
+            self.literal().map(Expression::Literal)
+        }
     }
 
-    fn literal(&mut self) -> Option<Literal> {
+    fn expr_if(&mut self, _if: Lexeme<'_>) -> Fallible<If> {
+        let condition = self.expression()?;
+        let consequent = self.block()?;
+
+        let mut alternative = None;
+        if let Some(_else) = self.take(Token::Else) {
+            alternative = Some(self.block()?);
+        }
+
+        Ok(If {
+            condition: Box::new(condition),
+            consequent,
+            alternative,
+        })
+    }
+
+    fn literal(&mut self) -> Fallible<Literal> {
         if let Some(_nil) = self.take(Token::Nil) {
-            Some(Literal::Nil)
+            Ok(Literal::Nil)
         } else if let Some(_false) = self.take(Token::False) {
-            Some(Literal::Boolean(false))
+            Ok(Literal::Boolean(false))
         } else if let Some(_true) = self.take(Token::True) {
-            Some(Literal::Boolean(true))
+            Ok(Literal::Boolean(true))
         } else if let Some(int) = self.take(Token::Integer) {
-            match int.text.parse::<u64>() {
-                Ok(value) => Some(Literal::Integer(value)),
-                Err(err) => {
-                    self.error(ParseError::ParseInt(err));
-                    None
-                }
-            }
+            self.integer(int.text)
         } else if let Some(float) = self.take(Token::Float) {
-            match float.text.parse::<f64>() {
-                Ok(value) => Some(Literal::Float(value)),
-                Err(err) => {
-                    self.error(ParseError::ParseFloat(err));
-                    None
-                }
-            }
+            self.float(float.text)
         } else if let Some(string) = self.take(Token::String) {
             let text = string.text;
             let content = text
@@ -176,12 +256,28 @@ impl<'source> Parser<'source> {
                 .expect("string literal ends with double-quote");
 
             let value = unescape_string(content);
-            Some(Literal::String(value))
+            Ok(Literal::String(value))
         } else {
             let msg = format!("expected literal value, got {:?}", self.peek());
             self.error(ParseError::Other(msg));
-            None
+            Err(FailedParse)
         }
+    }
+
+    fn integer(&mut self, text: &str) -> Fallible<Literal> {
+        text.parse::<u64>().map(Literal::Integer).map_err(|err| {
+            let err = ParseError::ParseInt(err);
+            self.error(err);
+            FailedParse
+        })
+    }
+
+    fn float(&mut self, text: &str) -> Fallible<Literal> {
+        text.parse::<f64>().map(Literal::Float).map_err(|err| {
+            let err = ParseError::ParseFloat(err);
+            self.error(err);
+            FailedParse
+        })
     }
 }
 
