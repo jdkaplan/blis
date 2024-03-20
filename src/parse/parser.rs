@@ -95,6 +95,33 @@ impl<'source> Parser<'source> {
 type Fallible<T> = Result<T, FailedParse>;
 struct FailedParse;
 
+enum Either<L, R> {
+    L(L),
+    R(R),
+}
+
+impl<L, R> Either<L, R> {
+    fn map_l<F, T>(self, f: F) -> Either<T, R>
+    where
+        F: FnOnce(L) -> T,
+    {
+        match self {
+            Either::L(l) => Either::L(f(l)),
+            Either::R(r) => Either::R(r),
+        }
+    }
+
+    fn map_r<F, T>(self, f: F) -> Either<L, T>
+    where
+        F: FnOnce(R) -> T,
+    {
+        match self {
+            Either::L(l) => Either::L(l),
+            Either::R(r) => Either::R(f(r)),
+        }
+    }
+}
+
 impl<'source> Parser<'source> {
     fn peek(&mut self) -> &Lexeme<'source> {
         self.peek_nth(0)
@@ -163,7 +190,9 @@ impl<'source> Parser<'source> {
 
             // No obvious recovery, so keep going.
             self.advance();
-            debug!({ x =? self.peek() }, "hmm");
+            let prev = self.previous;
+            let next = self.peek();
+            debug!({ ?prev, ?next }, "advance");
         }
     }
 }
@@ -183,23 +212,27 @@ impl<'source> Parser<'source> {
     }
 
     fn block(&mut self) -> Fallible<Block> {
-        self.must_take(Token::LeftBrace)?;
-
-        let mut decls = Vec::new();
-
-        while !self.check(Token::Eof) && !self.check(Token::RightBrace) {
-            match self.declaration() {
-                Ok(decl) => decls.push(decl),
-                Err(_) => self.synchronize(),
-            };
-        }
-
-        self.must_take(Token::RightBrace)?;
-        Ok(Block { decls })
+        let open = self.must_take(Token::LeftBrace)?;
+        self.expr_block(open)
     }
 
     fn declaration(&mut self) -> Fallible<Declaration> {
         self.statement().map(Declaration::Statement)
+    }
+
+    fn block_declaration(&mut self) -> Fallible<Either<Declaration, Expression>> {
+        let either = self.stmt_or_expr()?;
+        Ok(either.map_l(Declaration::Statement))
+    }
+
+    fn stmt_or_expr(&mut self) -> Fallible<Either<Statement, Expression>> {
+        let expr = self.expression()?;
+
+        if let Some(_semi) = self.take(Token::Semicolon) {
+            Ok(Either::L(Statement::Expression(expr)))
+        } else {
+            Ok(Either::R(expr))
+        }
     }
 
     fn statement(&mut self) -> Fallible<Statement> {
@@ -213,11 +246,44 @@ impl<'source> Parser<'source> {
     }
 
     fn expression(&mut self) -> Fallible<Expression> {
-        if let Some(if_) = self.take(Token::If) {
+        if let Some(open) = self.take(Token::LeftBrace) {
+            self.expr_block(open).map(Expression::Block)
+        } else if let Some(if_) = self.take(Token::If) {
             self.expr_if(if_).map(Expression::If)
         } else {
             self.literal().map(Expression::Literal)
         }
+    }
+
+    fn expr_block(&mut self, _open: Lexeme<'_>) -> Fallible<Block> {
+        let mut decls = Vec::new();
+
+        while !self.check(Token::Eof) && !self.check(Token::RightBrace) {
+            match self.block_declaration() {
+                Err(FailedParse) => self.synchronize(),
+
+                Ok(Either::L(decl)) => decls.push(decl),
+
+                Ok(Either::R(expr)) => {
+                    if expr.self_terminating() && !self.check(Token::RightBrace) {
+                        // There may be more code in this block.
+                        let decl = Declaration::Statement(Statement::Expression(expr));
+                        decls.push(decl);
+                    } else {
+                        // This expression does not get an implicit semicolon, so it must be at the
+                        // end of the block.
+                        self.must_take(Token::RightBrace)?;
+                        return Ok(Block {
+                            decls,
+                            expr: Some(Box::new(expr)),
+                        });
+                    }
+                }
+            };
+        }
+
+        self.must_take(Token::RightBrace)?;
+        Ok(Block { decls, expr: None })
     }
 
     fn expr_if(&mut self, _if: Lexeme<'_>) -> Fallible<If> {

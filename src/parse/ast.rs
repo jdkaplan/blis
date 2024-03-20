@@ -7,15 +7,16 @@ pub enum Declaration {
 }
 
 pub enum Statement {
-    // Block(Block),
     Expression(Expression),
 }
 
 pub struct Block {
     pub decls: Vec<Declaration>,
+    pub expr: Option<Box<Expression>>,
 }
 
 pub enum Expression {
+    Block(Block),
     If(If),
     Literal(Literal),
 }
@@ -23,7 +24,7 @@ pub enum Expression {
 impl Expression {
     pub fn self_terminating(&self) -> bool {
         match self {
-            Expression::If(_) => true,
+            Expression::Block(_) | Expression::If(_) => true,
             Expression::Literal(_) => false,
         }
     }

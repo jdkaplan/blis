@@ -64,7 +64,13 @@ impl Compiler {
         for decl in &block.decls {
             self.declaration(decl)?;
         }
-        self.chunk.push(Op::Nil); // TODO: Use trailing expr value instead
+
+        if let Some(expr) = &block.expr {
+            self.expression(expr)?;
+        } else {
+            self.chunk.push(Op::Nil);
+        }
+
         Ok(())
     }
 
@@ -83,6 +89,7 @@ impl Compiler {
 
     fn expression(&mut self, expr: &Expression) -> Fallible<()> {
         match expr {
+            Expression::Block(block) => self.block(block),
             Expression::If(if_) => self.expr_if(if_),
             Expression::Literal(lit) => self.literal(lit),
         }

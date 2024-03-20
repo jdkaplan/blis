@@ -1,3 +1,5 @@
+use tracing::trace;
+
 use crate::bytecode::{Chunk, Constant, Op, OpError};
 use crate::runtime::Value;
 
@@ -45,7 +47,7 @@ impl Vm {
         let new_len = len.checked_sub(n);
         let new_len = new_len.ok_or(VmError::NoValue { depth: n, len })?;
 
-        dbg!(&self.stack[new_len..]);
+        trace!({ suffix =? self.stack[new_len..] }, "pop_n");
         self.stack.truncate(new_len);
         Ok(())
     }
@@ -67,12 +69,15 @@ impl Vm {
         let mut pc = 0;
 
         loop {
+            trace!({ ?pc }, "fetch");
+
             let op = Op::scan(&chunk.code[pc..])?;
-            dbg!(op);
             let Some(op) = op else {
                 return Ok(());
             };
             pc += op.size_bytes();
+
+            trace!({ ?op }, "execute");
 
             macro_rules! jump {
                 ($delta:expr) => {{
@@ -92,12 +97,13 @@ impl Vm {
 
             match op {
                 Op::Return => {
-                    dbg!(&self.stack);
+                    trace!({ ?self.stack }, "returning");
                     return Ok(());
                 }
 
                 Op::Pop => {
-                    dbg!(self.pop()?);
+                    let v = self.pop()?;
+                    trace!({ ?v }, "pop");
                 }
                 Op::PopN(n) => {
                     self.pop_n(n as usize)?;

@@ -1,5 +1,11 @@
 if 123 {
-    "Yes";
+    "Yes"
 } else {
-    "No";
+    "No"
+}
+
+if nil {
+    "❌"
+} else {
+    "✓"
 }
