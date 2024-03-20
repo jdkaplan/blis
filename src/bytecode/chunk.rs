@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::bytecode::Op;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Constant {
     Integer(u64),
@@ -7,10 +9,24 @@ pub enum Constant {
     String(String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Chunk {
     pub constants: Vec<Constant>,
     pub code: Vec<u8>,
+}
+
+impl Chunk {
+    pub fn push(&mut self, op: Op) {
+        self.code.extend(op.to_bytes())
+    }
+
+    pub fn add_constant(&mut self, constant: Constant) -> u8 {
+        let idx = self.constants.len();
+        assert!(idx < u8::MAX.into());
+
+        self.constants.push(constant);
+        idx as u8
+    }
 }
 
 #[derive(thiserror::Error, Debug)]

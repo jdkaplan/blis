@@ -4,8 +4,13 @@
 #[repr(u8)]
 pub enum Op {
     Return = 0x00,
+    Pop = 0x01,
+    PopN(u8) = 0x02,
 
     Constant(u8) = 0x10,
+    Nil = 0x11,
+    False = 0x12,
+    True = 0x13,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -27,9 +32,9 @@ impl Op {
 
         let mut build = op;
         match build {
-            Op::Return => {}
+            Op::Return | Op::Pop | Op::Nil | Op::False | Op::True => {}
 
-            Op::Constant(ref mut byte) => {
+            Op::Constant(ref mut byte) | Op::PopN(ref mut byte) => {
                 *byte = *code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
             }
         }
@@ -51,9 +56,9 @@ impl Op {
         let mut bytes = vec![opcode];
 
         match self {
-            Op::Return => {}
+            Op::Return | Op::Pop | Op::Nil | Op::False | Op::True => {}
 
-            Op::Constant(byte) => {
+            Op::Constant(byte) | Op::PopN(byte) => {
                 bytes.push(*byte);
             }
         }

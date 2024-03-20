@@ -145,7 +145,13 @@ impl<'source> Parser<'source> {
     }
 
     fn literal(&mut self) -> Option<Literal> {
-        if let Some(int) = self.take(Token::Integer) {
+        if let Some(_nil) = self.take(Token::Nil) {
+            Some(Literal::Nil)
+        } else if let Some(_false) = self.take(Token::False) {
+            Some(Literal::Boolean(false))
+        } else if let Some(_true) = self.take(Token::True) {
+            Some(Literal::Boolean(true))
+        } else if let Some(int) = self.take(Token::Integer) {
             match int.text.parse::<u64>() {
                 Ok(value) => Some(Literal::Integer(value)),
                 Err(err) => {

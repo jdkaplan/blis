@@ -2,6 +2,8 @@ use crate::bytecode::{Chunk, Constant, Op, OpError};
 
 #[derive(Debug)]
 pub enum Value {
+    Nil,
+    Boolean(bool),
     Integer(u64),
     Float(f64),
     String(String),
@@ -25,9 +27,16 @@ pub struct Vm {
 pub type VmResult<T> = Result<T, VmError>;
 
 #[derive(thiserror::Error, Debug)]
-#[error("vm error")]
 pub enum VmError {
+    #[error(transparent)]
     Op(#[from] OpError),
+
+    #[error(
+        "stack error: expected value at depth {}, but stack length was {}",
+        depth,
+        len
+    )]
+    NoValue { depth: usize, len: usize },
 }
 
 impl Vm {
@@ -47,12 +56,37 @@ impl Vm {
 
             match op {
                 Op::Return => {
-                    // TODO: Functions should actually return values
+                    dbg!(&self.stack);
+                    return Ok(());
+                }
+
+                Op::Pop => {
                     dbg!(self.stack.pop());
                 }
+                Op::PopN(n) => {
+                    let n = n as usize;
+                    let len = self.stack.len();
+
+                    let new_len = len.checked_sub(n);
+                    let new_len = new_len.ok_or(VmError::NoValue { depth: n, len })?;
+
+                    dbg!(&self.stack[new_len..]);
+                    self.stack.truncate(new_len);
+                }
+
                 Op::Constant(idx) => {
                     let constant = &chunk.constants[idx as usize];
                     self.stack.push(Value::from(constant.clone()));
+                }
+
+                Op::Nil => {
+                    self.stack.push(Value::Nil);
+                }
+                Op::False => {
+                    self.stack.push(Value::Boolean(false));
+                }
+                Op::True => {
+                    self.stack.push(Value::Boolean(true));
                 }
             }
         }

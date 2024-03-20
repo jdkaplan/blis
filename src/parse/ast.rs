@@ -15,6 +15,8 @@ pub enum Expression {
 }
 
 pub enum Literal {
+    Nil,
+    Boolean(bool),
     Integer(u64),
     Float(f64),
     String(String),
