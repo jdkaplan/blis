@@ -217,6 +217,7 @@ impl<'source> Parser<'source> {
     }
 
     fn declaration(&mut self) -> Fallible<Declaration> {
+        // TODO: Let
         self.statement().map(Declaration::Statement)
     }
 
@@ -236,6 +237,7 @@ impl<'source> Parser<'source> {
     }
 
     fn statement(&mut self) -> Fallible<Statement> {
+        // TODO: Assignment
         let expr = self.expression()?;
 
         if !expr.self_terminating() {
@@ -250,9 +252,17 @@ impl<'source> Parser<'source> {
             self.expr_block(open).map(Expression::Block)
         } else if let Some(if_) = self.take(Token::If) {
             self.expr_if(if_).map(Expression::If)
+        } else if let Some(ident) = self.take(Token::Identifier) {
+            self.identifier(ident).map(Expression::Identifier)
         } else {
             self.literal().map(Expression::Literal)
         }
+    }
+
+    fn identifier(&mut self, ident: Lexeme<'_>) -> Fallible<Identifier> {
+        Ok(Identifier {
+            name: String::from(ident.text),
+        })
     }
 
     fn expr_block(&mut self, _open: Lexeme<'_>) -> Fallible<Block> {

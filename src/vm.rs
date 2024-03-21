@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use tracing::trace;
 
 use crate::bytecode::{Chunk, Constant, Op, OpError};
@@ -16,6 +18,7 @@ impl From<Constant> for Value {
 #[derive(Default)]
 pub struct Vm {
     stack: Vec<Value>,
+    globals: BTreeMap<String, Value>,
 }
 
 pub type VmResult<T> = Result<T, VmError>;
@@ -31,9 +34,16 @@ pub enum VmError {
         len
     )]
     NoValue { depth: usize, len: usize },
+
+    #[error("name error: global variable `{}` was not defined", name)]
+    UndefinedGlobal { name: String },
 }
 
 impl Vm {
+    fn push(&mut self, value: Value) {
+        self.stack.push(value)
+    }
+
     fn pop(&mut self) -> VmResult<Value> {
         self.stack.pop().ok_or(VmError::NoValue {
             depth: 0,
@@ -62,7 +72,10 @@ impl Vm {
 
 impl Vm {
     pub fn new() -> Self {
-        Self { stack: Vec::new() }
+        Self {
+            stack: Vec::new(),
+            globals: BTreeMap::new(),
+        }
     }
 
     pub fn interpret(&mut self, chunk: Chunk) -> VmResult<()> {
@@ -111,17 +124,17 @@ impl Vm {
 
                 Op::Constant(idx) => {
                     let constant = &chunk.constants[idx as usize];
-                    self.stack.push(Value::from(constant.clone()));
+                    self.push(Value::from(constant.clone()));
                 }
 
                 Op::Nil => {
-                    self.stack.push(Value::Nil);
+                    self.push(Value::Nil);
                 }
                 Op::False => {
-                    self.stack.push(Value::Boolean(false));
+                    self.push(Value::Boolean(false));
                 }
                 Op::True => {
-                    self.stack.push(Value::Boolean(true));
+                    self.push(Value::Boolean(true));
                 }
 
                 Op::Jump(delta) => jump!(delta),
@@ -144,6 +157,40 @@ impl Vm {
                     if self.pop()?.truthy() {
                         jump!(delta);
                     }
+                }
+
+                Op::LocalGet(slot) => {
+                    let value = self.stack[slot as usize].clone();
+                    self.push(value);
+                }
+                Op::LocalSet(slot) => {
+                    let value = self.pop()?;
+                    self.stack[slot as usize] = value;
+                }
+
+                Op::GlobalDefine(idx) => {
+                    let global = chunk.globals[idx as usize].clone();
+                    let value = self.pop()?;
+                    self.globals.insert(global, value);
+                }
+                Op::GlobalGet(idx) => {
+                    let global = chunk.globals[idx as usize].clone();
+
+                    let Some(value) = self.globals.get(&global) else {
+                        return Err(VmError::UndefinedGlobal { name: global });
+                    };
+                    self.push(value.clone());
+                }
+                Op::GlobalSet(idx) => {
+                    let global = chunk.globals[idx as usize].clone();
+
+                    let value = self.pop()?;
+
+                    let Some(dest) = self.globals.get_mut(&global) else {
+                        return Err(VmError::UndefinedGlobal { name: global });
+                    };
+
+                    *dest = value;
                 }
             }
         }

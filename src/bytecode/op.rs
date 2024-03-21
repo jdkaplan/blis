@@ -12,6 +12,12 @@ pub enum Op {
     False = 0x12,
     True = 0x13,
 
+    LocalGet(u8) = 0x20,
+    LocalSet(u8) = 0x21,
+    GlobalDefine(u8) = 0x22,
+    GlobalGet(u8) = 0x23,
+    GlobalSet(u8) = 0x24,
+
     Jump(i16) = 0x60,
     JumpFalsePeek(i16) = 0x61,
     JumpFalsePop(i16) = 0x62,
@@ -40,7 +46,13 @@ impl Op {
         match build {
             Op::Return | Op::Pop | Op::Nil | Op::False | Op::True => {}
 
-            Op::Constant(ref mut byte) | Op::PopN(ref mut byte) => {
+            Op::Constant(ref mut byte)
+            | Op::PopN(ref mut byte)
+            | Op::LocalGet(ref mut byte)
+            | Op::LocalSet(ref mut byte)
+            | Op::GlobalDefine(ref mut byte)
+            | Op::GlobalGet(ref mut byte)
+            | Op::GlobalSet(ref mut byte) => {
                 *byte = *code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
             }
 
@@ -74,7 +86,13 @@ impl Op {
         match self {
             Op::Return | Op::Pop | Op::Nil | Op::False | Op::True => {}
 
-            Op::Constant(byte) | Op::PopN(byte) => {
+            Op::Constant(byte)
+            | Op::PopN(byte)
+            | Op::LocalGet(byte)
+            | Op::LocalSet(byte)
+            | Op::GlobalDefine(byte)
+            | Op::GlobalGet(byte)
+            | Op::GlobalSet(byte) => {
                 bytes.push(*byte);
             }
 

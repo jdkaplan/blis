@@ -13,6 +13,8 @@ pub enum Constant {
 pub struct Chunk {
     pub constants: Vec<Constant>,
     pub code: Vec<u8>,
+
+    pub globals: Vec<String>,
 }
 
 impl Chunk {
@@ -26,6 +28,35 @@ impl Chunk {
 
         self.constants.push(constant);
         idx as u8
+    }
+}
+
+impl Chunk {
+    pub fn define_global(&mut self, name: String) -> u8 {
+        let id = self.make_global(name);
+        self.push(Op::GlobalDefine(id));
+        id
+    }
+
+    fn find_global(&self, name: &str) -> Option<u8> {
+        self.globals
+            .iter()
+            .position(|g| g == name)
+            .map(|idx| idx.try_into().expect("make_global enforces count"))
+    }
+
+    pub fn make_global(&mut self, name: String) -> u8 {
+        if let Some(id) = self.find_global(&name) {
+            return id;
+        }
+
+        let idx = self.globals.len();
+        let idx: u8 = idx
+            .try_into()
+            .expect("less than 256 constants, needs GlobalDefine2?");
+
+        self.globals.push(name);
+        idx
     }
 }
 

@@ -4,6 +4,8 @@ use crate::parse::ast::*;
 pub struct Compiler {
     chunk: Chunk,
     errors: Vec<CompileError>,
+
+    locals: Locals,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -26,9 +28,17 @@ impl std::fmt::Display for CompileErrors {
 
 #[derive(thiserror::Error, Debug)]
 pub enum CompileError {
+    #[error(
+        "variable redeclared in the same scope: `{}`",
+        .0.name
+    )]
+    DuplicateVariable(Identifier),
+
     #[error("{0}")]
     Other(String),
 }
+
+type CompileResult<T> = Result<T, CompileError>;
 
 type Fallible<T> = Result<T, FailedCodegen>;
 struct FailedCodegen;
@@ -38,6 +48,7 @@ impl Compiler {
         Self {
             chunk: Chunk::default(),
             errors: Vec::new(),
+            locals: Locals::default(),
         }
     }
 
@@ -61,6 +72,8 @@ impl Compiler {
     }
 
     fn block(&mut self, block: &Block) -> Fallible<()> {
+        self.locals.begin_scope();
+
         for decl in &block.decls {
             self.declaration(decl)?;
         }
@@ -71,6 +84,7 @@ impl Compiler {
             self.chunk.push(Op::Nil);
         }
 
+        self.locals.end_scope();
         Ok(())
     }
 
@@ -91,6 +105,7 @@ impl Compiler {
         match expr {
             Expression::Block(block) => self.block(block),
             Expression::If(if_) => self.expr_if(if_),
+            Expression::Identifier(ident) => self.identifier(ident),
             Expression::Literal(lit) => self.literal(lit),
         }
     }
@@ -126,6 +141,16 @@ impl Compiler {
         Ok(())
     }
 
+    fn identifier(&mut self, ident: &Identifier) -> Fallible<()> {
+        if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
+            self.chunk.push(Op::LocalGet(slot));
+        } else {
+            let global = self.chunk.make_global(ident.name.clone());
+            self.chunk.push(Op::GlobalGet(global));
+        }
+        Ok(())
+    }
+
     fn literal(&mut self, lit: &Literal) -> Fallible<()> {
         match lit {
             Literal::Nil => {
@@ -154,5 +179,90 @@ impl Compiler {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Local {
+    depth: usize,
+    initialized: bool,
+
+    ident: Identifier,
+}
+
+#[derive(Debug, Clone, Default)]
+struct Locals {
+    locals: Vec<Local>,
+    scope_depth: usize,
+}
+
+impl Locals {
+    fn begin_scope(&mut self) {
+        self.scope_depth += 1;
+    }
+
+    fn end_scope(&mut self) -> usize {
+        self.scope_depth -= 1;
+
+        let mut count = 0;
+
+        while let Some(local) = self.locals.last() {
+            if local.depth > self.scope_depth {
+                self.locals.pop();
+                count += 1;
+            } else {
+                break;
+            }
+        }
+
+        count
+    }
+
+    fn iter_slots(&self) -> impl Iterator<Item = (usize, &Local)> {
+        self.locals.iter().rev().enumerate()
+    }
+
+    fn iter_stack(&self) -> impl Iterator<Item = &Local> {
+        self.locals.iter().rev()
+    }
+
+    fn resolve<'a>(&'a self, name: &str) -> Option<(u8, &'a Local)> {
+        for (slot, var) in self.iter_slots() {
+            if var.ident.name == name {
+                let slot: u8 = slot.try_into().expect("Too many locals!");
+                return Some((slot, var));
+            }
+        }
+        None
+    }
+
+    fn reserve(&mut self, ident: Identifier) -> CompileResult<u8> {
+        if self.locals.len() >= (u8::MAX as usize) {
+            panic!("Too many locals! Time to add Local2 variants");
+        }
+
+        let new = Local {
+            ident,
+            depth: self.scope_depth,
+            initialized: false,
+        };
+
+        for old in self.iter_stack() {
+            if old.ident.name == new.ident.name && old.depth == new.depth {
+                return Err(CompileError::DuplicateVariable(new.ident));
+            }
+        }
+
+        let slot: u8 = self
+            .locals
+            .len()
+            .try_into()
+            .expect("Too many locals! Time to add Local2 variants");
+        self.locals.push(new);
+        Ok(slot)
+    }
+
+    fn mark_init(&mut self, slot: u8) {
+        self.locals[slot as usize].initialized = true;
     }
 }

@@ -18,6 +18,7 @@ pub struct Block {
 pub enum Expression {
     Block(Block),
     If(If),
+    Identifier(Identifier),
     Literal(Literal),
 }
 
@@ -25,7 +26,7 @@ impl Expression {
     pub fn self_terminating(&self) -> bool {
         match self {
             Expression::Block(_) | Expression::If(_) => true,
-            Expression::Literal(_) => false,
+            Expression::Identifier(_) | Expression::Literal(_) => false,
         }
     }
 }
@@ -34,6 +35,11 @@ pub struct If {
     pub condition: Box<Expression>,
     pub consequent: Block,
     pub alternative: Option<Block>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Identifier {
+    pub name: String,
 }
 
 pub enum Literal {
