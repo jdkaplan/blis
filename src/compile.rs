@@ -52,6 +52,11 @@ impl Compiler {
         }
     }
 
+    fn error(&mut self, err: CompileError) -> FailedCodegen {
+        self.errors.push(err);
+        FailedCodegen
+    }
+
     pub fn compile(program: &Program) -> Result<Chunk, CompileErrors> {
         let mut compiler = Self::new();
         let _ = compiler.program(program); // Errors checked below
@@ -89,8 +94,22 @@ impl Compiler {
     }
 
     fn declaration(&mut self, decl: &Declaration) -> Fallible<()> {
-        let Declaration::Statement(stmt) = decl;
-        self.statement(stmt)
+        match decl {
+            Declaration::Let(let_) => self.decl_let(let_),
+            Declaration::Statement(stmt) => self.statement(stmt),
+        }
+    }
+
+    fn decl_let(&mut self, let_: &Let) -> Fallible<()> {
+        let slot = self
+            .locals
+            .reserve(let_.ident.clone())
+            .map_err(|err| self.error(err))?;
+
+        self.expression(&let_.expr)?;
+
+        self.locals.mark_init(slot);
+        Ok(())
     }
 
     fn statement(&mut self, stmt: &Statement) -> Fallible<()> {

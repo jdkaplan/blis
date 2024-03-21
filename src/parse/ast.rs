@@ -3,6 +3,8 @@ pub struct Program {
 }
 
 pub enum Declaration {
+    Let(Let),
+
     Statement(Statement),
 }
 
@@ -10,14 +12,11 @@ pub enum Statement {
     Expression(Expression),
 }
 
-pub struct Block {
-    pub decls: Vec<Declaration>,
-    pub expr: Option<Box<Expression>>,
-}
-
 pub enum Expression {
     Block(Block),
     If(If),
+
+    // TODO: Atom?
     Identifier(Identifier),
     Literal(Literal),
 }
@@ -31,6 +30,16 @@ impl Expression {
     }
 }
 
+pub struct Let {
+    pub ident: Identifier,
+    pub expr: Expression,
+}
+
+pub struct Block {
+    pub decls: Vec<Declaration>,
+    pub expr: Option<Box<Expression>>,
+}
+
 pub struct If {
     pub condition: Box<Expression>,
     pub consequent: Block,
@@ -40,6 +49,12 @@ pub struct If {
 #[derive(Debug, Clone)]
 pub struct Identifier {
     pub name: String,
+}
+
+impl Identifier {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
+    }
 }
 
 pub enum Literal {

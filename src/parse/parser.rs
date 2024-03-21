@@ -217,8 +217,24 @@ impl<'source> Parser<'source> {
     }
 
     fn declaration(&mut self) -> Fallible<Declaration> {
-        // TODO: Let
-        self.statement().map(Declaration::Statement)
+        if let Some(let_) = self.take(Token::Let) {
+            self.decl_let(let_).map(Declaration::Let)
+        } else {
+            self.statement().map(Declaration::Statement)
+        }
+    }
+
+    fn decl_let(&mut self, _let: Lexeme<'_>) -> Fallible<Let> {
+        let ident = self.must_take(Token::Identifier)?;
+        let ident = Identifier::new(ident.text);
+
+        // TODO: Allow declaring without a value for conditional init
+        self.must_take(Token::Equal)?;
+
+        let expr = self.expression()?;
+        self.must_take(Token::Semicolon)?;
+
+        Ok(Let { ident, expr })
     }
 
     fn block_declaration(&mut self) -> Fallible<Either<Declaration, Expression>> {
@@ -260,9 +276,7 @@ impl<'source> Parser<'source> {
     }
 
     fn identifier(&mut self, ident: Lexeme<'_>) -> Fallible<Identifier> {
-        Ok(Identifier {
-            name: String::from(ident.text),
-        })
+        Ok(Identifier::new(ident.text))
     }
 
     fn expr_block(&mut self, _open: Lexeme<'_>) -> Fallible<Block> {
