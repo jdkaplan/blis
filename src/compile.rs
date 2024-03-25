@@ -1,6 +1,9 @@
+use tracing::{debug, instrument};
+
 use crate::bytecode::{Chunk, Constant, Op};
 use crate::parse::ast::*;
 
+#[derive(Debug)]
 pub struct Compiler {
     chunk: Chunk,
     errors: Vec<CompileError>,
@@ -41,6 +44,8 @@ pub enum CompileError {
 type CompileResult<T> = Result<T, CompileError>;
 
 type Fallible<T> = Result<T, FailedCodegen>;
+
+#[derive(Debug)]
 struct FailedCodegen;
 
 impl Compiler {
@@ -53,21 +58,40 @@ impl Compiler {
     }
 
     fn error(&mut self, err: CompileError) -> FailedCodegen {
+        debug!({ ?err }, "compile error");
         self.errors.push(err);
         FailedCodegen
     }
 
+    #[instrument(level = "debug", ret)]
     pub fn compile(program: &Program) -> Result<Chunk, CompileErrors> {
         let mut compiler = Self::new();
         let _ = compiler.program(program); // Errors checked below
 
         if compiler.errors.is_empty() {
+            for (idx, val) in compiler.chunk.constants.iter().enumerate() {
+                debug!({ ?idx, ?val }, "constant");
+            }
+
+            for (idx, name) in compiler.chunk.globals.iter().enumerate() {
+                debug!({ ?idx, ?name }, "global");
+            }
+
+            for res in compiler.chunk.iter_code() {
+                let Ok((pc, op)) = res else {
+                    debug!({ ?res }, "chunk error");
+                    break;
+                };
+                debug!({ ?pc, ?op }, "code");
+            }
+
             Ok(compiler.chunk)
         } else {
             Err(CompileErrors(compiler.errors))
         }
     }
 
+    #[instrument(level = "trace")]
     fn program(&mut self, program: &Program) -> Fallible<()> {
         for decl in &program.decls {
             self.declaration(decl)?;
@@ -76,6 +100,7 @@ impl Compiler {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     fn block(&mut self, block: &Block) -> Fallible<()> {
         self.locals.begin_scope();
 
@@ -93,6 +118,7 @@ impl Compiler {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     fn declaration(&mut self, decl: &Declaration) -> Fallible<()> {
         match decl {
             Declaration::Let(let_) => self.decl_let(let_),
@@ -100,6 +126,7 @@ impl Compiler {
         }
     }
 
+    #[instrument(level = "trace")]
     fn decl_let(&mut self, let_: &Let) -> Fallible<()> {
         let slot = self
             .locals
@@ -112,14 +139,36 @@ impl Compiler {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     fn statement(&mut self, stmt: &Statement) -> Fallible<()> {
-        let Statement::Expression(expr) = stmt;
-        self.expression(expr)?;
+        match stmt {
+            Statement::Assignment(assign) => self.stmt_assign(assign),
 
-        self.chunk.push(Op::Pop);
+            Statement::Expression(expr) => {
+                self.expression(expr)?;
+                self.chunk.push(Op::Pop);
+                Ok(())
+            }
+        }
+    }
+
+    #[instrument(level = "trace")]
+    fn stmt_assign(&mut self, assign: &Assignment) -> Fallible<()> {
+        let Place::Identifier(ident) = &assign.place;
+
+        self.expression(&assign.expr)?;
+
+        if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
+            self.chunk.push(Op::LocalSet(slot));
+        } else {
+            let global = self.chunk.make_global(ident.name.clone());
+            self.chunk.push(Op::GlobalSet(global));
+        }
+
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     fn expression(&mut self, expr: &Expression) -> Fallible<()> {
         match expr {
             Expression::Block(block) => self.block(block),
@@ -129,6 +178,7 @@ impl Compiler {
         }
     }
 
+    #[instrument(level = "trace")]
     fn expr_if(&mut self, if_: &If) -> Fallible<()> {
         // <cond>
         self.expression(&if_.condition)?;
@@ -142,6 +192,7 @@ impl Compiler {
         let Some(alt) = &if_.alternative else {
             // 'skip_conseq:
             self.chunk.set_jump_target(skip_conseq);
+            self.chunk.push(Op::Nil);
             return Ok(());
         };
 
@@ -160,6 +211,7 @@ impl Compiler {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     fn identifier(&mut self, ident: &Identifier) -> Fallible<()> {
         if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
             self.chunk.push(Op::LocalGet(slot));
@@ -170,6 +222,7 @@ impl Compiler {
         Ok(())
     }
 
+    #[instrument(level = "trace")]
     fn literal(&mut self, lit: &Literal) -> Fallible<()> {
         match lit {
             Literal::Nil => {
@@ -216,10 +269,12 @@ struct Locals {
 }
 
 impl Locals {
+    #[instrument(level = "trace")]
     fn begin_scope(&mut self) {
         self.scope_depth += 1;
     }
 
+    #[instrument(level = "trace")]
     fn end_scope(&mut self) -> usize {
         self.scope_depth -= 1;
 
@@ -238,13 +293,14 @@ impl Locals {
     }
 
     fn iter_slots(&self) -> impl Iterator<Item = (usize, &Local)> {
-        self.locals.iter().rev().enumerate()
+        self.locals.iter().enumerate().rev()
     }
 
     fn iter_stack(&self) -> impl Iterator<Item = &Local> {
         self.locals.iter().rev()
     }
 
+    #[instrument(level = "trace")]
     fn resolve<'a>(&'a self, name: &str) -> Option<(u8, &'a Local)> {
         for (slot, var) in self.iter_slots() {
             if var.ident.name == name {
@@ -255,6 +311,7 @@ impl Locals {
         None
     }
 
+    #[instrument(level = "trace")]
     fn reserve(&mut self, ident: Identifier) -> CompileResult<u8> {
         if self.locals.len() >= (u8::MAX as usize) {
             panic!("Too many locals! Time to add Local2 variants");
@@ -281,6 +338,7 @@ impl Locals {
         Ok(slot)
     }
 
+    #[instrument(level = "trace")]
     fn mark_init(&mut self, slot: u8) {
         self.locals[slot as usize].initialized = true;
     }

@@ -82,7 +82,7 @@ impl Vm {
         let mut pc = 0;
 
         loop {
-            trace!({ ?pc }, "fetch");
+            trace!({ ?pc, ?self.stack }, "fetch");
 
             let op = Op::scan(&chunk.code[pc..])?;
             let Some(op) = op else {

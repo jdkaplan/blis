@@ -42,6 +42,9 @@ pub enum ParseError {
 
     #[error(transparent)]
     ParseFloat(ParseFloatError),
+
+    #[error(transparent)]
+    InvalidPlace(PlaceError),
 }
 
 pub struct Parser<'source> {
@@ -93,8 +96,11 @@ impl<'source> Parser<'source> {
 }
 
 type Fallible<T> = Result<T, FailedParse>;
+
+#[derive(Debug)]
 struct FailedParse;
 
+#[derive(Debug)]
 enum Either<L, R> {
     L(L),
     R(R),
@@ -167,6 +173,7 @@ impl<'source> Parser<'source> {
     }
 
     fn error(&mut self, err: ParseError) {
+        debug!({ ?err }, "parse error");
         self.errors.push(err);
         self.panicking = true;
     }
@@ -198,6 +205,7 @@ impl<'source> Parser<'source> {
 }
 
 impl<'source> Parser<'source> {
+    #[instrument(level = "trace", ret)]
     fn program(&mut self) -> Program {
         let mut decls = Vec::new();
 
@@ -211,19 +219,47 @@ impl<'source> Parser<'source> {
         Program { decls }
     }
 
+    #[instrument(level = "trace", ret)]
     fn block(&mut self) -> Fallible<Block> {
         let open = self.must_take(Token::LeftBrace)?;
         self.expr_block(open)
     }
 
+    #[instrument(level = "trace", ret)]
     fn declaration(&mut self) -> Fallible<Declaration> {
-        if let Some(let_) = self.take(Token::Let) {
-            self.decl_let(let_).map(Declaration::Let)
+        if let Some(decl) = self.decl_only()? {
+            Ok(decl)
         } else {
             self.statement().map(Declaration::Statement)
         }
     }
 
+    #[instrument(level = "trace", ret)]
+    fn block_declaration(&mut self) -> Fallible<Either<Declaration, Expression>> {
+        let either = self.decl_or_expr()?;
+        Ok(either)
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn decl_or_expr(&mut self) -> Fallible<Either<Declaration, Expression>> {
+        if let Some(decl) = self.decl_only()? {
+            return Ok(Either::L(decl));
+        }
+
+        let either = self.stmt_or_expr()?;
+        Ok(either.map_l(Declaration::Statement))
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn decl_only(&mut self) -> Fallible<Option<Declaration>> {
+        if let Some(let_) = self.take(Token::Let) {
+            self.decl_let(let_).map(Declaration::Let).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    #[instrument(level = "trace", ret)]
     fn decl_let(&mut self, _let: Lexeme<'_>) -> Fallible<Let> {
         let ident = self.must_take(Token::Identifier)?;
         let ident = Identifier::new(ident.text);
@@ -237,24 +273,46 @@ impl<'source> Parser<'source> {
         Ok(Let { ident, expr })
     }
 
-    fn block_declaration(&mut self) -> Fallible<Either<Declaration, Expression>> {
-        let either = self.stmt_or_expr()?;
-        Ok(either.map_l(Declaration::Statement))
-    }
-
+    #[instrument(level = "trace", ret)]
     fn stmt_or_expr(&mut self) -> Fallible<Either<Statement, Expression>> {
         let expr = self.expression()?;
 
         if let Some(_semi) = self.take(Token::Semicolon) {
-            Ok(Either::L(Statement::Expression(expr)))
+            let stmt = Statement::Expression(expr);
+            Ok(Either::L(stmt))
+        } else if let Some(_eq) = self.take(Token::Equal) {
+            let place = Place::try_from(expr).map_err(|err| {
+                self.error(ParseError::InvalidPlace(err));
+                FailedParse
+            })?;
+
+            let expr = self.expression()?;
+
+            self.must_take(Token::Semicolon)?;
+
+            let stmt = Statement::Assignment(Assignment { place, expr });
+            return Ok(Either::L(stmt));
         } else {
             Ok(Either::R(expr))
         }
     }
 
+    #[instrument(level = "trace", ret)]
     fn statement(&mut self) -> Fallible<Statement> {
-        // TODO: Assignment
         let expr = self.expression()?;
+
+        if let Some(_eq) = self.take(Token::Equal) {
+            let place = Place::try_from(expr).map_err(|err| {
+                self.error(ParseError::InvalidPlace(err));
+                FailedParse
+            })?;
+
+            let expr = self.expression()?;
+
+            self.must_take(Token::Semicolon)?;
+
+            return Ok(Statement::Assignment(Assignment { place, expr }));
+        }
 
         if !expr.self_terminating() {
             self.must_take(Token::Semicolon)?;
@@ -263,6 +321,7 @@ impl<'source> Parser<'source> {
         Ok(Statement::Expression(expr))
     }
 
+    #[instrument(level = "trace", ret)]
     fn expression(&mut self) -> Fallible<Expression> {
         if let Some(open) = self.take(Token::LeftBrace) {
             self.expr_block(open).map(Expression::Block)
@@ -275,10 +334,12 @@ impl<'source> Parser<'source> {
         }
     }
 
+    #[instrument(level = "trace", ret)]
     fn identifier(&mut self, ident: Lexeme<'_>) -> Fallible<Identifier> {
         Ok(Identifier::new(ident.text))
     }
 
+    #[instrument(level = "trace", ret)]
     fn expr_block(&mut self, _open: Lexeme<'_>) -> Fallible<Block> {
         let mut decls = Vec::new();
 
@@ -310,6 +371,7 @@ impl<'source> Parser<'source> {
         Ok(Block { decls, expr: None })
     }
 
+    #[instrument(level = "trace", ret)]
     fn expr_if(&mut self, _if: Lexeme<'_>) -> Fallible<If> {
         let condition = self.expression()?;
         let consequent = self.block()?;
@@ -326,6 +388,7 @@ impl<'source> Parser<'source> {
         })
     }
 
+    #[instrument(level = "trace", ret)]
     fn literal(&mut self) -> Fallible<Literal> {
         if let Some(_nil) = self.take(Token::Nil) {
             Ok(Literal::Nil)
@@ -354,18 +417,18 @@ impl<'source> Parser<'source> {
         }
     }
 
+    #[instrument(level = "trace", ret)]
     fn integer(&mut self, text: &str) -> Fallible<Literal> {
         text.parse::<u64>().map(Literal::Integer).map_err(|err| {
-            let err = ParseError::ParseInt(err);
-            self.error(err);
+            self.error(ParseError::ParseInt(err));
             FailedParse
         })
     }
 
+    #[instrument(level = "trace", ret)]
     fn float(&mut self, text: &str) -> Fallible<Literal> {
         text.parse::<f64>().map(Literal::Float).map_err(|err| {
-            let err = ParseError::ParseFloat(err);
-            self.error(err);
+            self.error(ParseError::ParseFloat(err));
             FailedParse
         })
     }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::bytecode::Op;
+use crate::bytecode::{Op, OpError};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Constant {
@@ -12,9 +12,18 @@ pub enum Constant {
 #[derive(Default, Serialize, Deserialize)]
 pub struct Chunk {
     pub constants: Vec<Constant>,
-    pub code: Vec<u8>,
-
     pub globals: Vec<String>,
+    pub code: Vec<u8>,
+}
+
+impl std::fmt::Debug for Chunk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Chunk")
+            .field("constants", &format!("(count: {})", self.constants.len()))
+            .field("globals", &format!("(count: {})", self.globals.len()))
+            .field("code", &format!("(bytes: {})", self.code.len()))
+            .finish()
+    }
 }
 
 impl Chunk {
@@ -118,5 +127,46 @@ impl Chunk {
     pub fn write(&self, w: impl std::io::Write) -> Result<(), ChunkWriteError> {
         postcard::to_io(self, w).map_err(ChunkWriteError::Serialize)?;
         Ok(())
+    }
+}
+
+impl Chunk {
+    pub fn iter_code(&self) -> CodeIterator<'_> {
+        CodeIterator {
+            code: &self.code,
+            pc: 0,
+            errored: false,
+        }
+    }
+}
+
+pub struct CodeIterator<'a> {
+    code: &'a [u8],
+    pc: usize,
+    errored: bool,
+}
+
+impl Iterator for CodeIterator<'_> {
+    type Item = Result<(usize, Op), OpError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.errored {
+            return None;
+        }
+
+        let pc = self.pc;
+        match Op::scan(&self.code[pc..]) {
+            Ok(None) => None,
+
+            Ok(Some(op)) => {
+                self.pc += op.size_bytes();
+                Some(Ok((pc, op)))
+            }
+
+            Err(err) => {
+                self.errored = true;
+                Some(Err(err))
+            }
+        }
     }
 }
