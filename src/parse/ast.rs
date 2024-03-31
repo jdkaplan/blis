@@ -24,18 +24,22 @@ pub enum Expression {
     Block(Block),
     If(If),
 
-    // TODO: Atom?
-    Identifier(Identifier),
-    Literal(Literal),
+    Atom(Atom),
 }
 
 impl Expression {
     pub fn self_terminating(&self) -> bool {
         match self {
             Expression::Block(_) | Expression::If(_) => true,
-            Expression::Identifier(_) | Expression::Literal(_) => false,
+            Expression::Atom(_) => false,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Atom {
+    Identifier(Identifier),
+    Literal(Literal),
 }
 
 #[derive(Debug, Clone)]
@@ -58,11 +62,18 @@ pub struct PlaceError {
 impl TryFrom<Expression> for Place {
     type Error = PlaceError;
 
-    fn try_from(target: Expression) -> Result<Self, Self::Error> {
-        match target {
-            Expression::Identifier(ident) => Ok(Place::Identifier(ident)),
-            target => Err(PlaceError { target }),
-        }
+    fn try_from(expr: Expression) -> Result<Self, Self::Error> {
+        let target = expr.clone();
+
+        let Expression::Atom(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Atom::Identifier(ident) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        Ok(Place::Identifier(ident))
     }
 }
 

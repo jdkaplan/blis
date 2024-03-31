@@ -327,10 +327,17 @@ impl<'source> Parser<'source> {
             self.expr_block(open).map(Expression::Block)
         } else if let Some(if_) = self.take(Token::If) {
             self.expr_if(if_).map(Expression::If)
-        } else if let Some(ident) = self.take(Token::Identifier) {
-            self.identifier(ident).map(Expression::Identifier)
         } else {
-            self.literal().map(Expression::Literal)
+            self.atom().map(Expression::Atom)
+        }
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn atom(&mut self) -> Fallible<Atom> {
+        if let Some(ident) = self.take(Token::Identifier) {
+            self.identifier(ident).map(Atom::Identifier)
+        } else {
+            self.literal().map(Atom::Literal)
         }
     }
 

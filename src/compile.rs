@@ -173,8 +173,15 @@ impl Compiler {
         match expr {
             Expression::Block(block) => self.block(block),
             Expression::If(if_) => self.expr_if(if_),
-            Expression::Identifier(ident) => self.identifier(ident),
-            Expression::Literal(lit) => self.literal(lit),
+            Expression::Atom(atom) => self.atom(atom),
+        }
+    }
+
+    #[instrument(level = "trace")]
+    fn atom(&mut self, atom: &Atom) -> Fallible<()> {
+        match atom {
+            Atom::Identifier(ident) => self.identifier(ident),
+            Atom::Literal(lit) => self.literal(lit),
         }
     }
 
