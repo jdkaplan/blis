@@ -170,10 +170,223 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn expression(&mut self, expr: &Expression) -> Fallible<()> {
-        match expr {
-            Expression::Block(block) => self.block(block),
-            Expression::If(if_) => self.expr_if(if_),
-            Expression::Atom(atom) => self.atom(atom),
+        let Expression::LogicOr(or) = expr;
+        self.logic_or(or)
+    }
+
+    #[instrument(level = "trace")]
+    fn logic_or(&mut self, or: &LogicOr) -> Fallible<()> {
+        // This leaves the last value that was considered on top of the stack.
+
+        // <a>
+        self.logic_and(&or.first)?;
+
+        let mut shorts = Vec::new();
+        for and in &or.rest {
+            // jump_true_peek 'short_circuit
+            let short = self.chunk.prepare_jump(Op::JumpTruePeek(i16::MAX));
+            shorts.push(short);
+
+            // pop ; <a> was falsey
+            self.chunk.push(Op::Pop);
+
+            // <b>
+            self.logic_and(and)?;
+        }
+
+        // 'short_circuit:
+        for jump in shorts {
+            self.chunk.set_jump_target(jump);
+        }
+
+        Ok(())
+    }
+
+    fn logic_and(&mut self, and: &LogicAnd) -> Fallible<()> {
+        // This leaves the last value that was considered on top of the stack.
+
+        // <a>
+        self.equality(&and.first)?;
+
+        let mut shorts = Vec::new();
+        for eq in &and.rest {
+            // jump_false_peek 'short_circuit
+            let short = self.chunk.prepare_jump(Op::JumpFalsePeek(i16::MAX));
+            shorts.push(short);
+
+            // pop ; <a> was truthy
+            self.chunk.push(Op::Pop);
+
+            // <b>
+            self.equality(eq)?;
+        }
+
+        // 'short_circuit:
+        for jump in shorts {
+            self.chunk.set_jump_target(jump);
+        }
+
+        Ok(())
+    }
+
+    fn equality(&mut self, eq: &Equality) -> Fallible<()> {
+        match eq {
+            Equality::Value(comp) => self.comparison(comp),
+
+            Equality::Eq(a, b) => {
+                self.equality(a)?;
+                self.comparison(b)?;
+                self.chunk.push(Op::Eq);
+                Ok(())
+            }
+
+            Equality::Ne(a, b) => {
+                self.equality(a)?;
+                self.comparison(b)?;
+                self.chunk.push(Op::Ne);
+                Ok(())
+            }
+        }
+    }
+
+    fn comparison(&mut self, comp: &Comparison) -> Fallible<()> {
+        match comp {
+            Comparison::Value(term) => self.term(term),
+
+            Comparison::Gt(a, b) => {
+                self.comparison(a)?;
+                self.term(b)?;
+                self.chunk.push(Op::Gt);
+                Ok(())
+            }
+
+            Comparison::Ge(a, b) => {
+                self.comparison(a)?;
+                self.term(b)?;
+                self.chunk.push(Op::Ge);
+                Ok(())
+            }
+
+            Comparison::Lt(a, b) => {
+                self.comparison(a)?;
+                self.term(b)?;
+                self.chunk.push(Op::Lt);
+                Ok(())
+            }
+
+            Comparison::Le(a, b) => {
+                self.comparison(a)?;
+                self.term(b)?;
+                self.chunk.push(Op::Le);
+                Ok(())
+            }
+        }
+    }
+
+    fn term(&mut self, term: &Term) -> Fallible<()> {
+        match term {
+            Term::Value(factor) => self.factor(factor),
+
+            Term::Add(a, b) => {
+                self.term(a)?;
+                self.factor(b)?;
+                self.chunk.push(Op::Add);
+                Ok(())
+            }
+
+            Term::Sub(a, b) => {
+                self.term(a)?;
+                self.factor(b)?;
+                self.chunk.push(Op::Sub);
+                Ok(())
+            }
+        }
+    }
+
+    fn factor(&mut self, factor: &Factor) -> Fallible<()> {
+        match factor {
+            Factor::Value(unary) => self.unary(unary),
+
+            Factor::Mul(a, b) => {
+                self.factor(a)?;
+                self.unary(b)?;
+                self.chunk.push(Op::Mul);
+                Ok(())
+            }
+
+            Factor::Div(a, b) => {
+                self.factor(a)?;
+                self.unary(b)?;
+                self.chunk.push(Op::Div);
+                Ok(())
+            }
+
+            Factor::Rem(a, b) => {
+                self.factor(a)?;
+                self.unary(b)?;
+                self.chunk.push(Op::Rem);
+                Ok(())
+            }
+        }
+    }
+
+    fn unary(&mut self, unary: &Unary) -> Fallible<()> {
+        match unary {
+            Unary::Value(call) => self.call(call),
+
+            Unary::Not(a) => {
+                self.unary(a)?;
+                self.chunk.push(Op::Not);
+                Ok(())
+            }
+
+            Unary::Neg(a) => {
+                self.unary(a)?;
+                self.chunk.push(Op::Neg);
+                Ok(())
+            }
+        }
+    }
+
+    fn call(&mut self, call: &Call) -> Fallible<()> {
+        match call {
+            Call::Value(primary) => self.primary(primary),
+
+            Call::Call(callee, args) => {
+                self.call(callee)?;
+                for arg in args {
+                    self.expression(arg)?;
+                }
+
+                let arity: u8 = args.len().try_into().expect("at most 255 args");
+                self.chunk.push(Op::Call(arity)); // TODO: should be parens
+                Ok(())
+            }
+
+            Call::Index(obj, key) => {
+                self.call(obj)?;
+                self.expression(key)?;
+                self.chunk.push(Op::Index); // TODO: should be brackets
+                Ok(())
+            }
+
+            Call::Field(obj, field) => {
+                self.call(obj)?;
+
+                let name = Constant::String(field.name.clone());
+                let id = self.chunk.add_constant(name);
+                self.chunk.push(Op::Constant(id));
+                Ok(())
+            }
+        }
+    }
+
+    #[instrument(level = "trace")]
+    fn primary(&mut self, primary: &Primary) -> Fallible<()> {
+        match primary {
+            Primary::Block(block) => self.block(block),
+            Primary::If(if_) => self.expr_if(if_),
+            Primary::Atom(atom) => self.atom(atom),
         }
     }
 

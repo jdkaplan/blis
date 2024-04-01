@@ -52,6 +52,8 @@ impl<'source> Lexer<'source> {
             // One character, no lookahead
             '(' => self.make(Token::LeftParen),
             ')' => self.make(Token::RightParen),
+            '[' => self.make(Token::LeftBracket),
+            ']' => self.make(Token::RightBracket),
             '{' => self.make(Token::LeftBrace),
             '}' => self.make(Token::RightBrace),
             ';' => self.make(Token::Semicolon),

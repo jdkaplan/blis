@@ -21,17 +21,160 @@ pub enum Statement {
 
 #[derive(Debug, Clone)]
 pub enum Expression {
+    LogicOr(LogicOr),
+}
+
+impl Expression {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Expression::LogicOr(or) => or.self_terminating(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LogicOr {
+    pub first: LogicAnd,
+    pub rest: Vec<LogicAnd>,
+}
+
+impl LogicOr {
+    pub fn self_terminating(&self) -> bool {
+        self.rest.is_empty() && self.first.self_terminating()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LogicAnd {
+    pub first: Equality,
+    pub rest: Vec<Equality>,
+}
+
+impl LogicAnd {
+    pub fn self_terminating(&self) -> bool {
+        self.rest.is_empty() && self.first.self_terminating()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Equality {
+    Value(Comparison),
+
+    Eq(Box<Equality>, Comparison),
+    Ne(Box<Equality>, Comparison),
+}
+
+impl Equality {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Equality::Value(comp) => comp.self_terminating(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Comparison {
+    Value(Term),
+
+    Ge(Box<Comparison>, Term),
+    Gt(Box<Comparison>, Term),
+    Le(Box<Comparison>, Term),
+    Lt(Box<Comparison>, Term),
+}
+
+impl Comparison {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Comparison::Value(term) => term.self_terminating(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Term {
+    Value(Factor),
+
+    Add(Box<Term>, Factor),
+    Sub(Box<Term>, Factor),
+}
+
+impl Term {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Term::Value(factor) => factor.self_terminating(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Factor {
+    Value(Unary),
+
+    Mul(Box<Factor>, Unary),
+    Div(Box<Factor>, Unary),
+    Rem(Box<Factor>, Unary),
+}
+
+impl Factor {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Factor::Value(unary) => unary.self_terminating(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Unary {
+    Value(Call),
+
+    Neg(Box<Unary>),
+    Not(Box<Unary>),
+}
+
+impl Unary {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Unary::Value(call) => call.self_terminating(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Call {
+    Value(Primary),
+
+    Call(Box<Call>, Vec<Expression>),
+    Index(Box<Call>, Box<Expression>),
+    Field(Box<Call>, Identifier),
+}
+
+impl Call {
+    pub fn self_terminating(&self) -> bool {
+        match self {
+            Call::Value(call) => call.self_terminating(),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Primary {
     Block(Block),
     If(If),
 
     Atom(Atom),
 }
 
-impl Expression {
+impl Primary {
     pub fn self_terminating(&self) -> bool {
         match self {
-            Expression::Block(_) | Expression::If(_) => true,
-            Expression::Atom(_) => false,
+            Primary::Block(_) | Primary::If(_) => true,
+            Primary::Atom(_) => false,
         }
     }
 }
@@ -65,7 +208,43 @@ impl TryFrom<Expression> for Place {
     fn try_from(expr: Expression) -> Result<Self, Self::Error> {
         let target = expr.clone();
 
-        let Expression::Atom(expr) = expr else {
+        let Expression::LogicOr(expr) = expr;
+
+        let LogicOr { first: expr, rest } = expr;
+        if !rest.is_empty() {
+            return Err(PlaceError { target });
+        }
+
+        let LogicAnd { first: expr, rest } = &expr;
+        if !rest.is_empty() {
+            return Err(PlaceError { target });
+        }
+
+        let Equality::Value(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Comparison::Value(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Term::Value(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Factor::Value(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Unary::Value(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Call::Value(expr) = expr else {
+            return Err(PlaceError { target });
+        };
+
+        let Primary::Atom(expr) = expr else {
             return Err(PlaceError { target });
         };
 
@@ -73,7 +252,7 @@ impl TryFrom<Expression> for Place {
             return Err(PlaceError { target });
         };
 
-        Ok(Place::Identifier(ident))
+        Ok(Place::Identifier(ident.clone()))
     }
 }
 

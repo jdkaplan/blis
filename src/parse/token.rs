@@ -27,6 +27,8 @@ pub enum Token {
     // Single-character tokens
     LeftParen,
     RightParen,
+    LeftBracket,
+    RightBracket,
     LeftBrace,
     RightBrace,
     Comma,

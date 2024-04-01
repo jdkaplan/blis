@@ -7,10 +7,13 @@ pub enum Op {
     Pop = 0x01,
     PopN(u8) = 0x02,
 
-    Constant(u8) = 0x10,
-    Nil = 0x11,
-    False = 0x12,
-    True = 0x13,
+    Constant(u8) = 0x03,
+    Nil = 0x04,
+    False = 0x05,
+    True = 0x06,
+
+    Call(u8) = 0x10,
+    Index = 0x11,
 
     LocalGet(u8) = 0x20,
     LocalSet(u8) = 0x21,
@@ -18,6 +21,22 @@ pub enum Op {
     GlobalGet(u8) = 0x23,
     GlobalSet(u8) = 0x24,
 
+    Not = 0x30,
+    Eq = 0x31,
+    Ne = 0x32,
+    Gt = 0x33,
+    Ge = 0x34,
+    Lt = 0x35,
+    Le = 0x36,
+
+    Neg = 0x37,
+    Add = 0x38,
+    Sub = 0x39,
+    Mul = 0x3a,
+    Div = 0x3b,
+    Rem = 0x3c,
+
+    // Jumps
     Jump(i16) = 0x60,
     JumpFalsePeek(i16) = 0x61,
     JumpFalsePop(i16) = 0x62,
@@ -44,10 +63,29 @@ impl Op {
 
         let mut build = op;
         match build {
-            Op::Return | Op::Pop | Op::Nil | Op::False | Op::True => {}
+            Op::Return
+            | Op::Pop
+            | Op::Nil
+            | Op::False
+            | Op::True
+            | Op::Index
+            | Op::Not
+            | Op::Eq
+            | Op::Ne
+            | Op::Gt
+            | Op::Ge
+            | Op::Lt
+            | Op::Le
+            | Op::Neg
+            | Op::Add
+            | Op::Sub
+            | Op::Mul
+            | Op::Div
+            | Op::Rem => {}
 
             Op::Constant(ref mut byte)
             | Op::PopN(ref mut byte)
+            | Op::Call(ref mut byte)
             | Op::LocalGet(ref mut byte)
             | Op::LocalSet(ref mut byte)
             | Op::GlobalDefine(ref mut byte)
@@ -84,10 +122,29 @@ impl Op {
         let mut bytes = vec![opcode];
 
         match self {
-            Op::Return | Op::Pop | Op::Nil | Op::False | Op::True => {}
+            Op::Return
+            | Op::Pop
+            | Op::Nil
+            | Op::False
+            | Op::True
+            | Op::Index
+            | Op::Not
+            | Op::Eq
+            | Op::Ne
+            | Op::Gt
+            | Op::Ge
+            | Op::Lt
+            | Op::Le
+            | Op::Neg
+            | Op::Add
+            | Op::Sub
+            | Op::Mul
+            | Op::Div
+            | Op::Rem => {}
 
             Op::Constant(byte)
             | Op::PopN(byte)
+            | Op::Call(byte)
             | Op::LocalGet(byte)
             | Op::LocalSet(byte)
             | Op::GlobalDefine(byte)
