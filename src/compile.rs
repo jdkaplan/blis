@@ -1,3 +1,4 @@
+use num_rational::BigRational;
 use tracing::{debug, instrument};
 
 use crate::bytecode::{Chunk, Constant, Op};
@@ -359,14 +360,14 @@ impl Compiler {
                 }
 
                 let arity: u8 = args.len().try_into().expect("at most 255 args");
-                self.chunk.push(Op::Call(arity)); // TODO: should be parens
+                self.chunk.push(Op::Call(arity));
                 Ok(())
             }
 
             Call::Index(obj, key) => {
                 self.call(obj)?;
                 self.expression(key)?;
-                self.chunk.push(Op::Index); // TODO: should be brackets
+                self.chunk.push(Op::Index);
                 Ok(())
             }
 
@@ -457,7 +458,8 @@ impl Compiler {
             }
 
             Literal::Integer(v) => {
-                let id = self.chunk.add_constant(Constant::Integer(*v));
+                let r = BigRational::new(v.clone(), 1.into());
+                let id = self.chunk.add_constant(Constant::Rational(r));
                 self.chunk.push(Op::Constant(id));
             }
             Literal::Float(v) => {

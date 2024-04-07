@@ -1,8 +1,9 @@
 use std::iter::Peekable;
-use std::num::{ParseFloatError, ParseIntError};
+use std::num::ParseFloatError;
 use std::str::Chars;
 
 use itertools::{peek_nth, PeekNth};
+use num_bigint::{BigInt, ParseBigIntError};
 use tracing::{debug, instrument};
 
 use crate::parse::ast::*;
@@ -38,7 +39,7 @@ pub enum ParseError {
     Syntax(#[from] SyntaxError),
 
     #[error(transparent)]
-    ParseInt(ParseIntError),
+    ParseInt(ParseBigIntError),
 
     #[error(transparent)]
     ParseFloat(ParseFloatError),
@@ -642,7 +643,7 @@ impl<'source> Parser<'source> {
 
     #[instrument(level = "trace", ret)]
     fn integer(&mut self, text: &str) -> Fallible<Literal> {
-        text.parse::<u64>().map(Literal::Integer).map_err(|err| {
+        text.parse::<BigInt>().map(Literal::Integer).map_err(|err| {
             self.error(ParseError::ParseInt(err));
             FailedParse
         })

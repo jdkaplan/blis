@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use num_rational::BigRational;
 use tracing::trace;
 
 use crate::bytecode::{Chunk, Constant, Op, OpError};
@@ -8,7 +9,7 @@ use crate::runtime::{Value, ValueType};
 impl From<Constant> for Value {
     fn from(constant: Constant) -> Self {
         match constant {
-            Constant::Integer(v) => Value::Integer(v),
+            Constant::Rational(v) => Value::Rational(v),
             Constant::Float(v) => Value::Float(v),
             Constant::String(v) => Value::String(v),
         }
@@ -42,10 +43,10 @@ pub enum VmError {
     Type { expected: String, actual: Value },
 
     #[error("type error: cannot compare `{:?}` and `{:?}`", a, b)]
-    Compare { a: Value, b: Value },
+    Compare { a: Box<Value>, b: Box<Value> },
 
     #[error("type error: cannot perform arithmetic with `{:?}` and `{:?}`", a, b)]
-    Arithmetic { a: Value, b: Value },
+    Arithmetic { a: Box<Value>, b: Box<Value> },
 }
 
 impl Vm {
@@ -127,8 +128,8 @@ impl Vm {
 
                     if a_ty != b_ty || !a_ty.is_numeric() {
                         return Err(VmError::Compare {
-                            a: a.clone(),
-                            b: b.clone(),
+                            a: Box::new(a.clone()),
+                            b: Box::new(b.clone()),
                         });
                     }
 
@@ -139,7 +140,7 @@ impl Vm {
             }
 
             macro_rules! bin_op {
-                ($op_int:expr, $op_float:expr) => {{
+                ($op_rat:expr, $op_float:expr) => {{
                     let b = self.peek(0)?;
                     let a = self.peek(1)?;
 
@@ -154,20 +155,20 @@ impl Vm {
                             self.push(Value::Float($op_float(a, b)));
                         }
 
-                        (Value::Integer(_), Value::Integer(_)) => {
-                            let Ok(Value::Integer(b)) = self.pop() else {
+                        (Value::Rational(_), Value::Rational(_)) => {
+                            let Ok(Value::Rational(b)) = self.pop() else {
                                 unreachable!()
                             };
-                            let Ok(Value::Integer(a)) = self.pop() else {
+                            let Ok(Value::Rational(a)) = self.pop() else {
                                 unreachable!()
                             };
-                            self.push(Value::Integer($op_int(a, b)));
+                            self.push(Value::Rational($op_rat(a, b)));
                         }
 
                         (a, b) => {
                             return Err(VmError::Arithmetic {
-                                a: a.clone(),
-                                b: b.clone(),
+                                a: Box::new(a.clone()),
+                                b: Box::new(b.clone()),
                             });
                         }
                     }
@@ -190,7 +191,8 @@ impl Vm {
 
                 Op::Constant(idx) => {
                     let constant = &chunk.constants[idx as usize];
-                    self.push(Value::from(constant.clone()));
+                    let v = Value::from(constant.clone());
+                    self.push(v);
                 }
 
                 Op::Nil => {
@@ -293,8 +295,8 @@ impl Vm {
                     let a = self.peek(0)?;
 
                     match a {
-                        Value::Integer(i) => {
-                            let val = Value::Integer(i.wrapping_neg());
+                        Value::Rational(i) => {
+                            let val = Value::Rational(-i);
                             let _ = self.pop().expect("peek");
                             self.push(val);
                         }
@@ -312,11 +314,54 @@ impl Vm {
                     }
                 }
                 // TODO: String concatenation
-                Op::Add => bin_op!(std::ops::Add::<u64>::add, std::ops::Add::<f64>::add),
-                Op::Sub => bin_op!(std::ops::Sub::<u64>::sub, std::ops::Sub::<f64>::sub),
-                Op::Mul => bin_op!(std::ops::Mul::<u64>::mul, std::ops::Mul::<f64>::mul),
-                Op::Div => bin_op!(std::ops::Div::<u64>::div, std::ops::Div::<f64>::div),
-                Op::Rem => bin_op!(std::ops::Rem::<u64>::rem, std::ops::Rem::<f64>::rem),
+                Op::Add => {
+                    let b = self.peek(0)?;
+                    let a = self.peek(1)?;
+
+                    match (a, b) {
+                        (Value::Float(_), Value::Float(_)) => {
+                            let Ok(Value::Float(b)) = self.pop() else {
+                                unreachable!()
+                            };
+                            let Ok(Value::Float(a)) = self.pop() else {
+                                unreachable!()
+                            };
+                            self.push(Value::Float(a + b));
+                        }
+
+                        (Value::Rational(_), Value::Rational(_)) => {
+                            let Ok(Value::Rational(b)) = self.pop() else {
+                                unreachable!()
+                            };
+                            let Ok(Value::Rational(a)) = self.pop() else {
+                                unreachable!()
+                            };
+                            self.push(Value::Rational(a + b));
+                        }
+
+                        (Value::String(_), Value::String(_)) => {
+                            let Ok(Value::String(b)) = self.pop() else {
+                                unreachable!()
+                            };
+                            let Ok(Value::String(a)) = self.pop() else {
+                                unreachable!()
+                            };
+                            // TODO: Intern all strings for constant-time comparisons.
+                            self.push(Value::String(a + &b));
+                        }
+
+                        (a, b) => {
+                            return Err(VmError::Arithmetic {
+                                a: Box::new(a.clone()),
+                                b: Box::new(b.clone()),
+                            });
+                        }
+                    }
+                }
+                Op::Sub => bin_op!(std::ops::Sub::<BigRational>::sub, std::ops::Sub::<f64>::sub),
+                Op::Mul => bin_op!(std::ops::Mul::<BigRational>::mul, std::ops::Mul::<f64>::mul),
+                Op::Div => bin_op!(std::ops::Div::<BigRational>::div, std::ops::Div::<f64>::div),
+                Op::Rem => bin_op!(std::ops::Rem::<BigRational>::rem, std::ops::Rem::<f64>::rem),
             }
         }
     }

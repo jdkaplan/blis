@@ -87,9 +87,7 @@ impl Run {
         };
 
         let mut vm = Vm::default();
-        vm.interpret(chunk)?;
-
-        Ok(())
+        vm.interpret(chunk).wrap_err("runtime error")
     }
 }
 

@@ -1,11 +1,13 @@
+use num_rational::BigRational;
+
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
 pub enum Value {
     Nil,
     Boolean(bool),
-    Integer(u64),
     Float(f64),
-    String(String), // TODO: Heap-allocate
+    Rational(BigRational),
+    String(String),
 }
 
 impl Value {
@@ -41,11 +43,11 @@ impl PartialEq for Value {
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
             (Value::Boolean(_), _) => false,
 
-            (Value::Integer(a), Value::Integer(b)) => a == b,
-            (Value::Integer(_), _) => false,
-
             (Value::Float(a), Value::Float(b)) => a == b,
             (Value::Float(_), _) => false,
+
+            (Value::Rational(a), Value::Rational(b)) => a == b,
+            (Value::Rational(_), _) => false,
 
             (Value::String(a), Value::String(b)) => a == b,
             (Value::String(_), _) => false,
@@ -55,20 +57,29 @@ impl PartialEq for Value {
 
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        use std::cmp::Ordering;
+
         match (self, other) {
-            (Value::Integer(a), Value::Integer(b)) => a.partial_cmp(b),
-            (Value::Integer(_), _) => None,
+            (Value::Nil, Value::Nil) => Some(Ordering::Equal),
+            (Value::Nil, _) => None,
+
+            (Value::Boolean(a), Value::Boolean(b)) => a.partial_cmp(b),
+            (Value::Boolean(_), _) => None,
 
             (Value::Float(a), Value::Float(b)) => a.partial_cmp(b),
             (Value::Float(_), _) => None,
 
-            _ => unreachable!(),
+            (Value::Rational(a), Value::Rational(b)) => a.partial_cmp(b),
+            (Value::Rational(_), _) => None,
+
+            (Value::String(a), Value::String(b)) => a.partial_cmp(b),
+            (Value::String(_), _) => None,
         }
     }
 }
 
 impl ValueType {
     pub fn is_numeric(&self) -> bool {
-        self == &ValueType::Integer || self == &ValueType::Float
+        self == &ValueType::Rational || self == &ValueType::Float
     }
 }

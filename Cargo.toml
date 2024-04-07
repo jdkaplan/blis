@@ -11,6 +11,8 @@ clap = { version = "4.5.3", features = ["derive"] }
 color-eyre = "0.6.3"
 eyre = "0.6.12"
 itertools = "0.12.1"
+num-bigint = { version = "0.4.4", features = ["serde"] }
+num-rational = { version = "0.4.1", features = ["serde"] }
 postcard = { version = "1.0.8", default-features = false, features = ["use-std"] }
 serde = { version = "1.0.197", features = ["derive"] }
 strum = { version = "0.26.2", features = ["derive"] }

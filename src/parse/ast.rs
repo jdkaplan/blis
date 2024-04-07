@@ -1,3 +1,5 @@
+use num_bigint::BigInt;
+
 use crate::parse::Token;
 
 #[derive(Debug, Clone)]
@@ -290,7 +292,7 @@ impl Identifier {
 pub enum Literal {
     Nil,
     Boolean(bool),
-    Integer(u64),
+    Integer(BigInt),
     Float(f64),
     String(String),
 }
