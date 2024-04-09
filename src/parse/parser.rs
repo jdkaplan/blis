@@ -255,13 +255,15 @@ impl<'source> Parser<'source> {
     fn decl_only(&mut self) -> Fallible<Option<Declaration>> {
         if let Some(let_) = self.take(Token::Let) {
             self.decl_let(let_).map(Declaration::Let).map(Some)
+        } else if let Some(func) = self.take(Token::Func) {
+            self.decl_func(func).map(Declaration::Func).map(Some)
         } else {
             Ok(None)
         }
     }
 
     #[instrument(level = "trace", ret)]
-    fn decl_let(&mut self, _let: Lexeme<'_>) -> Fallible<Let> {
+    fn decl_let(&mut self, _kw: Lexeme<'_>) -> Fallible<Let> {
         let ident = self.must_take(Token::Identifier)?;
         let ident = Identifier::new(ident.text);
 
@@ -272,6 +274,46 @@ impl<'source> Parser<'source> {
         self.must_take(Token::Semicolon)?;
 
         Ok(Let { ident, expr })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn decl_func(&mut self, _kw: Lexeme<'_>) -> Fallible<Func> {
+        let ident = self.must_take(Token::Identifier)?;
+        let ident = Identifier::new(ident.text);
+
+        let open = self.must_take(Token::LeftParen)?;
+        let params = self.parameters(open)?;
+
+        let body = self.block()?;
+
+        Ok(Func {
+            ident,
+            params,
+            body,
+        })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn parameters(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Identifier>> {
+        let mut params = Vec::new();
+
+        loop {
+            if let Some(_close) = self.take(Token::RightParen) {
+                break;
+            }
+
+            let name = self.must_take(Token::Identifier)?;
+            params.push(Identifier::new(name.text));
+
+            if let Some(_sep) = self.take(Token::Comma) {
+                continue;
+            } else {
+                self.must_take(Token::RightParen)?;
+                break;
+            }
+        }
+
+        Ok(params)
     }
 
     #[instrument(level = "trace", ret)]
@@ -471,7 +513,7 @@ impl<'source> Parser<'source> {
             break;
         }
 
-        let mut a = Unary::Value(self.call()?);
+        let mut a = self.call().map(Unary::Value)?;
         while let Some(op) = ops.pop() {
             a = match op {
                 Op::Neg => Unary::Neg(Box::new(a)),
@@ -483,7 +525,7 @@ impl<'source> Parser<'source> {
 
     #[instrument(level = "trace", ret)]
     fn call(&mut self) -> Fallible<Call> {
-        let mut callee = Call::Value(self.primary()?);
+        let mut callee = self.primary().map(Call::Value)?;
 
         loop {
             if let Some(open) = self.take(Token::LeftParen) {
@@ -596,7 +638,7 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn expr_if(&mut self, _if: Lexeme<'_>) -> Fallible<If> {
+    fn expr_if(&mut self, _kw: Lexeme<'_>) -> Fallible<If> {
         let condition = self.expression()?;
         let consequent = self.block()?;
 

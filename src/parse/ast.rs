@@ -9,6 +9,7 @@ pub struct Program {
 
 #[derive(Debug, Clone)]
 pub enum Declaration {
+    Func(Func),
     Let(Let),
 
     Statement(Statement),
@@ -256,6 +257,13 @@ impl TryFrom<Expression> for Place {
 
         Ok(Place::Identifier(ident.clone()))
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Func {
+    pub ident: Identifier,
+    pub params: Vec<Identifier>,
+    pub body: Block,
 }
 
 #[derive(Debug, Clone)]

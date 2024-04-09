@@ -1,5 +1,7 @@
 use num_rational::BigRational;
 
+use crate::bytecode::Func;
+
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
 pub enum Value {
@@ -8,6 +10,7 @@ pub enum Value {
     Float(f64),
     Rational(BigRational),
     String(String),
+    Func(Func),
 }
 
 impl Value {
@@ -51,6 +54,11 @@ impl PartialEq for Value {
 
             (Value::String(a), Value::String(b)) => a == b,
             (Value::String(_), _) => false,
+
+            // Functions are never equal to anything. In theory, they could be equal to themselves,
+            // but getting clear rules for identity there doesn't feel worth it.
+            (Value::Func(_), Value::Func(_)) => false,
+            (Value::Func(_), _) => false,
         }
     }
 }
@@ -59,6 +67,7 @@ impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         use std::cmp::Ordering;
 
+        // TODO: Maybe Erlang's "type ordering is arbitrary but there _is_ one" is better?
         match (self, other) {
             (Value::Nil, Value::Nil) => Some(Ordering::Equal),
             (Value::Nil, _) => None,
@@ -74,6 +83,10 @@ impl PartialOrd for Value {
 
             (Value::String(a), Value::String(b)) => a.partial_cmp(b),
             (Value::String(_), _) => None,
+
+            // Functions aren't comparable to each other nor to values of other types.
+            (Value::Func(_), Value::Func(_)) => None,
+            (Value::Func(_), _) => None,
         }
     }
 }

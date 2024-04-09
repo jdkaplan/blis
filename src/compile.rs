@@ -122,9 +122,22 @@ impl Compiler {
     #[instrument(level = "trace")]
     fn declaration(&mut self, decl: &Declaration) -> Fallible<()> {
         match decl {
+            Declaration::Func(func) => self.decl_func(func),
             Declaration::Let(let_) => self.decl_let(let_),
             Declaration::Statement(stmt) => self.statement(stmt),
         }
+    }
+
+    #[instrument(level = "trace")]
+    fn decl_func(&mut self, func: &Func) -> Fallible<()> {
+        // - Declare the identifier in the current scope
+        // - Mark it as initialized so it's usable within the func body
+        // - Start a new scope containing all the param names
+        // - Start a new chunk for the implementation.
+        // - Compile the function into the chunk.
+        // - Make a constant to hold the func header
+        // - Load the constant and store it in the local/global name
+        todo!("start here")
     }
 
     #[instrument(level = "trace")]

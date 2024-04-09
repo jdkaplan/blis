@@ -81,6 +81,18 @@ impl Vm {
 }
 
 impl Vm {
+    fn call_value(&mut self, callee: &Value, argc: u8) -> VmResult<()> {
+        let Value::Func(func) = callee else {
+            return Err(VmError::Type {
+                expected: String::from("function"),
+                actual: callee.clone(),
+            });
+        };
+        todo!("start here")
+    }
+}
+
+impl Vm {
     pub fn new() -> Self {
         Self {
             stack: Vec::new(),
@@ -261,7 +273,11 @@ impl Vm {
                     *dest = value;
                 }
 
-                Op::Call(_) => todo!(),
+                Op::Call(argc) => {
+                    let callee = self.peek(argc as usize)?;
+                    self.call_value(callee, argc)?;
+                    todo!("set frame");
+                }
                 Op::Index => todo!(),
 
                 Op::Not => {
@@ -313,7 +329,6 @@ impl Vm {
                         }
                     }
                 }
-                // TODO: String concatenation
                 Op::Add => {
                     let b = self.peek(0)?;
                     let a = self.peek(1)?;
