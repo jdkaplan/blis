@@ -1,6 +1,9 @@
+use std::mem;
+
 use num_rational::BigRational;
 use tracing::{debug, instrument};
 
+use crate::bytecode;
 use crate::bytecode::{Chunk, Constant, Op};
 use crate::parse::ast::*;
 
@@ -130,14 +133,50 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn decl_func(&mut self, func: &Func) -> Fallible<()> {
-        // - Declare the identifier in the current scope
-        // - Mark it as initialized so it's usable within the func body
+        // Make the name immediately available for use so it can be used inside the function
+        // itself (recursion!).
+        let slot = self
+            .locals
+            .reserve(func.ident.clone())
+            .map_err(|err| self.error(err))?;
+        self.locals.mark_init(slot);
+
+        // TODO: There's probably a smarter way to track the compilation stack.
+        let parent_chunk = mem::take(&mut self.chunk);
+
+        self.locals.begin_scope();
+        for param in &func.params {
+            let slot = self
+                .locals
+                .reserve(param.clone())
+                .map_err(|err| self.error(err))?;
+            self.locals.mark_init(slot);
+        }
+        let arity: u8 = func.params.len().try_into().unwrap();
+
+        self.block(&func.body)?;
+
         // - Start a new scope containing all the param names
-        // - Start a new chunk for the implementation.
         // - Compile the function into the chunk.
         // - Make a constant to hold the func header
         // - Load the constant and store it in the local/global name
-        todo!("start here")
+
+        // No need to call end_scope() because everything gets popped automatically when the VM
+        // pops the frame off the call stack.
+
+        let chunk = mem::replace(&mut self.chunk, parent_chunk);
+        let bfunc = bytecode::Func {
+            name: func.ident.name.clone(),
+            arity,
+            chunk,
+        };
+
+        let constant = self.chunk.add_constant(Constant::Func(bfunc));
+
+        // TODO: Emit upvalues for closures
+        self.chunk.push(Op::Func(constant));
+
+        Ok(())
     }
 
     #[instrument(level = "trace")]
@@ -449,6 +488,7 @@ impl Compiler {
     fn identifier(&mut self, ident: &Identifier) -> Fallible<()> {
         if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
             self.chunk.push(Op::LocalGet(slot));
+            // TODO: Resolve upvalues for closures
         } else {
             let global = self.chunk.make_global(ident.name.clone());
             self.chunk.push(Op::GlobalGet(global));

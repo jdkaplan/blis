@@ -12,6 +12,7 @@ impl From<Constant> for Value {
             Constant::Rational(v) => Value::Rational(v),
             Constant::Float(v) => Value::Float(v),
             Constant::String(v) => Value::String(v),
+            Constant::Func(v) => Value::Func(v),
         }
     }
 }
@@ -81,7 +82,9 @@ impl Vm {
 }
 
 impl Vm {
-    fn call_value(&mut self, callee: &Value, argc: u8) -> VmResult<()> {
+    fn call_value(&mut self, argc: u8) -> VmResult<()> {
+        let callee = self.peek(argc as usize)?;
+
         let Value::Func(func) = callee else {
             return Err(VmError::Type {
                 expected: String::from("function"),
@@ -274,11 +277,17 @@ impl Vm {
                 }
 
                 Op::Call(argc) => {
-                    let callee = self.peek(argc as usize)?;
-                    self.call_value(callee, argc)?;
+                    self.call_value(argc)?;
                     todo!("set frame");
                 }
                 Op::Index => todo!(),
+                Op::Func(idx) => {
+                    let constant = &chunk.constants[idx as usize];
+                    let v = Value::from(constant.clone());
+                    self.push(v);
+
+                    // TODO: Set upvalue references for closures
+                }
 
                 Op::Not => {
                     let a = self.pop()?;

@@ -1,13 +1,14 @@
 use num_rational::BigRational;
 use serde::{Deserialize, Serialize};
 
-use crate::bytecode::{Op, OpError};
+use crate::bytecode::{Func, Op, OpError};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Constant {
     Rational(BigRational),
     Float(f64),
     String(String),
+    Func(Func),
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]

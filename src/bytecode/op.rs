@@ -14,6 +14,7 @@ pub enum Op {
 
     Call(u8) = 0x10,
     Index = 0x11,
+    Func(u8) = 0x12,
 
     LocalGet(u8) = 0x20,
     LocalSet(u8) = 0x21,
@@ -86,6 +87,7 @@ impl Op {
             Op::Constant(ref mut byte)
             | Op::PopN(ref mut byte)
             | Op::Call(ref mut byte)
+            | Op::Func(ref mut byte)
             | Op::LocalGet(ref mut byte)
             | Op::LocalSet(ref mut byte)
             | Op::GlobalDefine(ref mut byte)
@@ -145,6 +147,7 @@ impl Op {
             Op::Constant(byte)
             | Op::PopN(byte)
             | Op::Call(byte)
+            | Op::Func(byte)
             | Op::LocalGet(byte)
             | Op::LocalSet(byte)
             | Op::GlobalDefine(byte)
