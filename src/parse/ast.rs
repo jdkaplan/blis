@@ -294,6 +294,12 @@ impl Identifier {
     pub fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
     }
+
+    pub fn empty() -> Self {
+        Self {
+            name: String::from(""),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

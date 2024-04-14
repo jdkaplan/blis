@@ -77,7 +77,7 @@ struct Run {
 
 impl Run {
     fn execute(&self) -> eyre::Result<()> {
-        let chunk: Chunk = if self.precompiled {
+        let program: Chunk = if self.precompiled {
             let file = open_file(&self.path)?;
             Chunk::read(file).wrap_err("load precompiled program")?
         } else {
@@ -87,7 +87,7 @@ impl Run {
         };
 
         let mut vm = Vm::default();
-        vm.interpret(chunk).wrap_err("runtime error")
+        vm.interpret(program).wrap_err("runtime error")
     }
 }
 

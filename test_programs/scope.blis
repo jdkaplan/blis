@@ -1,12 +1,10 @@
-{
-    let a = {
-        "a"
-    };
-    let aa = {
-        if true { a } else { 2 }
-    };
-    a = nil;
+let a = {
+    "a"
+};
+let aa = {
+    if true { a } else { 2 }
+};
+a = nil;
 
-    let b = if "true" { "one" } else { "two" };
-    b = if b { a } else { b };
-}
+let b = if "true" { "one" } else { "two" };
+b = if b { a } else { b };

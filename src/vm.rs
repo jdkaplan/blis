@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use num_rational::BigRational;
 use tracing::trace;
 
-use crate::bytecode::{Chunk, Constant, Op, OpError};
+use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
 use crate::runtime::{Value, ValueType};
 
 impl From<Constant> for Value {
@@ -21,6 +21,12 @@ impl From<Constant> for Value {
 pub struct Vm {
     stack: Vec<Value>,
     globals: BTreeMap<String, Value>,
+    frames: Vec<Frame>,
+}
+
+struct Frame {
+    bp: usize,
+    pc: usize,
 }
 
 pub type VmResult<T> = Result<T, VmError>;
@@ -91,7 +97,17 @@ impl Vm {
                 actual: callee.clone(),
             });
         };
-        todo!("start here")
+
+        if argc != func.arity {
+            todo!("arity mismatch");
+        }
+        let argc: usize = argc.into();
+
+        // Subtract one extra slot so bp points to the caller itself.
+        let bp = self.stack.len().checked_sub(1 + argc).unwrap();
+        self.frames.push(Frame { bp, pc: 0 });
+
+        Ok(())
     }
 }
 
@@ -100,35 +116,73 @@ impl Vm {
         Self {
             stack: Vec::new(),
             globals: BTreeMap::new(),
+            frames: Vec::new(),
         }
     }
 
     pub fn interpret(&mut self, chunk: Chunk) -> VmResult<()> {
-        let mut pc = 0;
+        let func = Func {
+            name: String::from(""),
+            arity: 0,
+            chunk,
+        };
+
+        let script = Value::Func(func);
+
+        self.push(script);
+        self.call_value(0)?;
+
+        self.run()
+    }
+
+    fn run(&mut self) -> VmResult<()> {
+        macro_rules! frame {
+            () => {
+                self.frames.last_mut().expect("non-empty call stack")
+            };
+        }
+
+        macro_rules! chunk {
+            ($frame:expr) => {
+                match &self.stack[$frame.bp] {
+                    Value::Func(func) => &func.chunk,
+                    _ => unreachable!(),
+                }
+            };
+        }
 
         loop {
-            trace!({ ?pc, ?self.stack }, "fetch");
+            let op = {
+                let frame = frame!();
+                let chunk = chunk!(frame);
 
-            let op = Op::scan(&chunk.code[pc..])?;
-            let Some(op) = op else {
-                return Ok(());
+                let pc = &mut frame.pc;
+                trace!({ ?pc, ?self.stack }, "fetch");
+
+                let op = Op::scan(&chunk.code[*pc..])?;
+                let Some(op) = op else {
+                    return Ok(());
+                };
+                *pc += op.size_bytes();
+                op
             };
-            pc += op.size_bytes();
 
             trace!({ ?op }, "execute");
 
             macro_rules! jump {
                 ($delta:expr) => {{
+                    let pc = &mut frame!().pc;
+
                     // pc was already moved past this op. Put it back before jumping.
-                    pc = pc.checked_sub(op.size_bytes()).unwrap();
+                    *pc = pc.checked_sub(op.size_bytes()).unwrap();
 
                     let delta = $delta;
                     if delta.is_negative() {
-                        pc = pc
+                        *pc = pc
                             .checked_sub((delta as isize).try_into().unwrap())
                             .unwrap();
                     } else {
-                        pc = pc.checked_add(delta as usize).unwrap();
+                        *pc = pc.checked_add(delta as usize).unwrap();
                     }
                 }};
             }
@@ -192,8 +246,23 @@ impl Vm {
 
             match op {
                 Op::Return => {
-                    trace!({ ?self.stack }, "returning");
-                    return Ok(());
+                    let value = self.pop()?;
+
+                    // TODO: Close upvalues for closures
+
+                    let frame = self.frames.pop().expect("non-empty call stack");
+                    if self.frames.is_empty() {
+                        // Pop `main` itself to leave the value stack empty.
+                        self.pop()?;
+                        assert!(self.stack.is_empty());
+                        return Ok(());
+                    }
+
+                    // Pop any local state from the returning function.
+                    self.stack.truncate(frame.bp);
+
+                    trace!({ ?value }, "returning");
+                    self.push(value);
                 }
 
                 Op::Pop => {
@@ -205,6 +274,7 @@ impl Vm {
                 }
 
                 Op::Constant(idx) => {
+                    let chunk = chunk!(frame!());
                     let constant = &chunk.constants[idx as usize];
                     let v = Value::from(constant.clone());
                     self.push(v);
@@ -243,20 +313,24 @@ impl Vm {
                 }
 
                 Op::LocalGet(slot) => {
-                    let value = self.stack[slot as usize].clone();
+                    let bp = frame!().bp;
+                    let value = self.stack[bp + slot as usize].clone();
                     self.push(value);
                 }
                 Op::LocalSet(slot) => {
+                    let bp = frame!().bp;
                     let value = self.pop()?;
-                    self.stack[slot as usize] = value;
+                    self.stack[bp + slot as usize] = value;
                 }
 
                 Op::GlobalDefine(idx) => {
+                    let chunk = chunk!(frame!());
                     let global = chunk.globals[idx as usize].clone();
                     let value = self.pop()?;
                     self.globals.insert(global, value);
                 }
                 Op::GlobalGet(idx) => {
+                    let chunk = chunk!(frame!());
                     let global = chunk.globals[idx as usize].clone();
 
                     let Some(value) = self.globals.get(&global) else {
@@ -265,6 +339,7 @@ impl Vm {
                     self.push(value.clone());
                 }
                 Op::GlobalSet(idx) => {
+                    let chunk = chunk!(frame!());
                     let global = chunk.globals[idx as usize].clone();
 
                     let value = self.pop()?;
@@ -278,10 +353,10 @@ impl Vm {
 
                 Op::Call(argc) => {
                     self.call_value(argc)?;
-                    todo!("set frame");
                 }
                 Op::Index => todo!(),
                 Op::Func(idx) => {
+                    let chunk = chunk!(frame!());
                     let constant = &chunk.constants[idx as usize];
                     let v = Value::from(constant.clone());
                     self.push(v);

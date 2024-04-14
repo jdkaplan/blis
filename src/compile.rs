@@ -97,9 +97,15 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn program(&mut self, program: &Program) -> Fallible<()> {
+        // Reserve stack slot 0 for the currently-executing program.
+        self.locals
+            .reserve(Identifier::empty())
+            .map_err(|err| self.error(err))?;
+
         for decl in &program.decls {
             self.declaration(decl)?;
         }
+        self.chunk.push(Op::Nil);
         self.chunk.push(Op::Return);
         Ok(())
     }
@@ -118,7 +124,9 @@ impl Compiler {
             self.chunk.push(Op::Nil);
         }
 
-        self.locals.end_scope();
+        let n = self.locals.end_scope();
+        let n: u8 = n.try_into().unwrap();
+        self.chunk.push(Op::PopN(n));
         Ok(())
     }
 
@@ -139,12 +147,20 @@ impl Compiler {
             .locals
             .reserve(func.ident.clone())
             .map_err(|err| self.error(err))?;
+
         self.locals.mark_init(slot);
 
         // TODO: There's probably a smarter way to track the compilation stack.
         let parent_chunk = mem::take(&mut self.chunk);
+        let parent_locals = mem::take(&mut self.locals);
 
         self.locals.begin_scope();
+
+        // Reserve a slot for the callee.
+        self.locals
+            .reserve(Identifier::empty())
+            .map_err(|err| self.error(err))?;
+
         for param in &func.params {
             let slot = self
                 .locals
@@ -155,16 +171,15 @@ impl Compiler {
         let arity: u8 = func.params.len().try_into().unwrap();
 
         self.block(&func.body)?;
+        self.chunk.push(Op::Return);
 
-        // - Start a new scope containing all the param names
-        // - Compile the function into the chunk.
-        // - Make a constant to hold the func header
-        // - Load the constant and store it in the local/global name
-
-        // No need to call end_scope() because everything gets popped automatically when the VM
-        // pops the frame off the call stack.
+        // No need PopN here because everything gets popped automatically when the VM pops the
+        // frame off the call stack.
+        let _n = self.locals.end_scope();
 
         let chunk = mem::replace(&mut self.chunk, parent_chunk);
+        let _ = mem::replace(&mut self.locals, parent_locals);
+
         let bfunc = bytecode::Func {
             name: func.ident.name.clone(),
             arity,
@@ -175,6 +190,11 @@ impl Compiler {
 
         // TODO: Emit upvalues for closures
         self.chunk.push(Op::Func(constant));
+
+        if slot == Slot::Global {
+            let global = self.chunk.make_global(func.ident.name.clone());
+            self.chunk.push(Op::GlobalDefine(global));
+        }
 
         Ok(())
     }
@@ -187,6 +207,11 @@ impl Compiler {
             .map_err(|err| self.error(err))?;
 
         self.expression(&let_.expr)?;
+
+        if slot == Slot::Global {
+            let global = self.chunk.make_global(let_.ident.name.clone());
+            self.chunk.push(Op::GlobalDefine(global));
+        }
 
         self.locals.mark_init(slot);
         Ok(())
@@ -446,7 +471,7 @@ impl Compiler {
     #[instrument(level = "trace")]
     fn atom(&mut self, atom: &Atom) -> Fallible<()> {
         match atom {
-            Atom::Identifier(ident) => self.identifier(ident),
+            Atom::Identifier(ident) => self.expr_identifier(ident),
             Atom::Literal(lit) => self.literal(lit),
         }
     }
@@ -485,7 +510,7 @@ impl Compiler {
     }
 
     #[instrument(level = "trace")]
-    fn identifier(&mut self, ident: &Identifier) -> Fallible<()> {
+    fn expr_identifier(&mut self, ident: &Identifier) -> Fallible<()> {
         if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
             self.chunk.push(Op::LocalGet(slot));
             // TODO: Resolve upvalues for closures
@@ -543,6 +568,12 @@ struct Locals {
     scope_depth: usize,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Slot {
+    Global,
+    Local(u8),
+}
+
 impl Locals {
     #[instrument(level = "trace")]
     fn begin_scope(&mut self) {
@@ -587,7 +618,11 @@ impl Locals {
     }
 
     #[instrument(level = "trace")]
-    fn reserve(&mut self, ident: Identifier) -> CompileResult<u8> {
+    fn reserve(&mut self, ident: Identifier) -> CompileResult<Slot> {
+        if self.scope_depth == 0 {
+            return Ok(Slot::Global);
+        }
+
         if self.locals.len() >= (u8::MAX as usize) {
             panic!("Too many locals! Time to add Local2 variants");
         }
@@ -610,11 +645,16 @@ impl Locals {
             .try_into()
             .expect("Too many locals! Time to add Local2 variants");
         self.locals.push(new);
-        Ok(slot)
+        Ok(Slot::Local(slot))
     }
 
     #[instrument(level = "trace")]
-    fn mark_init(&mut self, slot: u8) {
-        self.locals[slot as usize].initialized = true;
+    fn mark_init(&mut self, slot: Slot) {
+        match slot {
+            Slot::Global => {}
+            Slot::Local(idx) => {
+                self.locals[idx as usize].initialized = true;
+            }
+        }
     }
 }
