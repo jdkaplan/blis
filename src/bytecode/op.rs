@@ -5,7 +5,7 @@
 pub enum Op {
     Return = 0x00,
     Pop = 0x01,
-    PopN(u8) = 0x02,
+    PopUnderN(u8) = 0x02,
 
     Constant(u8) = 0x03,
     Nil = 0x04,
@@ -14,13 +14,16 @@ pub enum Op {
 
     Call(u8) = 0x10,
     Index = 0x11,
-    Func(u8) = 0x12,
+    Closure(u8) = 0x12,
 
-    LocalGet(u8) = 0x20,
-    LocalSet(u8) = 0x21,
-    GlobalDefine(u8) = 0x22,
-    GlobalGet(u8) = 0x23,
-    GlobalSet(u8) = 0x24,
+    GetLocal(u8) = 0x20,
+    SetLocal(u8) = 0x21,
+    GetUpvalue(u8) = 0x22,
+    SetUpvalue(u8) = 0x23,
+    PopCapturedN(u8) = 0x24,
+    GlobalDefine(u8) = 0x25,
+    GetGlobal(u8) = 0x26,
+    SetGlobal(u8) = 0x27,
 
     Not = 0x30,
     Eq = 0x31,
@@ -85,14 +88,17 @@ impl Op {
             | Op::Rem => {}
 
             Op::Constant(ref mut byte)
-            | Op::PopN(ref mut byte)
+            | Op::PopUnderN(ref mut byte)
             | Op::Call(ref mut byte)
-            | Op::Func(ref mut byte)
-            | Op::LocalGet(ref mut byte)
-            | Op::LocalSet(ref mut byte)
+            | Op::Closure(ref mut byte)
+            | Op::GetLocal(ref mut byte)
+            | Op::SetLocal(ref mut byte)
+            | Op::PopCapturedN(ref mut byte)
+            | Op::GetUpvalue(ref mut byte)
+            | Op::SetUpvalue(ref mut byte)
             | Op::GlobalDefine(ref mut byte)
-            | Op::GlobalGet(ref mut byte)
-            | Op::GlobalSet(ref mut byte) => {
+            | Op::GetGlobal(ref mut byte)
+            | Op::SetGlobal(ref mut byte) => {
                 *byte = *code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
             }
 
@@ -145,14 +151,17 @@ impl Op {
             | Op::Rem => {}
 
             Op::Constant(byte)
-            | Op::PopN(byte)
+            | Op::PopUnderN(byte)
             | Op::Call(byte)
-            | Op::Func(byte)
-            | Op::LocalGet(byte)
-            | Op::LocalSet(byte)
+            | Op::Closure(byte)
+            | Op::GetLocal(byte)
+            | Op::SetLocal(byte)
+            | Op::PopCapturedN(byte)
+            | Op::GetUpvalue(byte)
+            | Op::SetUpvalue(byte)
             | Op::GlobalDefine(byte)
-            | Op::GlobalGet(byte)
-            | Op::GlobalSet(byte) => {
+            | Op::GetGlobal(byte)
+            | Op::SetGlobal(byte) => {
                 bytes.push(*byte);
             }
 

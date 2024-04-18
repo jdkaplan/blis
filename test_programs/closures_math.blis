@@ -1,0 +1,15 @@
+func main() {
+    func adder(a) {
+        func add(b) {
+            a + b
+        }
+
+        add
+    }
+
+    let add_1 = adder(1);
+    add_1(2);
+    add_1(3);
+}
+
+main();

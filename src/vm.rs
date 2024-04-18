@@ -1,27 +1,18 @@
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 
 use num_rational::BigRational;
-use tracing::trace;
+use tracing::{instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
-use crate::runtime::{Value, ValueType};
-
-impl From<Constant> for Value {
-    fn from(constant: Constant) -> Self {
-        match constant {
-            Constant::Rational(v) => Value::Rational(v),
-            Constant::Float(v) => Value::Float(v),
-            Constant::String(v) => Value::String(v),
-            Constant::Func(v) => Value::Func(v),
-        }
-    }
-}
+use crate::runtime::{Closure, Upvalue, Value, ValueType};
 
 #[derive(Default)]
 pub struct Vm {
     stack: Vec<Value>,
     globals: BTreeMap<String, Value>,
     frames: Vec<Frame>,
+    upvalues: Vec<Upvalue>, // TODO: The GC should shrink this when it's safe
 }
 
 struct Frame {
@@ -68,13 +59,16 @@ impl Vm {
         })
     }
 
-    fn pop_n(&mut self, n: usize) -> VmResult<()> {
+    fn pop_n(&mut self, n: u8) -> VmResult<()> {
+        let n = n as usize;
         let len = self.stack.len();
 
         let new_len = len.checked_sub(n);
         let new_len = new_len.ok_or(VmError::NoValue { depth: n, len })?;
 
-        trace!({ suffix =? self.stack[new_len..] }, "pop_n");
+        for (slot, value) in self.stack[new_len..].iter().enumerate() {
+            trace!({ ?slot, %value, }, "pop_n");
+        }
         self.stack.truncate(new_len);
         Ok(())
     }
@@ -91,14 +85,14 @@ impl Vm {
     fn call_value(&mut self, argc: u8) -> VmResult<()> {
         let callee = self.peek(argc as usize)?;
 
-        let Value::Func(func) = callee else {
+        let Value::Closure(closure) = callee else {
             return Err(VmError::Type {
                 expected: String::from("function"),
                 actual: callee.clone(),
             });
         };
 
-        if argc != func.arity {
+        if argc != closure.func.arity {
             todo!("arity mismatch");
         }
         let argc: usize = argc.into();
@@ -109,6 +103,57 @@ impl Vm {
 
         Ok(())
     }
+
+    #[instrument(level = "trace", ret, skip(self))]
+    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> usize {
+        match location {
+            1 => {
+                let slot = bp + index as usize;
+
+                let ptr = self.upvalues.len();
+                self.upvalues.push(Upvalue::Stack(slot));
+                ptr
+            }
+            0 => {
+                // This points to wherever the _parent's_ upvalue does.
+                let Value::Closure(enclosing) = &self.stack[bp] else {
+                    unreachable!()
+                };
+                enclosing.upvalues[index as usize]
+            }
+            other => panic!("invalid upvalue location: {:?}", other),
+        }
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    fn close_upvalues(&mut self, len: usize) {
+        let mut ptrs: BTreeMap<usize, Arc<Mutex<Value>>> = BTreeMap::new();
+
+        for upvalue in &mut self.upvalues {
+            let Upvalue::Stack(slot) = upvalue else {
+                // This was already closed.
+                continue;
+            };
+
+            if *slot < len {
+                // This one stays alive for now.
+                continue;
+            }
+
+            // This _MUST_ reuse a pointer that was just created for it.
+            if let Some(ptr) = ptrs.get(slot) {
+                *upvalue = Upvalue::Heap(ptr.clone());
+                continue;
+            }
+
+            let value = self.stack[*slot].clone();
+            trace!({ ?slot, %value }, "close upvalue");
+
+            let ptr = Arc::new(Mutex::new(value));
+            ptrs.insert(*slot, ptr.clone());
+            *upvalue = Upvalue::Heap(ptr);
+        }
+    }
 }
 
 impl Vm {
@@ -117,6 +162,7 @@ impl Vm {
             stack: Vec::new(),
             globals: BTreeMap::new(),
             frames: Vec::new(),
+            upvalues: Vec::new(),
         }
     }
 
@@ -124,10 +170,14 @@ impl Vm {
         let func = Func {
             name: String::from(""),
             arity: 0,
+            upvalues: 0,
             chunk,
         };
 
-        let script = Value::Func(func);
+        let script = Value::Closure(Closure {
+            func,
+            upvalues: vec![],
+        });
 
         self.push(script);
         self.call_value(0)?;
@@ -144,8 +194,14 @@ impl Vm {
 
         macro_rules! chunk {
             ($frame:expr) => {
+                &callee!($frame).func.chunk
+            };
+        }
+
+        macro_rules! callee {
+            ($frame:expr) => {
                 match &self.stack[$frame.bp] {
-                    Value::Func(func) => &func.chunk,
+                    Value::Closure(closure) => closure,
                     _ => unreachable!(),
                 }
             };
@@ -156,8 +212,13 @@ impl Vm {
                 let frame = frame!();
                 let chunk = chunk!(frame);
 
+                for (slot, value) in self.stack.iter().enumerate() {
+                    trace!({ ?slot, %value }, "stack");
+                }
+
                 let pc = &mut frame.pc;
-                trace!({ ?pc, ?self.stack }, "fetch");
+                let bp = frame.bp;
+                trace!({ ?pc, ?bp }, "fetch");
 
                 let op = Op::scan(&chunk.code[*pc..])?;
                 let Some(op) = op else {
@@ -248,7 +309,10 @@ impl Vm {
                 Op::Return => {
                     let value = self.pop()?;
 
-                    // TODO: Close upvalues for closures
+                    // Stack locations at bp or above are about to disappear. Close any open
+                    // upvalues that point to them.
+                    let bp = frame!().bp;
+                    self.close_upvalues(bp);
 
                     let frame = self.frames.pop().expect("non-empty call stack");
                     if self.frames.is_empty() {
@@ -269,14 +333,36 @@ impl Vm {
                     let v = self.pop()?;
                     trace!({ ?v }, "pop");
                 }
-                Op::PopN(n) => {
-                    self.pop_n(n as usize)?;
+
+                Op::PopUnderN(n) => {
+                    // Save the block's expression value to push back on.
+                    let v = self.pop()?;
+                    self.pop_n(n)?;
+                    self.push(v);
+                }
+                Op::PopCapturedN(n) => {
+                    let v = self.pop()?;
+
+                    // These n stack locations are about to disappear. Close any open upvalues that
+                    // point to them.
+                    let len = self.stack.len() - n as usize;
+                    self.close_upvalues(len);
+
+                    self.pop_n(n)?;
+                    self.push(v);
                 }
 
                 Op::Constant(idx) => {
                     let chunk = chunk!(frame!());
                     let constant = &chunk.constants[idx as usize];
-                    let v = Value::from(constant.clone());
+
+                    let v = match constant {
+                        Constant::Rational(v) => Value::Rational(v.clone()),
+                        Constant::Float(v) => Value::Float(*v),
+                        Constant::String(v) => Value::String(v.clone()),
+                        Constant::Func(_) => unreachable!(),
+                    };
+
                     self.push(v);
                 }
 
@@ -312,15 +398,40 @@ impl Vm {
                     }
                 }
 
-                Op::LocalGet(slot) => {
+                Op::GetLocal(slot) => {
                     let bp = frame!().bp;
                     let value = self.stack[bp + slot as usize].clone();
                     self.push(value);
                 }
-                Op::LocalSet(slot) => {
+                Op::SetLocal(slot) => {
                     let bp = frame!().bp;
                     let value = self.pop()?;
                     self.stack[bp + slot as usize] = value;
+                }
+
+                Op::GetUpvalue(idx) => {
+                    let callee = callee!(frame!());
+                    let ptr = callee.upvalues[idx as usize];
+
+                    let value = match &self.upvalues[ptr] {
+                        Upvalue::Stack(slot) => self.stack[*slot].clone(),
+                        Upvalue::Heap(mu) => mu.lock().unwrap().clone(),
+                    };
+                    self.push(value);
+                }
+                Op::SetUpvalue(idx) => {
+                    let callee = callee!(frame!());
+                    let value = self.peek(0).unwrap().clone();
+
+                    let ptr = callee.upvalues[idx as usize];
+
+                    match self.upvalues[ptr].clone() {
+                        Upvalue::Stack(slot) => self.stack[slot] = value,
+                        Upvalue::Heap(mu) => {
+                            let mut v = mu.lock().unwrap();
+                            *v = value;
+                        }
+                    }
                 }
 
                 Op::GlobalDefine(idx) => {
@@ -329,7 +440,7 @@ impl Vm {
                     let value = self.pop()?;
                     self.globals.insert(global, value);
                 }
-                Op::GlobalGet(idx) => {
+                Op::GetGlobal(idx) => {
                     let chunk = chunk!(frame!());
                     let global = chunk.globals[idx as usize].clone();
 
@@ -338,7 +449,7 @@ impl Vm {
                     };
                     self.push(value.clone());
                 }
-                Op::GlobalSet(idx) => {
+                Op::SetGlobal(idx) => {
                     let chunk = chunk!(frame!());
                     let global = chunk.globals[idx as usize].clone();
 
@@ -355,13 +466,44 @@ impl Vm {
                     self.call_value(argc)?;
                 }
                 Op::Index => todo!(),
-                Op::Func(idx) => {
-                    let chunk = chunk!(frame!());
+                Op::Closure(idx) => {
+                    let frame = frame!();
+                    let chunk = chunk!(frame);
+                    let bp = frame.bp;
                     let constant = &chunk.constants[idx as usize];
-                    let v = Value::from(constant.clone());
-                    self.push(v);
+                    let Constant::Func(func) = constant else {
+                        unreachable!()
+                    };
 
-                    // TODO: Set upvalue references for closures
+                    let mut closure = Closure {
+                        func: func.clone(),
+                        upvalues: Vec::with_capacity(func.upvalues as usize),
+                    };
+
+                    // This instruction is variable-length. There are two additional bytes for each
+                    // upvalue.
+                    //
+                    // Temporarily copy the program counter to avoid borrow checker issues on
+                    // `frame`.
+                    let mut pc = frame.pc;
+                    let chunk = chunk.clone();
+                    for _ in 0..func.upvalues {
+                        let location = chunk.code[pc];
+                        pc += 1;
+
+                        let index = chunk.code[pc];
+                        pc += 1;
+
+                        // Register an "upvalue pointer" (just an index for now) in the VM.
+                        let ptr = self.capture_upvalue(bp, location, index);
+                        closure.upvalues.push(ptr);
+                    }
+                    assert_eq!(closure.func.upvalues as usize, closure.upvalues.len());
+
+                    // And now put the new pc back where it belongs (after all the upvalue data).
+                    frame!().pc = pc;
+
+                    self.push(Value::Closure(closure));
                 }
 
                 Op::Not => {

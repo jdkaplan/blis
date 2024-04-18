@@ -33,6 +33,10 @@ impl Chunk {
         self.code.extend(op.to_bytes())
     }
 
+    pub fn push_bytes(&mut self, bytes: &[u8]) {
+        self.code.extend(bytes)
+    }
+
     pub fn add_constant(&mut self, constant: Constant) -> u8 {
         let idx = self.constants.len();
         assert!(idx < u8::MAX.into());

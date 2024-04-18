@@ -83,7 +83,7 @@ impl Run {
         } else {
             let source = read_file(&self.path)?;
             let ast = Parser::parse(&source).wrap_err("parse file")?;
-            Compiler::compile(&ast)?
+            Compiler::compile(&ast).wrap_err("compile error")?
         };
 
         let mut vm = Vm::default();

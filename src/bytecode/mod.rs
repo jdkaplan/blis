@@ -10,6 +10,7 @@ pub use op::{Op, OpError};
 pub struct Func {
     pub name: String,
     pub arity: u8,
+    pub upvalues: u8,
     pub chunk: Chunk,
 }
 

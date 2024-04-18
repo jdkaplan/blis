@@ -1,3 +1,3 @@
 pub mod value;
 
-pub use value::{Value, ValueType};
+pub use value::{Closure, Upvalue, Value, ValueType};

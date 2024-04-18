@@ -1,19 +1,14 @@
-use std::mem;
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::rc::Rc;
 
 use num_rational::BigRational;
 use tracing::{debug, instrument};
 
 use crate::bytecode;
+use crate::bytecode::chunk::PendingJump;
 use crate::bytecode::{Chunk, Constant, Op};
 use crate::parse::ast::*;
-
-#[derive(Debug)]
-pub struct Compiler {
-    chunk: Chunk,
-    errors: Vec<CompileError>,
-
-    locals: Locals,
-}
 
 #[derive(thiserror::Error, Debug)]
 pub struct CompileErrors(Vec<CompileError>);
@@ -52,12 +47,17 @@ type Fallible<T> = Result<T, FailedCodegen>;
 #[derive(Debug)]
 struct FailedCodegen;
 
+#[derive(Debug)]
+pub struct Compiler {
+    stack: Vec<Rc<RefCell<FuncBuilder>>>,
+    errors: Vec<CompileError>,
+}
+
 impl Compiler {
     fn new() -> Self {
         Self {
-            chunk: Chunk::default(),
+            stack: Vec::new(),
             errors: Vec::new(),
-            locals: Locals::default(),
         }
     }
 
@@ -67,52 +67,79 @@ impl Compiler {
         FailedCodegen
     }
 
+    fn start(&mut self) -> FuncRef {
+        let func = FuncBuilder::default();
+        let rc = Rc::new(RefCell::new(func));
+        self.stack.push(rc.clone());
+        FuncRef(rc)
+    }
+
+    fn current(&self) -> FuncRef {
+        let last = self.stack.last().expect("start called first");
+        FuncRef(last.clone())
+    }
+
+    fn finish(&mut self, handle: FuncRef) -> FuncBuilder {
+        // This handle should be the last external reference (created by start). Drop it early so
+        // the unwrapping below can succeed.
+        drop(handle);
+
+        let last = self.stack.pop().expect("paired with start call");
+        let last = Rc::try_unwrap(last).expect("no remaining references from inner funcs");
+        last.into_inner()
+    }
+
     #[instrument(level = "debug", ret)]
     pub fn compile(program: &Program) -> Result<Chunk, CompileErrors> {
-        let mut compiler = Self::new();
-        let _ = compiler.program(program); // Errors checked below
+        let mut driver = Self::new();
 
-        if compiler.errors.is_empty() {
-            for (idx, val) in compiler.chunk.constants.iter().enumerate() {
-                debug!({ ?idx, ?val }, "constant");
-            }
+        let Ok(func) = driver.program(program) else {
+            return Err(CompileErrors(driver.errors));
+        };
 
-            for (idx, name) in compiler.chunk.globals.iter().enumerate() {
-                debug!({ ?idx, ?name }, "global");
-            }
+        let chunk = func.chunk;
 
-            for res in compiler.chunk.iter_code() {
-                let Ok((pc, op)) = res else {
-                    debug!({ ?res }, "chunk error");
-                    break;
-                };
-                debug!({ ?pc, ?op }, "code");
-            }
-
-            Ok(compiler.chunk)
-        } else {
-            Err(CompileErrors(compiler.errors))
+        for (idx, val) in chunk.constants.iter().enumerate() {
+            debug!({ ?idx, ?val }, "constant");
         }
+
+        for (idx, name) in chunk.globals.iter().enumerate() {
+            debug!({ ?idx, ?name }, "global");
+        }
+
+        for res in chunk.iter_code() {
+            let Ok((pc, op)) = res else {
+                debug!({ ?res }, "chunk error");
+                break;
+            };
+            debug!({ ?pc, ?op }, "code");
+        }
+
+        Ok(chunk)
     }
 
     #[instrument(level = "trace")]
-    fn program(&mut self, program: &Program) -> Fallible<()> {
+    fn program(&mut self, program: &Program) -> Fallible<FuncBuilder> {
+        let current = self.start();
+
         // Reserve stack slot 0 for the currently-executing program.
-        self.locals
-            .reserve(Identifier::empty())
+        current
+            .reserve_local(Identifier::empty())
             .map_err(|err| self.error(err))?;
 
         for decl in &program.decls {
             self.declaration(decl)?;
         }
-        self.chunk.push(Op::Nil);
-        self.chunk.push(Op::Return);
-        Ok(())
+        current.push(Op::Nil);
+        current.push(Op::Return);
+
+        Ok(self.finish(current))
     }
 
     #[instrument(level = "trace")]
     fn block(&mut self, block: &Block) -> Fallible<()> {
-        self.locals.begin_scope();
+        let func = self.current();
+        func.begin_scope();
 
         for decl in &block.decls {
             self.declaration(decl)?;
@@ -121,12 +148,18 @@ impl Compiler {
         if let Some(expr) = &block.expr {
             self.expression(expr)?;
         } else {
-            self.chunk.push(Op::Nil);
+            func.push(Op::Nil);
         }
 
-        let n = self.locals.end_scope();
-        let n: u8 = n.try_into().unwrap();
-        self.chunk.push(Op::PopN(n));
+        let locals = func.end_scope();
+        let n: u8 = locals.len().try_into().unwrap();
+
+        if locals.iter().any(|l| l.captured) {
+            func.push(Op::PopCapturedN(n));
+        } else {
+            func.push(Op::PopUnderN(n));
+        }
+
         Ok(())
     }
 
@@ -141,59 +174,66 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn decl_func(&mut self, func: &Func) -> Fallible<()> {
+        let arity = func.params.len();
+        let arity: u8 = arity.try_into().expect("parser enforces limit");
+
         // Make the name immediately available for use so it can be used inside the function
         // itself (recursion!).
-        let slot = self
-            .locals
-            .reserve(func.ident.clone())
+        let enclosing = self.current();
+        let slot = enclosing
+            .reserve_local(func.ident.clone())
             .map_err(|err| self.error(err))?;
 
-        self.locals.mark_init(slot);
+        enclosing.init_local(slot);
 
-        // TODO: There's probably a smarter way to track the compilation stack.
-        let parent_chunk = mem::take(&mut self.chunk);
-        let parent_locals = mem::take(&mut self.locals);
+        let (bfunc, upvalues) = {
+            let current = self.start();
 
-        self.locals.begin_scope();
+            current.begin_scope();
 
-        // Reserve a slot for the callee.
-        self.locals
-            .reserve(Identifier::empty())
-            .map_err(|err| self.error(err))?;
-
-        for param in &func.params {
-            let slot = self
-                .locals
-                .reserve(param.clone())
+            // Reserve a slot for the callee.
+            current
+                .reserve_local(Identifier::empty())
                 .map_err(|err| self.error(err))?;
-            self.locals.mark_init(slot);
-        }
-        let arity: u8 = func.params.len().try_into().unwrap();
 
-        self.block(&func.body)?;
-        self.chunk.push(Op::Return);
+            for param in &func.params {
+                let slot = current
+                    .reserve_local(param.clone())
+                    .map_err(|err| self.error(err))?;
+                current.init_local(slot);
+            }
 
-        // No need PopN here because everything gets popped automatically when the VM pops the
-        // frame off the call stack.
-        let _n = self.locals.end_scope();
+            self.block(&func.body)?;
+            current.push(Op::Return);
 
-        let chunk = mem::replace(&mut self.chunk, parent_chunk);
-        let _ = mem::replace(&mut self.locals, parent_locals);
+            // There's no end_scope() call here because the Return instruction handles closing the
+            // implicit function body's scope.
 
-        let bfunc = bytecode::Func {
-            name: func.ident.name.clone(),
-            arity,
-            chunk,
+            let builder = self.finish(current);
+
+            let bfunc = bytecode::Func {
+                name: func.ident.name.clone(),
+                arity,
+                upvalues: builder.upvalues.len(),
+                chunk: builder.chunk,
+            };
+            (bfunc, builder.upvalues)
         };
 
-        let constant = self.chunk.add_constant(Constant::Func(bfunc));
+        let constant = enclosing.add_constant(Constant::Func(bfunc));
+        enclosing.push(Op::Closure(constant));
 
-        // TODO: Emit upvalues for closures
-        self.chunk.push(Op::Func(constant));
+        for upvalue in upvalues.0 {
+            let bytes = match upvalue {
+                Upvalue::Local(idx) => [1, idx],
+                Upvalue::Nonlocal(idx) => [0, idx],
+            };
+            enclosing.push_bytes(&bytes);
+        }
 
         if slot == Slot::Global {
-            let global = self.chunk.make_global(func.ident.name.clone());
-            self.chunk.push(Op::GlobalDefine(global));
+            let global = enclosing.make_global(&func.ident);
+            enclosing.push(Op::GlobalDefine(global));
         }
 
         Ok(())
@@ -201,19 +241,20 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn decl_let(&mut self, let_: &Let) -> Fallible<()> {
-        let slot = self
-            .locals
-            .reserve(let_.ident.clone())
+        let current = self.current();
+
+        let slot = current
+            .reserve_local(let_.ident.clone())
             .map_err(|err| self.error(err))?;
 
         self.expression(&let_.expr)?;
 
         if slot == Slot::Global {
-            let global = self.chunk.make_global(let_.ident.name.clone());
-            self.chunk.push(Op::GlobalDefine(global));
+            let global = current.make_global(&let_.ident);
+            current.push(Op::GlobalDefine(global));
         }
 
-        self.locals.mark_init(slot);
+        current.init_local(slot);
         Ok(())
     }
 
@@ -224,7 +265,7 @@ impl Compiler {
 
             Statement::Expression(expr) => {
                 self.expression(expr)?;
-                self.chunk.push(Op::Pop);
+                self.current().push(Op::Pop);
                 Ok(())
             }
         }
@@ -232,18 +273,63 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn stmt_assign(&mut self, assign: &Assignment) -> Fallible<()> {
+        let current = self.current();
+
         let Place::Identifier(ident) = &assign.place;
 
         self.expression(&assign.expr)?;
 
-        if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
-            self.chunk.push(Op::LocalSet(slot));
+        if let Some((slot, _local)) = current.resolve_local(ident) {
+            current.push(Op::SetLocal(slot));
+        } else if let Some(upvalue) = self.resolve_upvalue(ident) {
+            current.push(Op::SetUpvalue(upvalue.index()));
         } else {
-            let global = self.chunk.make_global(ident.name.clone());
-            self.chunk.push(Op::GlobalSet(global));
+            let global = current.make_global(ident);
+            current.push(Op::SetGlobal(global));
         }
 
         Ok(())
+    }
+
+    #[instrument(level = "trace")]
+    fn resolve_upvalue(&mut self, ident: &Identifier) -> Option<Upvalue> {
+        // This may walk the entire stack, so prepare the references. The current compiler is
+        // special (we already know it doesn't bind this variable), so pop it off immediately.
+        let mut stack: Vec<FuncRef> = self.stack.iter().cloned().map(FuncRef).collect();
+        let current = stack.pop().expect("start called before resolving anything");
+
+        // When using deeply-nested functions, it's possible that the referring function (that
+        // uses the upvalue) doesn't even exist until some intermediate call frames exist. So this
+        // uses "flat closures" that also track upvalues used by their descendants (even the
+        // upvalue is not used by that intermediate function itself).
+        let mut intermediates = vec![current];
+
+        let mut definition = None;
+        while let Some(enclosing) = stack.pop() {
+            if let Some(slot) = enclosing.capture_local(ident) {
+                definition = Some(slot);
+                break;
+            } else {
+                intermediates.push(enclosing);
+            }
+        }
+
+        // If there was definition in some enclosing scope, mark it as captured and prepare its
+        // immediate upvalue reference.
+        let mut upvalue = match definition {
+            Some(slot) => Upvalue::Local(slot),
+            None => return None, // Must be a global, then!
+        };
+
+        // The outermost scope references its parent's local directly. The next scope binds _that_
+        // upvalue reference, and so on until we reach the current function.
+        //
+        // If there are no intermediate scopes, then the current function gets the local reference.
+        while let Some(closure) = intermediates.pop() {
+            upvalue = closure.add_upvalue(upvalue);
+        }
+
+        Some(upvalue)
     }
 
     #[instrument(level = "trace")]
@@ -254,6 +340,8 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn logic_or(&mut self, or: &LogicOr) -> Fallible<()> {
+        let current = self.current();
+
         // This leaves the last value that was considered on top of the stack.
 
         // <a>
@@ -262,11 +350,11 @@ impl Compiler {
         let mut shorts = Vec::new();
         for and in &or.rest {
             // jump_true_peek 'short_circuit
-            let short = self.chunk.prepare_jump(Op::JumpTruePeek(i16::MAX));
+            let short = current.prepare_jump(Op::JumpTruePeek(i16::MAX));
             shorts.push(short);
 
             // pop ; <a> was falsey
-            self.chunk.push(Op::Pop);
+            current.push(Op::Pop);
 
             // <b>
             self.logic_and(and)?;
@@ -274,13 +362,15 @@ impl Compiler {
 
         // 'short_circuit:
         for jump in shorts {
-            self.chunk.set_jump_target(jump);
+            current.set_jump_target(jump);
         }
 
         Ok(())
     }
 
     fn logic_and(&mut self, and: &LogicAnd) -> Fallible<()> {
+        let current = self.current();
+
         // This leaves the last value that was considered on top of the stack.
 
         // <a>
@@ -289,11 +379,11 @@ impl Compiler {
         let mut shorts = Vec::new();
         for eq in &and.rest {
             // jump_false_peek 'short_circuit
-            let short = self.chunk.prepare_jump(Op::JumpFalsePeek(i16::MAX));
+            let short = current.prepare_jump(Op::JumpFalsePeek(i16::MAX));
             shorts.push(short);
 
             // pop ; <a> was truthy
-            self.chunk.push(Op::Pop);
+            current.push(Op::Pop);
 
             // <b>
             self.equality(eq)?;
@@ -301,132 +391,144 @@ impl Compiler {
 
         // 'short_circuit:
         for jump in shorts {
-            self.chunk.set_jump_target(jump);
+            current.set_jump_target(jump);
         }
 
         Ok(())
     }
 
     fn equality(&mut self, eq: &Equality) -> Fallible<()> {
+        let current = self.current();
+
         match eq {
             Equality::Value(comp) => self.comparison(comp),
 
             Equality::Eq(a, b) => {
                 self.equality(a)?;
                 self.comparison(b)?;
-                self.chunk.push(Op::Eq);
+                current.push(Op::Eq);
                 Ok(())
             }
 
             Equality::Ne(a, b) => {
                 self.equality(a)?;
                 self.comparison(b)?;
-                self.chunk.push(Op::Ne);
+                current.push(Op::Ne);
                 Ok(())
             }
         }
     }
 
     fn comparison(&mut self, comp: &Comparison) -> Fallible<()> {
+        let current = self.current();
+
         match comp {
             Comparison::Value(term) => self.term(term),
 
             Comparison::Gt(a, b) => {
                 self.comparison(a)?;
                 self.term(b)?;
-                self.chunk.push(Op::Gt);
+                current.push(Op::Gt);
                 Ok(())
             }
 
             Comparison::Ge(a, b) => {
                 self.comparison(a)?;
                 self.term(b)?;
-                self.chunk.push(Op::Ge);
+                current.push(Op::Ge);
                 Ok(())
             }
 
             Comparison::Lt(a, b) => {
                 self.comparison(a)?;
                 self.term(b)?;
-                self.chunk.push(Op::Lt);
+                current.push(Op::Lt);
                 Ok(())
             }
 
             Comparison::Le(a, b) => {
                 self.comparison(a)?;
                 self.term(b)?;
-                self.chunk.push(Op::Le);
+                current.push(Op::Le);
                 Ok(())
             }
         }
     }
 
     fn term(&mut self, term: &Term) -> Fallible<()> {
+        let current = self.current();
+
         match term {
             Term::Value(factor) => self.factor(factor),
 
             Term::Add(a, b) => {
                 self.term(a)?;
                 self.factor(b)?;
-                self.chunk.push(Op::Add);
+                current.push(Op::Add);
                 Ok(())
             }
 
             Term::Sub(a, b) => {
                 self.term(a)?;
                 self.factor(b)?;
-                self.chunk.push(Op::Sub);
+                current.push(Op::Sub);
                 Ok(())
             }
         }
     }
 
     fn factor(&mut self, factor: &Factor) -> Fallible<()> {
+        let current = self.current();
+
         match factor {
             Factor::Value(unary) => self.unary(unary),
 
             Factor::Mul(a, b) => {
                 self.factor(a)?;
                 self.unary(b)?;
-                self.chunk.push(Op::Mul);
+                current.push(Op::Mul);
                 Ok(())
             }
 
             Factor::Div(a, b) => {
                 self.factor(a)?;
                 self.unary(b)?;
-                self.chunk.push(Op::Div);
+                current.push(Op::Div);
                 Ok(())
             }
 
             Factor::Rem(a, b) => {
                 self.factor(a)?;
                 self.unary(b)?;
-                self.chunk.push(Op::Rem);
+                current.push(Op::Rem);
                 Ok(())
             }
         }
     }
 
     fn unary(&mut self, unary: &Unary) -> Fallible<()> {
+        let current = self.current();
+
         match unary {
             Unary::Value(call) => self.call(call),
 
             Unary::Not(a) => {
                 self.unary(a)?;
-                self.chunk.push(Op::Not);
+                current.push(Op::Not);
                 Ok(())
             }
 
             Unary::Neg(a) => {
                 self.unary(a)?;
-                self.chunk.push(Op::Neg);
+                current.push(Op::Neg);
                 Ok(())
             }
         }
     }
 
     fn call(&mut self, call: &Call) -> Fallible<()> {
+        let current = self.current();
+
         match call {
             Call::Value(primary) => self.primary(primary),
 
@@ -437,14 +539,14 @@ impl Compiler {
                 }
 
                 let arity: u8 = args.len().try_into().expect("at most 255 args");
-                self.chunk.push(Op::Call(arity));
+                current.push(Op::Call(arity));
                 Ok(())
             }
 
             Call::Index(obj, key) => {
                 self.call(obj)?;
                 self.expression(key)?;
-                self.chunk.push(Op::Index);
+                current.push(Op::Index);
                 Ok(())
             }
 
@@ -452,8 +554,8 @@ impl Compiler {
                 self.call(obj)?;
 
                 let name = Constant::String(field.name.clone());
-                let id = self.chunk.add_constant(name);
-                self.chunk.push(Op::Constant(id));
+                let id = current.add_constant(name);
+                current.push(Op::Constant(id));
                 Ok(())
             }
         }
@@ -478,75 +580,82 @@ impl Compiler {
 
     #[instrument(level = "trace")]
     fn expr_if(&mut self, if_: &If) -> Fallible<()> {
+        let current = self.current();
+
         // <cond>
         self.expression(&if_.condition)?;
 
         // jump_false_pop 'skip_conseq [peek cond]
-        let skip_conseq = self.chunk.prepare_jump(Op::JumpFalsePop(i16::MAX));
+        let skip_conseq = current.prepare_jump(Op::JumpFalsePop(i16::MAX));
 
         // <consequent>
         self.block(&if_.consequent)?;
 
         let Some(alt) = &if_.alternative else {
             // 'skip_conseq:
-            self.chunk.set_jump_target(skip_conseq);
-            self.chunk.push(Op::Nil);
+            current.set_jump_target(skip_conseq);
+            current.push(Op::Nil);
             return Ok(());
         };
 
         // jump 'skip_alt
-        let skip_alt = self.chunk.prepare_jump(Op::Jump(i16::MAX));
+        let skip_alt = current.prepare_jump(Op::Jump(i16::MAX));
 
         // 'skip_conseq:
-        self.chunk.set_jump_target(skip_conseq);
+        current.set_jump_target(skip_conseq);
 
         // <alternative>
         self.block(alt)?;
 
         // 'skip_alt:
-        self.chunk.set_jump_target(skip_alt);
+        current.set_jump_target(skip_alt);
 
         Ok(())
     }
 
     #[instrument(level = "trace")]
     fn expr_identifier(&mut self, ident: &Identifier) -> Fallible<()> {
-        if let Some((slot, _local)) = self.locals.resolve(&ident.name) {
-            self.chunk.push(Op::LocalGet(slot));
-            // TODO: Resolve upvalues for closures
+        let current = self.current();
+
+        if let Some((slot, _local)) = current.resolve_local(ident) {
+            current.push(Op::GetLocal(slot));
+        } else if let Some(upvalue) = self.resolve_upvalue(ident) {
+            current.push(Op::GetUpvalue(upvalue.index()));
         } else {
-            let global = self.chunk.make_global(ident.name.clone());
-            self.chunk.push(Op::GlobalGet(global));
+            let global = current.make_global(ident);
+            current.push(Op::GetGlobal(global));
         }
         Ok(())
     }
 
     #[instrument(level = "trace")]
     fn literal(&mut self, lit: &Literal) -> Fallible<()> {
+        let current = self.current();
+
         match lit {
             Literal::Nil => {
-                self.chunk.push(Op::Nil);
+                current.push(Op::Nil);
             }
             Literal::Boolean(b) => {
                 if *b {
-                    self.chunk.push(Op::True);
+                    current.push(Op::True);
                 } else {
-                    self.chunk.push(Op::False);
+                    current.push(Op::False);
                 }
             }
 
             Literal::Integer(v) => {
                 let r = BigRational::new(v.clone(), 1.into());
-                let id = self.chunk.add_constant(Constant::Rational(r));
-                self.chunk.push(Op::Constant(id));
+                let id = current.add_constant(Constant::Rational(r));
+                current.push(Op::Constant(id));
             }
             Literal::Float(v) => {
-                let id = self.chunk.add_constant(Constant::Float(*v));
-                self.chunk.push(Op::Constant(id));
+                let id = current.add_constant(Constant::Float(*v));
+                current.push(Op::Constant(id));
             }
             Literal::String(v) => {
-                let id = self.chunk.add_constant(Constant::String(v.clone()));
-                self.chunk.push(Op::Constant(id));
+                let id = current.add_constant(Constant::String(v.clone()));
+                current.push(Op::Constant(id));
             }
         }
 
@@ -554,12 +663,97 @@ impl Compiler {
     }
 }
 
+#[derive(Debug, Default)]
+struct FuncBuilder {
+    chunk: Chunk,
+    locals: Locals,
+    upvalues: Upvalues,
+}
+
+#[derive(Debug, Clone)]
+struct FuncRef(Rc<RefCell<FuncBuilder>>);
+
+impl FuncRef {
+    fn begin_scope(&self) {
+        let mut func = self.0.borrow_mut();
+        func.locals.begin_scope()
+    }
+
+    fn end_scope(&self) -> Vec<Local> {
+        let mut func = self.0.borrow_mut();
+        func.locals.end_scope()
+    }
+
+    fn reserve_local(&self, ident: Identifier) -> CompileResult<Slot> {
+        let mut func = self.0.borrow_mut();
+        func.locals.reserve(ident)
+    }
+
+    fn resolve_local(&self, ident: &Identifier) -> Option<(u8, Local)> {
+        let func = self.0.borrow_mut();
+        func.locals
+            .resolve(&ident.name)
+            .map(|(slot, local)| (slot, local.clone()))
+    }
+
+    fn capture_local(&self, ident: &Identifier) -> Option<u8> {
+        let mut func = self.0.borrow_mut();
+        match func.locals.resolve_mut(&ident.name) {
+            Some((slot, local)) => {
+                local.captured = true;
+                Some(slot)
+            }
+            None => None,
+        }
+    }
+
+    fn init_local(&self, slot: Slot) {
+        let mut func = self.0.borrow_mut();
+        func.locals.mark_init(slot)
+    }
+
+    fn add_upvalue(&self, upvalue: Upvalue) -> Upvalue {
+        let mut func = self.0.borrow_mut();
+        func.upvalues.push(upvalue)
+    }
+
+    fn push(&self, op: Op) {
+        let mut func = self.0.borrow_mut();
+        func.chunk.push(op)
+    }
+
+    fn push_bytes(&self, bytes: &[u8]) {
+        let mut func = self.0.borrow_mut();
+        func.chunk.push_bytes(bytes)
+    }
+
+    fn add_constant(&self, constant: Constant) -> u8 {
+        let mut func = self.0.borrow_mut();
+        func.chunk.add_constant(constant)
+    }
+
+    fn make_global(&self, ident: &Identifier) -> u8 {
+        let mut func = self.0.borrow_mut();
+        func.chunk.make_global(ident.name.clone())
+    }
+
+    fn prepare_jump(&self, op: Op) -> PendingJump {
+        let mut func = self.0.borrow_mut();
+        func.chunk.prepare_jump(op)
+    }
+
+    fn set_jump_target(&self, jump: PendingJump) {
+        let mut func = self.0.borrow_mut();
+        func.chunk.set_jump_target(jump)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Local {
     depth: usize,
-    initialized: bool,
-
     ident: Identifier,
+    initialized: bool,
+    captured: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -581,25 +775,29 @@ impl Locals {
     }
 
     #[instrument(level = "trace")]
-    fn end_scope(&mut self) -> usize {
+    fn end_scope(&mut self) -> Vec<Local> {
         self.scope_depth -= 1;
 
-        let mut count = 0;
+        let mut popped = VecDeque::new();
 
         while let Some(local) = self.locals.last() {
             if local.depth > self.scope_depth {
-                self.locals.pop();
-                count += 1;
+                let owned = self.locals.pop().expect("last");
+                popped.push_front(owned);
             } else {
                 break;
             }
         }
 
-        count
+        popped.into()
     }
 
     fn iter_slots(&self) -> impl Iterator<Item = (usize, &Local)> {
         self.locals.iter().enumerate().rev()
+    }
+
+    fn iter_slots_mut(&mut self) -> impl Iterator<Item = (usize, &mut Local)> {
+        self.locals.iter_mut().enumerate().rev()
     }
 
     fn iter_stack(&self) -> impl Iterator<Item = &Local> {
@@ -609,6 +807,17 @@ impl Locals {
     #[instrument(level = "trace")]
     fn resolve<'a>(&'a self, name: &str) -> Option<(u8, &'a Local)> {
         for (slot, var) in self.iter_slots() {
+            if var.ident.name == name {
+                let slot: u8 = slot.try_into().expect("Too many locals!");
+                return Some((slot, var));
+            }
+        }
+        None
+    }
+
+    #[instrument(level = "trace")]
+    fn resolve_mut<'a>(&'a mut self, name: &str) -> Option<(u8, &'a mut Local)> {
+        for (slot, var) in self.iter_slots_mut() {
             if var.ident.name == name {
                 let slot: u8 = slot.try_into().expect("Too many locals!");
                 return Some((slot, var));
@@ -631,6 +840,7 @@ impl Locals {
             ident,
             depth: self.scope_depth,
             initialized: false,
+            captured: false,
         };
 
         for old in self.iter_stack() {
@@ -656,5 +866,45 @@ impl Locals {
                 self.locals[idx as usize].initialized = true;
             }
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Upvalue {
+    Local(u8),
+    Nonlocal(u8),
+}
+
+impl Upvalue {
+    fn index(&self) -> u8 {
+        match self {
+            Upvalue::Local(idx) | Upvalue::Nonlocal(idx) => *idx,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct Upvalues(Vec<Upvalue>);
+
+impl Upvalues {
+    fn len(&self) -> u8 {
+        self.0.len().try_into().unwrap()
+    }
+
+    fn push(&mut self, upvalue: Upvalue) -> Upvalue {
+        // If this upvalue reference already exists, return a ref _to that ref_.
+        for (idx, upv) in self.0.iter().enumerate() {
+            if upv == &upvalue {
+                let idx: u8 = idx.try_into().unwrap();
+                return Upvalue::Nonlocal(idx);
+            }
+        }
+
+        // Otherwise, create a new one.
+        let idx = self.0.len();
+        self.0.push(upvalue);
+
+        let idx: u8 = idx.try_into().unwrap();
+        Upvalue::Nonlocal(idx)
     }
 }

@@ -1,3 +1,6 @@
+use std::fmt;
+use std::sync::{Arc, Mutex};
+
 use num_rational::BigRational;
 
 use crate::bytecode::Func;
@@ -10,7 +13,32 @@ pub enum Value {
     Float(f64),
     Rational(BigRational),
     String(String),
-    Func(Func),
+    Closure(Closure),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Nil => write!(f, "nil"),
+            Value::Boolean(v) => write!(f, "{}", if *v { "true" } else { "false" }),
+            Value::Float(v) => write!(f, "{}", v),
+            Value::Rational(v) => write!(f, "{}", v),
+            Value::String(v) => write!(f, "{:?}", v),
+            Value::Closure(v) => write!(f, "(func {:?})", v.func.name),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Closure {
+    pub func: Func,
+    pub upvalues: Vec<usize>, // index into Vm.upvalues
+}
+
+#[derive(Debug, Clone)]
+pub enum Upvalue {
+    Stack(usize),
+    Heap(Arc<Mutex<Value>>),
 }
 
 impl Value {
@@ -57,8 +85,8 @@ impl PartialEq for Value {
 
             // Functions are never equal to anything. In theory, they could be equal to themselves,
             // but getting clear rules for identity there doesn't feel worth it.
-            (Value::Func(_), Value::Func(_)) => false,
-            (Value::Func(_), _) => false,
+            (Value::Closure(_), Value::Closure(_)) => false,
+            (Value::Closure(_), _) => false,
         }
     }
 }
@@ -85,8 +113,8 @@ impl PartialOrd for Value {
             (Value::String(_), _) => None,
 
             // Functions aren't comparable to each other nor to values of other types.
-            (Value::Func(_), Value::Func(_)) => None,
-            (Value::Func(_), _) => None,
+            (Value::Closure(_), Value::Closure(_)) => None,
+            (Value::Closure(_), _) => None,
         }
     }
 }

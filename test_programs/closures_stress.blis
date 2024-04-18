@@ -1,0 +1,33 @@
+func main() {
+    func outer(x) {
+        print("outer");
+
+        func middle() {
+            print("middle");
+
+            func inner() {
+                print("inner");
+                print(x);
+                x = x + 1;
+                print(x);
+                print("-----");
+            }
+
+            inner
+        }
+
+        middle
+    }
+
+    let middle = outer(0);
+    let inner = middle();
+    inner();
+    inner();
+    inner();
+}
+
+func print(v) {
+    // TODO: provide a host function for this
+}
+
+main();
