@@ -5,7 +5,7 @@ use num_rational::BigRational;
 use tracing::{instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
-use crate::runtime::{Closure, Upvalue, Value, ValueType};
+use crate::runtime::{Closure, HostFunc, RuntimeFn, Upvalue, Value, ValueType};
 
 #[derive(Default)]
 pub struct Vm {
@@ -13,6 +13,18 @@ pub struct Vm {
     globals: BTreeMap<String, Value>,
     frames: Vec<Frame>,
     upvalues: Vec<Upvalue>, // TODO: The GC should shrink this when it's safe
+}
+
+fn host_print(_argc: u8, argv: &[Value]) -> Value {
+    if let Some(first) = argv.first() {
+        print!("{}", first);
+        for v in &argv[1..] {
+            print!(" {}", v);
+        }
+    }
+
+    println!();
+    Value::Nil
 }
 
 struct Frame {
@@ -85,23 +97,37 @@ impl Vm {
     fn call_value(&mut self, argc: u8) -> VmResult<()> {
         let callee = self.peek(argc as usize)?;
 
-        let Value::Closure(closure) = callee else {
-            return Err(VmError::Type {
+        match callee {
+            Value::HostFunc(f) => {
+                let ret = {
+                    let start = self.stack.len() - argc as usize;
+                    let argv = &self.stack[start..];
+
+                    (f.inner)(argc, argv)
+                };
+
+                // Replace the whole call frame (including the callee) with the return value.
+                self.pop_n(argc + 1)?;
+                self.push(ret);
+                Ok(())
+            }
+            Value::Closure(closure) => {
+                if argc != closure.func.arity {
+                    todo!("arity mismatch");
+                }
+                let argc: usize = argc.into();
+
+                // Subtract one extra slot so bp points to the caller itself.
+                let bp = self.stack.len().checked_sub(1 + argc).unwrap();
+                self.frames.push(Frame { bp, pc: 0 });
+
+                Ok(())
+            }
+            actual => Err(VmError::Type {
                 expected: String::from("function"),
-                actual: callee.clone(),
-            });
-        };
-
-        if argc != closure.func.arity {
-            todo!("arity mismatch");
+                actual: actual.clone(),
+            }),
         }
-        let argc: usize = argc.into();
-
-        // Subtract one extra slot so bp points to the caller itself.
-        let bp = self.stack.len().checked_sub(1 + argc).unwrap();
-        self.frames.push(Frame { bp, pc: 0 });
-
-        Ok(())
     }
 
     #[instrument(level = "trace", ret, skip(self))]
@@ -158,12 +184,19 @@ impl Vm {
 
 impl Vm {
     pub fn new() -> Self {
-        Self {
-            stack: Vec::new(),
-            globals: BTreeMap::new(),
-            frames: Vec::new(),
-            upvalues: Vec::new(),
-        }
+        let mut vm = Self::default();
+        vm.set_host_func("print", host_print);
+        vm
+    }
+
+    pub fn set_host_func(&mut self, name: &'static str, f: RuntimeFn) {
+        let name = String::from(name);
+
+        let hosted = Value::HostFunc(HostFunc {
+            name: name.clone(),
+            inner: f,
+        });
+        self.globals.insert(name, hosted);
     }
 
     pub fn interpret(&mut self, chunk: Chunk) -> VmResult<()> {

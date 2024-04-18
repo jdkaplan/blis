@@ -86,7 +86,7 @@ impl Run {
             Compiler::compile(&ast).wrap_err("compile error")?
         };
 
-        let mut vm = Vm::default();
+        let mut vm = Vm::new();
         vm.interpret(program).wrap_err("runtime error")
     }
 }

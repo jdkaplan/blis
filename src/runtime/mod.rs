@@ -1,3 +1,3 @@
 pub mod value;
 
-pub use value::{Closure, Upvalue, Value, ValueType};
+pub use value::{Closure, HostFunc, RuntimeFn, Upvalue, Value, ValueType};

@@ -2,11 +2,11 @@ func main() {
     func outer(x) {
         print("outer");
 
-        func middle() {
-            print("middle");
+        func middle(name) {
+            print("middle", name);
 
             func inner() {
-                print("inner");
+                print("inner", name);
                 print(x);
                 x = x + 1;
                 print(x);
@@ -20,14 +20,15 @@ func main() {
     }
 
     let middle = outer(0);
-    let inner = middle();
-    inner();
-    inner();
-    inner();
-}
+    let inner1 = middle("first");
+    inner1();
+    inner1();
 
-func print(v) {
-    // TODO: provide a host function for this
+    let inner2 = middle("second");
+    inner2();
+
+    inner1();
+    inner2();
 }
 
 main();

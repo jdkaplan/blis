@@ -14,6 +14,7 @@ pub enum Value {
     Rational(BigRational),
     String(String),
     Closure(Closure),
+    HostFunc(HostFunc),
 }
 
 impl fmt::Display for Value {
@@ -23,10 +24,19 @@ impl fmt::Display for Value {
             Value::Boolean(v) => write!(f, "{}", if *v { "true" } else { "false" }),
             Value::Float(v) => write!(f, "{}", v),
             Value::Rational(v) => write!(f, "{}", v),
-            Value::String(v) => write!(f, "{:?}", v),
+            Value::String(v) => write!(f, "{}", v),
             Value::Closure(v) => write!(f, "(func {:?})", v.func.name),
+            Value::HostFunc(v) => write!(f, "(func {:?})", v.name),
         }
     }
+}
+
+pub type RuntimeFn = fn(argc: u8, argv: &[Value]) -> Value;
+
+#[derive(Debug, Clone)]
+pub struct HostFunc {
+    pub name: String,
+    pub inner: RuntimeFn,
 }
 
 #[derive(Debug, Clone)]
@@ -87,6 +97,8 @@ impl PartialEq for Value {
             // but getting clear rules for identity there doesn't feel worth it.
             (Value::Closure(_), Value::Closure(_)) => false,
             (Value::Closure(_), _) => false,
+            (Value::HostFunc(_), Value::HostFunc(_)) => false,
+            (Value::HostFunc(_), _) => false,
         }
     }
 }
@@ -115,6 +127,8 @@ impl PartialOrd for Value {
             // Functions aren't comparable to each other nor to values of other types.
             (Value::Closure(_), Value::Closure(_)) => None,
             (Value::Closure(_), _) => None,
+            (Value::HostFunc(_), Value::HostFunc(_)) => None,
+            (Value::HostFunc(_), _) => None,
         }
     }
 }

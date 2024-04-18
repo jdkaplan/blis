@@ -1,9 +1,1 @@
-func main() {
-    print("Hello, World!");
-}
-
-func print(s) {
-    // TODO: provide a host function for this
-}
-
-main();
+print("Hello, World!");
