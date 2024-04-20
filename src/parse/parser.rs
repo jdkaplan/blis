@@ -581,6 +581,8 @@ impl<'source> Parser<'source> {
             self.expr_if(if_).map(Primary::If)
         } else if let Some(open) = self.take(Token::LeftParen) {
             self.expr_group(open).map(Box::new).map(Primary::Group)
+        } else if let Some(object) = self.take(Token::Object) {
+            self.expr_object(object).map(Primary::Object)
         } else {
             self.atom().map(Primary::Atom)
         }
@@ -657,6 +659,41 @@ impl<'source> Parser<'source> {
         let expr = self.expression()?;
         self.must_take(Token::RightParen)?;
         Ok(expr)
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn expr_object(&mut self, _kw: Lexeme<'_>) -> Fallible<Object> {
+        let open = self.must_take(Token::LeftBrace)?;
+        let fields = self.object_fields(open)?;
+        Ok(Object { fields })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn object_fields(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<(Identifier, Expression)>> {
+        let mut fields = Vec::new();
+
+        loop {
+            if let Some(_close) = self.take(Token::RightBrace) {
+                break;
+            }
+
+            let name = self.must_take(Token::Identifier)?;
+            let ident = Identifier::new(name.text);
+
+            self.must_take(Token::Equal)?;
+
+            let expr = self.expression()?;
+            fields.push((ident, expr));
+
+            if let Some(_sep) = self.take(Token::Comma) {
+                continue;
+            } else {
+                self.must_take(Token::RightBrace)?;
+                break;
+            }
+        }
+
+        Ok(fields)
     }
 
     #[instrument(level = "trace", ret)]

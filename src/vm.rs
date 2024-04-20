@@ -5,7 +5,7 @@ use num_rational::BigRational;
 use tracing::{instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
-use crate::runtime::{Closure, HostFunc, RuntimeFn, Upvalue, Value, ValueType};
+use crate::runtime::{Closure, Heap, HostFunc, RuntimeFn, Upvalue, Value, ValueType};
 
 #[derive(Default)]
 pub struct Vm {
@@ -13,6 +13,7 @@ pub struct Vm {
     globals: BTreeMap<String, Value>,
     frames: Vec<Frame>,
     upvalues: Vec<Upvalue>, // TODO: The GC should shrink this when it's safe
+    heap: Heap,
 }
 
 fn host_print(_argc: u8, argv: &[Value]) -> Value {
@@ -408,6 +409,10 @@ impl Vm {
                 Op::True => {
                     self.push(Value::Boolean(true));
                 }
+                Op::Object => {
+                    let id = self.heap.make_object();
+                    self.push(Value::Object(id));
+                }
 
                 Op::Jump(delta) => jump!(delta),
                 Op::JumpFalsePeek(delta) => {
@@ -493,6 +498,41 @@ impl Vm {
                     };
 
                     *dest = value;
+                }
+
+                Op::GetField(idx) => {
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let Constant::String(name) = constant else {
+                        unreachable!()
+                    };
+                    let name = name.clone();
+
+                    let Value::Object(id) = self.pop()? else {
+                        todo!("type error");
+                    };
+
+                    let obj = self.heap.get(id).unwrap();
+                    let v = obj.get_field(&name).clone();
+                    self.push(v);
+                }
+                Op::SetField(idx) => {
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let Constant::String(name) = constant else {
+                        unreachable!()
+                    };
+                    let name = name.clone();
+
+                    let Value::Object(id) = self.peek(1)? else {
+                        todo!("type error");
+                    };
+                    let id = *id;
+
+                    let value = self.pop()?;
+
+                    let obj = self.heap.get_mut(id).unwrap();
+                    obj.set_field(name, value);
                 }
 
                 Op::Call(argc) => {

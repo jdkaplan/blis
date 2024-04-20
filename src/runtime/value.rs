@@ -27,9 +27,9 @@ impl fmt::Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Rational(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
-            Value::Closure(v) => write!(f, "(func {:?})", v.func.name),
-            Value::HostFunc(v) => write!(f, "(func {:?})", v.name),
-            Value::Object(v) => write!(f, "(object {:?})", v),
+            Value::Closure(v) => write!(f, "<func {:?}>", v.func.name),
+            Value::HostFunc(v) => write!(f, "<func {:?}>", v.name),
+            Value::Object(v) => write!(f, "<object {}>", v),
         }
     }
 }

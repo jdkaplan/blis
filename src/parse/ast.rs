@@ -170,14 +170,20 @@ pub enum Primary {
     Block(Block),
     If(If),
     Group(Box<Expression>),
+    Object(Object),
 
     Atom(Atom),
+}
+
+#[derive(Debug, Clone)]
+pub struct Object {
+    pub fields: Vec<(Identifier, Expression)>,
 }
 
 impl Primary {
     pub fn self_terminating(&self) -> bool {
         match self {
-            Primary::Block(_) | Primary::If(_) => true,
+            Primary::Block(_) | Primary::If(_) | Primary::Object(_) => true,
             Primary::Atom(_) | Primary::Group(_) => false,
         }
     }
@@ -197,6 +203,7 @@ pub struct Assignment {
 
 #[derive(Debug, Clone)]
 pub enum Place {
+    Field(Call, Identifier),
     Identifier(Identifier),
 }
 
@@ -244,19 +251,21 @@ impl TryFrom<Expression> for Place {
             return Err(PlaceError { target });
         };
 
-        let Call::Value(expr) = expr else {
-            return Err(PlaceError { target });
-        };
+        if let Call::Value(expr) = expr {
+            let Primary::Atom(expr) = expr else {
+                return Err(PlaceError { target });
+            };
 
-        let Primary::Atom(expr) = expr else {
-            return Err(PlaceError { target });
-        };
+            let Atom::Identifier(ident) = expr else {
+                return Err(PlaceError { target });
+            };
 
-        let Atom::Identifier(ident) = expr else {
-            return Err(PlaceError { target });
-        };
-
-        Ok(Place::Identifier(ident.clone()))
+            Ok(Place::Identifier(ident.clone()))
+        } else if let Call::Field(expr, ident) = expr {
+            Ok(Place::Field(*expr.clone(), ident.clone()))
+        } else {
+            Err(PlaceError { target })
+        }
     }
 }
 

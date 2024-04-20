@@ -275,17 +275,37 @@ impl Compiler {
     fn stmt_assign(&mut self, assign: &Assignment) -> Fallible<()> {
         let current = self.current();
 
-        let Place::Identifier(ident) = &assign.place;
+        match &assign.place {
+            Place::Field(obj, ident) => {
+                // Evaluate left-to-right so that
+                //
+                //     obj_expr.ident = expr;
+                //
+                // is the same as
+                //
+                //     let obj = obj_expr;
+                //     let val = expr;
+                //     obj.ident = val;
+                //
+                self.call(obj)?;
 
-        self.expression(&assign.expr)?;
+                let id = current.add_name_constant(ident);
+                self.expression(&assign.expr)?;
+                current.push(Op::SetField(id));
+            }
+            // ident = expr
+            Place::Identifier(ident) => {
+                self.expression(&assign.expr)?;
 
-        if let Some((slot, _local)) = current.resolve_local(ident) {
-            current.push(Op::SetLocal(slot));
-        } else if let Some(upvalue) = self.resolve_upvalue(ident) {
-            current.push(Op::SetUpvalue(upvalue.index()));
-        } else {
-            let global = current.make_global(ident);
-            current.push(Op::SetGlobal(global));
+                if let Some((slot, _local)) = current.resolve_local(ident) {
+                    current.push(Op::SetLocal(slot));
+                } else if let Some(upvalue) = self.resolve_upvalue(ident) {
+                    current.push(Op::SetUpvalue(upvalue.index()));
+                } else {
+                    let global = current.make_global(ident);
+                    current.push(Op::SetGlobal(global));
+                }
+            }
         }
 
         Ok(())
@@ -550,12 +570,11 @@ impl Compiler {
                 Ok(())
             }
 
-            Call::Field(obj, field) => {
+            Call::Field(obj, ident) => {
                 self.call(obj)?;
 
-                let name = Constant::String(field.name.clone());
-                let id = current.add_constant(name);
-                current.push(Op::Constant(id));
+                let id = current.add_name_constant(ident);
+                current.push(Op::GetField(id));
                 Ok(())
             }
         }
@@ -568,6 +587,7 @@ impl Compiler {
             Primary::If(if_) => self.expr_if(if_),
             Primary::Atom(atom) => self.atom(atom),
             Primary::Group(expr) => self.expression(expr),
+            Primary::Object(obj) => self.expr_object(obj),
         }
     }
 
@@ -610,6 +630,21 @@ impl Compiler {
 
         // 'skip_alt:
         current.set_jump_target(skip_alt);
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace")]
+    fn expr_object(&mut self, obj: &Object) -> Fallible<()> {
+        let current = self.current();
+        current.push(Op::Object);
+
+        for (ident, expr) in &obj.fields {
+            let id = current.add_name_constant(ident);
+
+            self.expression(expr)?;
+            current.push(Op::SetField(id));
+        }
 
         Ok(())
     }
@@ -731,6 +766,13 @@ impl FuncRef {
     fn add_constant(&self, constant: Constant) -> u8 {
         let mut func = self.0.borrow_mut();
         func.chunk.add_constant(constant)
+    }
+
+    fn add_name_constant(&self, ident: &Identifier) -> u8 {
+        let name = Constant::String(ident.name.clone());
+
+        let mut func = self.0.borrow_mut();
+        func.chunk.add_constant(name)
     }
 
     fn make_global(&self, ident: &Identifier) -> u8 {

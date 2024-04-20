@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::{
+    collections::{BTreeMap, BTreeSet, VecDeque},
+    fmt,
+};
 
 use slotmap::HopSlotMap;
 
@@ -6,12 +9,30 @@ use crate::runtime::Value;
 
 slotmap::new_key_type! { pub struct ObjectId; }
 
+impl fmt::Display for ObjectId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "#{:?}", self.0)
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Heap {
     objects: HopSlotMap<ObjectId, Object>,
 }
 
 impl Heap {
+    pub fn make_object(&mut self) -> ObjectId {
+        self.objects.insert(Object::default())
+    }
+
+    pub fn get_mut(&mut self, id: ObjectId) -> Option<&mut Object> {
+        self.objects.get_mut(id)
+    }
+
+    pub fn get(&self, id: ObjectId) -> Option<&Object> {
+        self.objects.get(id)
+    }
+
     pub fn gc(&mut self, roots: &[ObjectId]) {
         let mut gc = Gc::default();
 
@@ -51,9 +72,19 @@ impl Gc {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Object {
     pub fields: BTreeMap<String, Value>,
+}
+
+impl Object {
+    pub fn get_field(&self, name: &str) -> &Value {
+        &self.fields[name]
+    }
+
+    pub fn set_field(&mut self, name: String, value: Value) {
+        self.fields.insert(name, value);
+    }
 }
 
 impl Object {
