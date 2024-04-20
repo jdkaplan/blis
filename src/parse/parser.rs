@@ -583,6 +583,8 @@ impl<'source> Parser<'source> {
             self.expr_block(open).map(Primary::Block)
         } else if let Some(if_) = self.take(Token::If) {
             self.expr_if(if_).map(Primary::If)
+        } else if let Some(open) = self.take(Token::LeftParen) {
+            self.expr_group(open).map(Box::new).map(Primary::Group)
         } else {
             self.atom().map(Primary::Atom)
         }
@@ -652,6 +654,13 @@ impl<'source> Parser<'source> {
             consequent,
             alternative,
         })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn expr_group(&mut self, _open: Lexeme<'_>) -> Fallible<Expression> {
+        let expr = self.expression()?;
+        self.must_take(Token::RightParen)?;
+        Ok(expr)
     }
 
     #[instrument(level = "trace", ret)]

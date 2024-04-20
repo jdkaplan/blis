@@ -567,6 +567,7 @@ impl Compiler {
             Primary::Block(block) => self.block(block),
             Primary::If(if_) => self.expr_if(if_),
             Primary::Atom(atom) => self.atom(atom),
+            Primary::Group(expr) => self.expression(expr),
         }
     }
 

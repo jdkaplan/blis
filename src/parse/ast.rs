@@ -169,6 +169,7 @@ impl Call {
 pub enum Primary {
     Block(Block),
     If(If),
+    Group(Box<Expression>),
 
     Atom(Atom),
 }
@@ -177,7 +178,7 @@ impl Primary {
     pub fn self_terminating(&self) -> bool {
         match self {
             Primary::Block(_) | Primary::If(_) => true,
-            Primary::Atom(_) => false,
+            Primary::Atom(_) | Primary::Group(_) => false,
         }
     }
 }
