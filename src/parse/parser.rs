@@ -32,7 +32,7 @@ pub enum ParseError {
     #[error("{0}")]
     Other(String),
 
-    #[error("synatx error: {}", .0.text)]
+    #[error("syntax error: {}", .0.text)]
     Lexer(LexemeOwned),
 
     #[error(transparent)]
@@ -168,15 +168,15 @@ impl<'source> Parser<'source> {
                 expected: token,
                 actual: self.lexer.peek().map(|l| l.to_owned()),
             });
-            self.error(err);
-            FailedParse
+            self.error(err)
         })
     }
 
-    fn error(&mut self, err: ParseError) {
+    fn error(&mut self, err: ParseError) -> FailedParse {
         debug!({ ?err }, "parse error");
         self.errors.push(err);
         self.panicking = true;
+        FailedParse
     }
 
     fn synchronize(&mut self) {
@@ -324,10 +324,8 @@ impl<'source> Parser<'source> {
             let stmt = Statement::Expression(expr);
             Ok(Either::L(stmt))
         } else if let Some(_eq) = self.take(Token::Equal) {
-            let place = Place::try_from(expr).map_err(|err| {
-                self.error(ParseError::InvalidPlace(err));
-                FailedParse
-            })?;
+            let place =
+                Place::try_from(expr).map_err(|err| self.error(ParseError::InvalidPlace(err)))?;
 
             let expr = self.expression()?;
 
@@ -345,10 +343,8 @@ impl<'source> Parser<'source> {
         let expr = self.expression()?;
 
         if let Some(_eq) = self.take(Token::Equal) {
-            let place = Place::try_from(expr).map_err(|err| {
-                self.error(ParseError::InvalidPlace(err));
-                FailedParse
-            })?;
+            let place =
+                Place::try_from(expr).map_err(|err| self.error(ParseError::InvalidPlace(err)))?;
 
             let expr = self.expression()?;
 
@@ -687,25 +683,22 @@ impl<'source> Parser<'source> {
             Ok(Literal::String(value))
         } else {
             let msg = format!("expected literal value, got {:?}", self.peek());
-            self.error(ParseError::Other(msg));
-            Err(FailedParse)
+            Err(self.error(ParseError::Other(msg)))
         }
     }
 
     #[instrument(level = "trace", ret)]
     fn integer(&mut self, text: &str) -> Fallible<Literal> {
-        text.parse::<BigInt>().map(Literal::Integer).map_err(|err| {
-            self.error(ParseError::ParseInt(err));
-            FailedParse
-        })
+        text.parse::<BigInt>()
+            .map(Literal::Integer)
+            .map_err(|err| self.error(ParseError::ParseInt(err)))
     }
 
     #[instrument(level = "trace", ret)]
     fn float(&mut self, text: &str) -> Fallible<Literal> {
-        text.parse::<f64>().map(Literal::Float).map_err(|err| {
-            self.error(ParseError::ParseFloat(err));
-            FailedParse
-        })
+        text.parse::<f64>()
+            .map(Literal::Float)
+            .map_err(|err| self.error(ParseError::ParseFloat(err)))
     }
 }
 
