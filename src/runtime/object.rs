@@ -1,9 +1,8 @@
-use std::{
-    collections::{BTreeMap, BTreeSet, VecDeque},
-    fmt,
-};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::fmt;
 
 use slotmap::HopSlotMap;
+use tracing::trace;
 
 use crate::runtime::Value;
 
@@ -18,10 +17,24 @@ impl fmt::Display for ObjectId {
 #[derive(Debug, Default)]
 pub struct Heap {
     objects: HopSlotMap<ObjectId, Object>,
+    gc_at: usize,
 }
 
 impl Heap {
-    pub fn make_object(&mut self) -> ObjectId {
+    pub fn new(first_gc: usize) -> Self {
+        Self {
+            gc_at: first_gc,
+            ..Default::default()
+        }
+    }
+
+    pub fn make_object(&mut self, roots: &[Value]) -> ObjectId {
+        if cfg!(feature = "gc_stress") {
+            self.gc(roots, 0);
+        } else {
+            self.gc(roots, self.gc_at);
+        }
+
         self.objects.insert(Object::default())
     }
 
@@ -33,12 +46,21 @@ impl Heap {
         self.objects.get(id)
     }
 
-    pub fn gc(&mut self, roots: &[ObjectId]) {
+    fn gc(&mut self, roots: &[Value], limit: usize) {
+        let old = self.objects.len();
+        if old < limit {
+            trace!({ len=old, cap=self.objects.capacity(), ?limit }, "gc skipped");
+            return;
+        }
+
+        trace!({ len=old, cap=self.objects.capacity() }, "gc start");
+        self.gc_at = 2 * old;
+
         let mut gc = Gc::default();
 
         // Mark the roots
-        for id in roots {
-            gc.mark_object(*id);
+        for root in roots {
+            gc.mark_value(root);
         }
 
         // Trace the reachable graph
@@ -49,6 +71,9 @@ impl Heap {
 
         // Sweep unreachable objects (i.e., keep only marked)
         self.objects.retain(|k, _v| gc.marked.contains(&k));
+
+        let new = self.objects.len();
+        trace!({ ?old, ?new, freed=(old-new), cap=self.objects.capacity() }, "gc end");
     }
 }
 

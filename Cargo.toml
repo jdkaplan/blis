@@ -6,6 +6,9 @@ license = "BlueOak-1.0.0"
 publish = false
 repository = "https://github.com/jdkaplan/blis"
 
+[features]
+gc_stress = []
+
 [dependencies]
 clap = { version = "4.5.3", features = ["derive"] }
 color-eyre = "0.6.3"

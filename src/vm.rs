@@ -7,6 +7,9 @@ use tracing::{instrument, trace};
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
 use crate::runtime::{Closure, Heap, HostFunc, RuntimeFn, Upvalue, Value, ValueType};
 
+// TODO: Tune gc on realistic programs
+const FIRST_GC_AT: usize = 16;
+
 #[derive(Default)]
 pub struct Vm {
     stack: Vec<Value>,
@@ -185,7 +188,10 @@ impl Vm {
 
 impl Vm {
     pub fn new() -> Self {
-        let mut vm = Self::default();
+        let mut vm = Self {
+            heap: Heap::new(FIRST_GC_AT),
+            ..Default::default()
+        };
         vm.set_host_func("print", host_print);
         vm
     }
@@ -410,7 +416,7 @@ impl Vm {
                     self.push(Value::Boolean(true));
                 }
                 Op::Object => {
-                    let id = self.heap.make_object();
+                    let id = self.heap.make_object(&self.stack);
                     self.push(Value::Object(id));
                 }
 
