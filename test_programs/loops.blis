@@ -1,0 +1,48 @@
+func main() {
+    let x = 0;
+    loop twice {
+        if x >= 2 {
+            break;
+        }
+
+        print("twice before", x);
+        x = x + 1;
+        print("twice after ", x);
+    }
+    print("out of twice", x);
+
+    loop outer {
+        if x < 0 {
+            print("break outer", x);
+            break;
+        }
+
+        loop inner {
+            loop {
+                break;
+            }
+
+            if x > 2 {
+                print("break inner", x);
+                break;
+            }
+
+            print("inner before", x);
+            x = x + 1;
+            print("inner after ", x);
+        }
+        print("out of inner", x);
+        // x = 3
+
+        if x > 2 {
+            x = -1;
+            continue;
+        }
+
+        print("never happens");
+        x = x - 1;
+    }
+    print("out of outer", x);
+}
+
+main();

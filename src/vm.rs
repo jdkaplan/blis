@@ -279,9 +279,7 @@ impl Vm {
 
                     let delta = $delta;
                     if delta.is_negative() {
-                        *pc = pc
-                            .checked_sub((delta as isize).try_into().unwrap())
-                            .unwrap();
+                        *pc = pc.checked_sub((-delta) as usize).unwrap();
                     } else {
                         *pc = pc.checked_add(delta as usize).unwrap();
                     }
@@ -373,14 +371,17 @@ impl Vm {
                     let v = self.pop()?;
                     trace!({ ?v }, "pop");
                 }
+                Op::PopN(n) => {
+                    // These n stack locations are about to disappear. Close any open upvalues that
+                    // point to them.
+                    let len = self.stack.len() - n as usize;
+                    self.close_upvalues(len);
+
+                    self.pop_n(n)?;
+                }
 
                 Op::PopUnderN(n) => {
                     // Save the block's expression value to push back on.
-                    let v = self.pop()?;
-                    self.pop_n(n)?;
-                    self.push(v);
-                }
-                Op::PopCapturedN(n) => {
                     let v = self.pop()?;
 
                     // These n stack locations are about to disappear. Close any open upvalues that

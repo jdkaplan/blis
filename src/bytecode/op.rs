@@ -5,13 +5,14 @@
 pub enum Op {
     Return = 0x00,
     Pop = 0x01,
-    PopUnderN(u8) = 0x02,
+    PopN(u8) = 0x02,
+    PopUnderN(u8) = 0x03,
 
-    Constant(u8) = 0x03,
-    Nil = 0x04,
-    False = 0x05,
-    True = 0x06,
-    Object = 0x07,
+    Constant(u8) = 0x04,
+    Nil = 0x05,
+    False = 0x06,
+    True = 0x07,
+    Object = 0x08,
 
     Call(u8) = 0x10,
     Index = 0x11,
@@ -21,12 +22,11 @@ pub enum Op {
     SetLocal(u8) = 0x21,
     GetUpvalue(u8) = 0x22,
     SetUpvalue(u8) = 0x23,
-    PopCapturedN(u8) = 0x24,
-    GlobalDefine(u8) = 0x25,
-    GetGlobal(u8) = 0x26,
-    SetGlobal(u8) = 0x27,
-    GetField(u8) = 0x28,
-    SetField(u8) = 0x29,
+    GlobalDefine(u8) = 0x26,
+    GetGlobal(u8) = 0x27,
+    SetGlobal(u8) = 0x28,
+    GetField(u8) = 0x29,
+    SetField(u8) = 0x2a,
 
     Not = 0x30,
     Eq = 0x31,
@@ -92,12 +92,12 @@ impl Op {
             | Op::Rem => {}
 
             Op::Constant(ref mut byte)
+            | Op::PopN(ref mut byte)
             | Op::PopUnderN(ref mut byte)
             | Op::Call(ref mut byte)
             | Op::Closure(ref mut byte)
             | Op::GetLocal(ref mut byte)
             | Op::SetLocal(ref mut byte)
-            | Op::PopCapturedN(ref mut byte)
             | Op::GetUpvalue(ref mut byte)
             | Op::SetUpvalue(ref mut byte)
             | Op::GlobalDefine(ref mut byte)
@@ -158,12 +158,12 @@ impl Op {
             | Op::Rem => {}
 
             Op::Constant(byte)
+            | Op::PopN(byte)
             | Op::PopUnderN(byte)
             | Op::Call(byte)
             | Op::Closure(byte)
             | Op::GetLocal(byte)
             | Op::SetLocal(byte)
-            | Op::PopCapturedN(byte)
             | Op::GetUpvalue(byte)
             | Op::SetUpvalue(byte)
             | Op::GlobalDefine(byte)

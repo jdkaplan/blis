@@ -315,31 +315,94 @@ impl<'source> Parser<'source> {
 
         Ok(params)
     }
+}
+
+impl<'source> Parser<'source> {
+    #[instrument(level = "trace", ret)]
+    fn statement(&mut self) -> Fallible<Statement> {
+        if let Some(stmt) = self.stmt_kw()? {
+            return Ok(stmt);
+        }
+
+        let expr = match self.assign_or_expr()? {
+            Either::L(assignment) => return Ok(Statement::Assignment(assignment)),
+            Either::R(expr) => expr,
+        };
+
+        if !expr.self_terminating() {
+            self.must_take(Token::Semicolon)?;
+        }
+
+        Ok(Statement::Expression(expr))
+    }
 
     #[instrument(level = "trace", ret)]
     fn stmt_or_expr(&mut self) -> Fallible<Either<Statement, Expression>> {
-        let expr = self.expression()?;
+        if let Some(stmt) = self.stmt_kw()? {
+            return Ok(Either::L(stmt));
+        }
+
+        let expr = match self.assign_or_expr()? {
+            Either::L(assignment) => {
+                let stmt = Statement::Assignment(assignment);
+                return Ok(Either::L(stmt));
+            }
+            Either::R(expr) => expr,
+        };
 
         if let Some(_semi) = self.take(Token::Semicolon) {
             let stmt = Statement::Expression(expr);
             Ok(Either::L(stmt))
-        } else if let Some(_eq) = self.take(Token::Equal) {
-            let place =
-                Place::try_from(expr).map_err(|err| self.error(ParseError::InvalidPlace(err)))?;
-
-            let expr = self.expression()?;
-
-            self.must_take(Token::Semicolon)?;
-
-            let stmt = Statement::Assignment(Assignment { place, expr });
-            return Ok(Either::L(stmt));
         } else {
             Ok(Either::R(expr))
         }
     }
 
     #[instrument(level = "trace", ret)]
-    fn statement(&mut self) -> Fallible<Statement> {
+    fn stmt_kw(&mut self) -> Fallible<Option<Statement>> {
+        if let Some(kw) = self.take(Token::Break) {
+            self.stmt_break(kw).map(Statement::Break).map(Some)
+        } else if let Some(kw) = self.take(Token::Continue) {
+            self.stmt_continue(kw).map(Statement::Continue).map(Some)
+        } else if let Some(kw) = self.take(Token::Loop) {
+            self.stmt_loop(kw).map(Statement::Loop).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn stmt_break(&mut self, _kw: Lexeme<'source>) -> Fallible<Break> {
+        let label = self
+            .take(Token::Identifier)
+            .map(|ident| Identifier::new(ident.text));
+
+        self.must_take(Token::Semicolon)?;
+        Ok(Break { label })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn stmt_continue(&mut self, _kw: Lexeme<'source>) -> Fallible<Continue> {
+        let label = self
+            .take(Token::Identifier)
+            .map(|ident| Identifier::new(ident.text));
+
+        self.must_take(Token::Semicolon)?;
+        Ok(Continue { label })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn stmt_loop(&mut self, _kw: Lexeme<'source>) -> Fallible<Loop> {
+        let label = self
+            .take(Token::Identifier)
+            .map(|ident| Identifier::new(ident.text));
+
+        let body = self.block()?;
+        Ok(Loop { label, body })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn assign_or_expr(&mut self) -> Fallible<Either<Assignment, Expression>> {
         let expr = self.expression()?;
 
         if let Some(_eq) = self.take(Token::Equal) {
@@ -350,23 +413,19 @@ impl<'source> Parser<'source> {
 
             self.must_take(Token::Semicolon)?;
 
-            return Ok(Statement::Assignment(Assignment { place, expr }));
+            return Ok(Either::L(Assignment { place, expr }));
         }
 
-        if !expr.self_terminating() {
-            self.must_take(Token::Semicolon)?;
-        }
-
-        Ok(Statement::Expression(expr))
-    }
-
-    #[instrument(level = "trace", ret)]
-    fn expression(&mut self) -> Fallible<Expression> {
-        self.logic_or().map(Expression::LogicOr)
+        Ok(Either::R(expr))
     }
 }
 
 impl<'source> Parser<'source> {
+    #[instrument(level = "trace", ret)]
+    fn expression(&mut self) -> Fallible<Expression> {
+        self.logic_or().map(Expression::LogicOr)
+    }
+
     #[instrument(level = "trace", ret)]
     fn logic_or(&mut self) -> Fallible<LogicOr> {
         let first = self.logic_and()?;

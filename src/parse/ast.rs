@@ -17,8 +17,11 @@ pub enum Declaration {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    Assignment(Assignment),
+    Break(Break),
+    Continue(Continue),
+    Loop(Loop),
 
+    Assignment(Assignment),
     Expression(Expression),
 }
 
@@ -283,6 +286,22 @@ pub struct Let {
 }
 
 #[derive(Debug, Clone)]
+pub struct Loop {
+    pub label: Option<Identifier>,
+    pub body: Block,
+}
+
+#[derive(Debug, Clone)]
+pub struct Break {
+    pub label: Option<Identifier>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Continue {
+    pub label: Option<Identifier>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Block {
     pub decls: Vec<Declaration>,
     pub expr: Option<Box<Expression>>,
@@ -295,7 +314,7 @@ pub struct If {
     pub alternative: Option<Block>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identifier {
     pub name: String,
 }

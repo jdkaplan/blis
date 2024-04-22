@@ -268,6 +268,8 @@ fn is_digit(c: char) -> bool {
 fn keyword_or_identifier(text: &str) -> Token {
     match text {
         "and" => Token::And,
+        "break" => Token::Break,
+        "continue" => Token::Continue,
         "else" => Token::Else,
         "false" => Token::False,
         "func" => Token::Func,

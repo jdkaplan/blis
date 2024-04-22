@@ -76,7 +76,7 @@ impl Chunk {
 }
 
 #[must_use]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct PendingJump(usize);
 
 impl Chunk {

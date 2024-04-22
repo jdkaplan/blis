@@ -8,8 +8,8 @@ func main() {
     }
 
     let add_1 = adder(1);
-    add_1(2);
-    add_1(3);
+    print(add_1(2));
+    print(add_1(3));
 }
 
 main();

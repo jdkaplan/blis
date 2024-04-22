@@ -153,12 +153,7 @@ impl Compiler {
 
         let locals = func.end_scope();
         let n: u8 = locals.len().try_into().unwrap();
-
-        if locals.iter().any(|l| l.captured) {
-            func.push(Op::PopCapturedN(n));
-        } else {
-            func.push(Op::PopUnderN(n));
-        }
+        func.push(Op::PopUnderN(n));
 
         Ok(())
     }
@@ -261,14 +256,69 @@ impl Compiler {
     #[instrument(level = "trace")]
     fn statement(&mut self, stmt: &Statement) -> Fallible<()> {
         match stmt {
+            Statement::Break(break_) => self.stmt_break(break_),
+            Statement::Continue(continue_) => self.stmt_continue(continue_),
+            Statement::Loop(loop_) => self.stmt_loop(loop_),
             Statement::Assignment(assign) => self.stmt_assign(assign),
-
             Statement::Expression(expr) => {
                 self.expression(expr)?;
                 self.current().push(Op::Pop);
                 Ok(())
             }
         }
+    }
+
+    #[instrument(level = "trace")]
+    fn stmt_break(&mut self, break_: &Break) -> Fallible<()> {
+        let current = self.current();
+
+        let locals = current.break_scope();
+        let n: u8 = locals.len().try_into().unwrap();
+        current.push(Op::PopN(n));
+
+        let jump = current.prepare_jump(Op::Jump(i16::MAX));
+        current
+            .add_break(&break_.label, jump)
+            .map_err(|err| self.error(err))
+    }
+
+    #[instrument(level = "trace")]
+    fn stmt_continue(&mut self, continue_: &Continue) -> Fallible<()> {
+        let current = self.current();
+
+        let locals = current.break_scope();
+        let n: u8 = locals.len().try_into().unwrap();
+        current.push(Op::PopN(n));
+
+        current
+            .add_continue(&continue_.label)
+            .map_err(|err| self.error(err))
+    }
+
+    #[instrument(level = "trace")]
+    fn stmt_loop(&mut self, loop_: &Loop) -> Fallible<()> {
+        let current = self.current();
+
+        // 'continue:
+        current.start_loop(loop_.label.clone());
+
+        // <body>
+        self.block(&loop_.body)?;
+
+        // jump 'continue
+        current
+            .add_continue(&loop_.label)
+            .map_err(|err| self.error(err))?;
+
+        // 'break:
+        let label = current
+            .end_loop(&loop_.label)
+            .map_err(|err| self.error(err))?;
+        for jump in label.breaks {
+            current.set_jump_target(jump);
+        }
+
+        Ok(())
     }
 
     #[instrument(level = "trace")]
@@ -704,6 +754,7 @@ struct FuncBuilder {
     chunk: Chunk,
     locals: Locals,
     upvalues: Upvalues,
+    labels: Loops,
 }
 
 #[derive(Debug, Clone)]
@@ -713,6 +764,11 @@ impl FuncRef {
     fn begin_scope(&self) {
         let mut func = self.0.borrow_mut();
         func.locals.begin_scope()
+    }
+
+    fn break_scope(&self) -> Vec<Local> {
+        let mut func = self.0.borrow_mut();
+        func.locals.break_scope()
     }
 
     fn end_scope(&self) -> Vec<Local> {
@@ -789,6 +845,37 @@ impl FuncRef {
         let mut func = self.0.borrow_mut();
         func.chunk.set_jump_target(jump)
     }
+
+    fn start_loop(&self, label: Option<Identifier>) {
+        let mut func = self.0.borrow_mut();
+        let start = func.chunk.code.len();
+        func.labels.push(label, start)
+    }
+
+    fn end_loop(&self, label: &Option<Identifier>) -> CompileResult<PendingLoop> {
+        let mut func = self.0.borrow_mut();
+        func.labels.pop(label)
+    }
+
+    fn add_break(&self, label: &Option<Identifier>, jump: PendingJump) -> CompileResult<()> {
+        let mut func = self.0.borrow_mut();
+        func.labels.add_break(label, jump)
+    }
+
+    fn add_continue(&self, label: &Option<Identifier>) -> CompileResult<()> {
+        let mut func = self.0.borrow_mut();
+        let lp = func.labels.find(label)?;
+
+        let len: isize = func.chunk.code.len().try_into().unwrap();
+        let target: isize = lp.start.try_into().unwrap();
+        assert!(target < len, "jump must be backwards");
+
+        let delta: i16 = (target - len)
+            .try_into()
+            .expect("jump offset fits in two bytes");
+        func.chunk.push(Op::Jump(delta));
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -827,6 +914,21 @@ impl Locals {
             if local.depth > self.scope_depth {
                 let owned = self.locals.pop().expect("last");
                 popped.push_front(owned);
+            } else {
+                break;
+            }
+        }
+
+        popped.into()
+    }
+
+    #[instrument(level = "trace")]
+    fn break_scope(&mut self) -> Vec<Local> {
+        let mut popped = VecDeque::new();
+
+        for local in self.iter_stack() {
+            if local.depth >= self.scope_depth {
+                popped.push_front(local.clone());
             } else {
                 break;
             }
@@ -949,5 +1051,71 @@ impl Upvalues {
 
         let idx: u8 = idx.try_into().unwrap();
         Upvalue::Nonlocal(idx)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct Loops(Vec<PendingLoop>);
+
+#[derive(Debug, Clone)]
+struct PendingLoop {
+    label: Option<Identifier>,
+    start: usize,
+    breaks: Vec<PendingJump>,
+}
+
+impl Loops {
+    fn push(&mut self, label: Option<Identifier>, start: usize) {
+        self.0.push(PendingLoop {
+            label,
+            start,
+            breaks: Vec::new(),
+        })
+    }
+
+    fn pop(&mut self, label: &Option<Identifier>) -> CompileResult<PendingLoop> {
+        let lp = self.0.pop().expect("add_label called first");
+        assert_eq!(lp.label, *label);
+        Ok(lp)
+    }
+
+    fn add_break(&mut self, label: &Option<Identifier>, jump: PendingJump) -> CompileResult<()> {
+        if let Some(name) = label {
+            for lp in self.0.iter_mut().rev() {
+                if lp.label.as_ref() == Some(name) {
+                    lp.breaks.push(jump);
+                    return Ok(());
+                }
+            }
+            Err(CompileError::Other(format!(
+                "no label for break: {:?}",
+                name
+            )))
+        } else {
+            let lp = self.0.last_mut().ok_or(CompileError::Other(String::from(
+                "break statement outside of loop",
+            )))?;
+
+            lp.breaks.push(jump);
+            Ok(())
+        }
+    }
+
+    fn find(&self, label: &Option<Identifier>) -> CompileResult<&PendingLoop> {
+        if let Some(name) = label {
+            for lp in self.0.iter().rev() {
+                if lp.label.as_ref() == Some(name) {
+                    return Ok(lp);
+                }
+            }
+            Err(CompileError::Other(format!(
+                "no label for continue: {:?}",
+                name
+            )))
+        } else {
+            self.0.last().ok_or(CompileError::Other(String::from(
+                "continue statement outside of loop",
+            )))
+        }
     }
 }
