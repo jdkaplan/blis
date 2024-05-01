@@ -67,7 +67,6 @@ pub enum Token {
     Let,
     Loop,
     Nil,
-    Object,
     Or,
     Return,
     True,

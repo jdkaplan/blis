@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 use num_rational::BigRational;
 
 use crate::bytecode::Func;
-use crate::runtime::ObjectId;
 
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -16,7 +15,6 @@ pub enum Value {
     String(String),
     Closure(Closure),
     HostFunc(HostFunc),
-    Object(ObjectId),
 }
 
 impl fmt::Display for Value {
@@ -29,7 +27,6 @@ impl fmt::Display for Value {
             Value::String(v) => write!(f, "{}", v),
             Value::Closure(v) => write!(f, "<func {:?}>", v.func.name),
             Value::HostFunc(v) => write!(f, "<func {:?}>", v.name),
-            Value::Object(v) => write!(f, "<object {}>", v),
         }
     }
 }
@@ -102,10 +99,6 @@ impl PartialEq for Value {
             (Value::Closure(_), _) => false,
             (Value::HostFunc(_), Value::HostFunc(_)) => false,
             (Value::HostFunc(_), _) => false,
-
-            // TODO: Should Object equality apply to functions?
-            (Value::Object(a), Value::Object(b)) => a == b,
-            (Value::Object(_), _) => false,
         }
     }
 }
@@ -136,10 +129,6 @@ impl PartialOrd for Value {
             (Value::Closure(_), _) => None,
             (Value::HostFunc(_), Value::HostFunc(_)) => None,
             (Value::HostFunc(_), _) => None,
-
-            // Objects have no default ordering.
-            (Value::Object(_), Value::Object(_)) => None,
-            (Value::Object(_), _) => None,
         }
     }
 }
