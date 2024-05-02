@@ -1,10 +1,8 @@
 use std::fmt;
-use std::sync::{Arc, Mutex};
 
 use num_rational::BigRational;
 
-use crate::bytecode::Func;
-use crate::runtime::{InternedString, Upvalue};
+use crate::runtime::{Closure, HostFunc, InternedString};
 
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -30,20 +28,6 @@ impl fmt::Display for Value {
             Value::HostFunc(v) => write!(f, "<func {:?}>", v.name),
         }
     }
-}
-
-pub type RuntimeFn = fn(argc: u8, argv: &[Value]) -> Value;
-
-#[derive(Debug, Clone)]
-pub struct HostFunc {
-    pub name: String,
-    pub inner: RuntimeFn,
-}
-
-#[derive(Debug, Clone)]
-pub struct Closure {
-    pub func: Func,
-    pub upvalues: Vec<Arc<Mutex<Upvalue>>>,
 }
 
 impl Value {

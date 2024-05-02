@@ -168,7 +168,7 @@ impl Vm {
 
         let hosted = Value::HostFunc(HostFunc {
             name: name.clone(),
-            inner: f,
+            inner: Arc::new(f),
         });
         self.globals.insert(name, hosted);
     }
@@ -182,7 +182,7 @@ impl Vm {
         };
 
         let script = Value::Closure(Closure {
-            func,
+            func: Arc::new(func),
             upvalues: vec![],
         });
 
@@ -491,7 +491,7 @@ impl Vm {
                     };
 
                     let mut closure = Closure {
-                        func: func.clone(),
+                        func: Arc::new(func.clone()),
                         upvalues: Vec::with_capacity(func.upvalues as usize),
                     };
 
