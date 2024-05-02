@@ -1,9 +1,10 @@
 use std::fmt;
+use std::sync::{Arc, Mutex};
 
 use num_rational::BigRational;
 
 use crate::bytecode::Func;
-use crate::runtime::InternedString;
+use crate::runtime::{InternedString, Upvalue};
 
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -42,7 +43,7 @@ pub struct HostFunc {
 #[derive(Debug, Clone)]
 pub struct Closure {
     pub func: Func,
-    pub upvalues: Vec<usize>, // index into Vm.upvalues
+    pub upvalues: Vec<Arc<Mutex<Upvalue>>>,
 }
 
 impl Value {

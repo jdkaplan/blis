@@ -132,19 +132,19 @@ impl Vm {
     }
 
     #[instrument(level = "trace", ret, skip(self))]
-    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> usize {
+    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> Arc<Mutex<Upvalue>> {
         match location {
             1 => {
                 let slot = bp + index as usize;
 
-                self.upvalues.push(Upvalue::Stack(slot))
+                self.upvalues.capture(slot)
             }
             0 => {
                 // This points to wherever the _parent's_ upvalue does.
                 let Value::Closure(enclosing) = &self.stack[bp] else {
                     unreachable!()
                 };
-                enclosing.upvalues[index as usize]
+                enclosing.upvalues[index as usize].clone()
             }
             other => panic!("invalid upvalue location: {:?}", other),
         }
@@ -152,32 +152,7 @@ impl Vm {
 
     #[instrument(level = "trace", skip(self))]
     fn close_upvalues(&mut self, len: usize) {
-        let mut ptrs: BTreeMap<usize, Arc<Mutex<Value>>> = BTreeMap::new();
-
-        for upvalue in &mut self.upvalues {
-            let Upvalue::Stack(slot) = upvalue else {
-                // This was already closed.
-                continue;
-            };
-
-            if *slot < len {
-                // This one stays alive for now.
-                continue;
-            }
-
-            // This _MUST_ reuse a pointer that was just created for it.
-            if let Some(ptr) = ptrs.get(slot) {
-                *upvalue = Upvalue::Heap(ptr.clone());
-                continue;
-            }
-
-            let value = self.stack[*slot].clone();
-            trace!({ ?slot, %value }, "close upvalue");
-
-            let ptr = Arc::new(Mutex::new(value));
-            ptrs.insert(*slot, ptr.clone());
-            *upvalue = Upvalue::Heap(ptr);
-        }
+        self.upvalues.close(&self.stack, len);
     }
 }
 
@@ -447,11 +422,14 @@ impl Vm {
 
                 Op::GetUpvalue(idx) => {
                     let callee = callee!(frame!());
-                    let ptr = callee.upvalues[idx as usize];
+                    let upvalue = &callee.upvalues[idx as usize];
 
-                    let value = match &self.upvalues[ptr] {
-                        Upvalue::Stack(slot) => self.stack[*slot].clone(),
-                        Upvalue::Heap(mu) => mu.lock().unwrap().clone(),
+                    let value = {
+                        let upvalue = upvalue.lock().unwrap();
+                        match &*upvalue {
+                            Upvalue::Stack(slot) => self.stack[*slot].clone(),
+                            Upvalue::Heap(mu) => mu.lock().unwrap().clone(),
+                        }
                     };
                     self.push(value);
                 }
@@ -459,10 +437,11 @@ impl Vm {
                     let callee = callee!(frame!());
                     let value = self.peek(0).unwrap().clone();
 
-                    let ptr = callee.upvalues[idx as usize];
+                    let upvalue = callee.upvalues[idx as usize].clone();
 
-                    match self.upvalues[ptr].clone() {
-                        Upvalue::Stack(slot) => self.stack[slot] = value,
+                    let mut upvalue = upvalue.lock().unwrap();
+                    match &mut *upvalue {
+                        Upvalue::Stack(slot) => self.stack[*slot] = value,
                         Upvalue::Heap(mu) => {
                             let mut v = mu.lock().unwrap();
                             *v = value;
@@ -530,7 +509,6 @@ impl Vm {
                         let index = chunk.code[pc];
                         pc += 1;
 
-                        // Register an "upvalue pointer" (just an index for now) in the VM.
                         let ptr = self.capture_upvalue(bp, location, index);
                         closure.upvalues.push(ptr);
                     }

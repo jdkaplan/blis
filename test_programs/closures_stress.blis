@@ -27,8 +27,13 @@ func main() {
     let inner2 = middle("second");
     inner2();
 
+    middle = nil;
+
     inner1();
+    inner1 = nil;
+
     inner2();
+    inner2 = nil;
 }
 
 main();

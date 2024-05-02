@@ -5,10 +5,19 @@ use tracing::trace;
 
 pub type InternedString = Arc<String>;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Strings {
     interned: BTreeSet<Arc<String>>,
     gc_at: usize,
+}
+
+impl Default for Strings {
+    fn default() -> Self {
+        Self {
+            interned: Default::default(),
+            gc_at: 16, // TODO: tune
+        }
+    }
 }
 
 impl Strings {
@@ -46,7 +55,7 @@ impl Strings {
     }
 
     fn gc(&mut self) {
-        let limit = if cfg!(feature = "stress_gc") {
+        let limit = if cfg!(feature = "gc_stress") {
             0
         } else {
             self.gc_at
@@ -63,6 +72,7 @@ impl Strings {
         self.interned.retain(|arc| Arc::strong_count(arc) > 1);
 
         let after = self.interned.len();
-        trace!({ %before, %after }, "Strings::remove_unreachable");
+        self.gc_at = 2 * after;
+        trace!({ %before, %after, next_gc=self.gc_at }, "Strings::remove_unreachable");
     }
 }
