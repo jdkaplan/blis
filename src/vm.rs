@@ -5,14 +5,15 @@ use num_rational::BigRational;
 use tracing::{instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
-use crate::runtime::{Closure, HostFunc, RuntimeFn, Upvalue, Value, ValueType};
+use crate::runtime::{Closure, HostFunc, RuntimeFn, Strings, Upvalue, Upvalues, Value, ValueType};
 
 #[derive(Default)]
 pub struct Vm {
     stack: Vec<Value>,
     globals: BTreeMap<String, Value>,
     frames: Vec<Frame>,
-    upvalues: Vec<Upvalue>, // TODO: The GC should shrink this when it's safe
+    upvalues: Upvalues,
+    strings: Strings,
 }
 
 fn host_print(_argc: u8, argv: &[Value]) -> Value {
@@ -136,9 +137,7 @@ impl Vm {
             1 => {
                 let slot = bp + index as usize;
 
-                let ptr = self.upvalues.len();
-                self.upvalues.push(Upvalue::Stack(slot));
-                ptr
+                self.upvalues.push(Upvalue::Stack(slot))
             }
             0 => {
                 // This points to wherever the _parent's_ upvalue does.
@@ -393,7 +392,10 @@ impl Vm {
                     let v = match constant {
                         Constant::Rational(v) => Value::Rational(v.clone()),
                         Constant::Float(v) => Value::Float(*v),
-                        Constant::String(v) => Value::String(v.clone()),
+                        Constant::String(v) => {
+                            let ptr = self.strings.intern_ref(v);
+                            Value::String(ptr)
+                        }
                         Constant::Func(_) => unreachable!(),
                     };
 
@@ -621,8 +623,8 @@ impl Vm {
                             let Ok(Value::String(a)) = self.pop() else {
                                 unreachable!()
                             };
-                            // TODO: Intern all strings for constant-time comparisons.
-                            self.push(Value::String(a + &b));
+                            let c = self.strings.concatenate(a, b);
+                            self.push(Value::String(c));
                         }
 
                         (a, b) => {

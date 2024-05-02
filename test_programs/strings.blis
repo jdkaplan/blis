@@ -1,0 +1,24 @@
+let a = "a";
+let b = "b";
+let c = "c";
+
+let x = a;
+print(x);
+
+x = a + a;
+print(x);
+
+x = x + b;
+print(x);
+
+x = x + x;
+print(x);
+
+a = x + x;
+print(a);
+
+a = nil;
+b = nil;
+c = nil;
+x = nil;
+"";

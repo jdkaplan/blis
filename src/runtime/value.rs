@@ -1,9 +1,9 @@
 use std::fmt;
-use std::sync::{Arc, Mutex};
 
 use num_rational::BigRational;
 
 use crate::bytecode::Func;
+use crate::runtime::InternedString;
 
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -12,7 +12,7 @@ pub enum Value {
     Boolean(bool),
     Float(f64),
     Rational(BigRational),
-    String(String),
+    String(InternedString),
     Closure(Closure),
     HostFunc(HostFunc),
 }
@@ -43,12 +43,6 @@ pub struct HostFunc {
 pub struct Closure {
     pub func: Func,
     pub upvalues: Vec<usize>, // index into Vm.upvalues
-}
-
-#[derive(Debug, Clone)]
-pub enum Upvalue {
-    Stack(usize),
-    Heap(Arc<Mutex<Value>>),
 }
 
 impl Value {
