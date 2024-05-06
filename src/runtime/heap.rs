@@ -11,17 +11,18 @@ pub trait Trace {
 
 #[derive(Debug)]
 pub enum Object {
-    Tombstone,
     Box(*mut Value),
     Closure(Closure),
     Upvalue(Upvalue),
     Instance(Instance),
+
+    #[cfg(feature = "gc_tombstone")]
+    Tombstone,
 }
 
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Object::Tombstone => unreachable!(),
             Object::Box(ptr) => {
                 let v = unsafe { &**ptr };
                 write!(f, "{}", v)
@@ -29,6 +30,9 @@ impl fmt::Display for Object {
             Object::Closure(o) => write!(f, "closure {}", o.func.name),
             Object::Upvalue(_) => write!(f, "upvalue"),
             Object::Instance(_) => write!(f, "instance"),
+
+            #[cfg(feature = "gc_tombstone")]
+            Object::Tombstone => unreachable!(),
         }
     }
 }
@@ -36,11 +40,13 @@ impl fmt::Display for Object {
 impl Trace for Object {
     fn trace(&self, gc: &mut Gc) {
         match self {
-            Object::Tombstone => unreachable!(),
             Object::Box(v) => gc.mark_value(unsafe { &**v }),
             Object::Closure(v) => v.trace(gc),
             Object::Upvalue(v) => v.trace(gc),
             Object::Instance(v) => v.trace(gc),
+
+            #[cfg(feature = "gc_tombstone")]
+            Object::Tombstone => unreachable!(),
         }
     }
 }
@@ -167,11 +173,15 @@ impl Heap {
             }
         }
 
+        #[cfg(feature = "gc_tombstone")]
         unsafe {
             *ptr = Object::Tombstone;
         }
-        // let mut obj = unsafe { Box::from_raw(ptr) };
-        // drop(obj)
+
+        #[cfg(not(feature = "gc_tombstone"))]
+        unsafe {
+            let _ = Box::from_raw(ptr);
+        }
     }
 
     fn collect_garbage(&mut self, obj: &Object, roots: GcRoots, limit: usize) {
