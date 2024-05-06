@@ -163,8 +163,103 @@ impl Compiler {
         match decl {
             Declaration::Func(func) => self.decl_func(func),
             Declaration::Let(let_) => self.decl_let(let_),
+            Declaration::Type(ty) => self.decl_type(ty),
             Declaration::Statement(stmt) => self.statement(stmt),
         }
+    }
+
+    #[instrument(level = "trace")]
+    fn decl_type(&mut self, ty: &Type) -> Fallible<()> {
+        // Make the name immediately available for use so it can be used inside the definition
+        // itself.
+        let current = self.current();
+        let slot = current
+            .reserve_local(ty.ident.clone())
+            .map_err(|err| self.error(err))?;
+        current.init_local(slot);
+
+        let constant = current.add_name_constant(&ty.ident);
+        current.push(Op::Type(constant));
+
+        for method in &ty.methods {
+            current.begin_scope();
+            self.decl_method(method)?;
+
+            let constant = current.add_name_constant(&method.ident);
+            current.push(Op::SetMethod(constant));
+
+            // AddMethod already pops the method off the stack, so don't do it twice!
+            let locals = current.end_scope();
+            assert_eq!(locals.len(), 1, "{:?}", locals);
+        }
+
+        if slot == Slot::Global {
+            let global = current.make_global(&ty.ident);
+            current.push(Op::DefineGlobal(global));
+        }
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace")]
+    fn decl_method(&mut self, method: &Method) -> Fallible<()> {
+        let arity = method.params.len();
+        let arity: u8 = arity.try_into().expect("parser enforces limit");
+
+        // Reserve a slot for the method.
+        let enclosing = self.current();
+        enclosing
+            .reserve_local(Identifier::empty())
+            .map_err(|err| self.error(err))?;
+
+        let (bfunc, upvalues) = {
+            let current = self.start();
+
+            current.begin_scope();
+
+            // Reserve a slot for the receiver.
+            if method.self_ {
+                current
+                    .reserve_local(Identifier::new("self"))
+                    .map_err(|err| self.error(err))?;
+            }
+
+            for param in &method.params {
+                let slot = current
+                    .reserve_local(param.clone())
+                    .map_err(|err| self.error(err))?;
+                current.init_local(slot);
+            }
+
+            self.block(&method.body)?;
+            current.push(Op::Return);
+
+            // There's no end_scope() call here because the Return instruction will pop the whole
+            // call frame.
+
+            let builder = self.finish(current);
+
+            let bfunc = bytecode::Func {
+                name: method.ident.name.clone(),
+                arity,
+                upvalues: builder.upvalues.len(),
+                chunk: builder.chunk,
+            };
+            (bfunc, builder.upvalues)
+        };
+
+        let constant = enclosing.add_constant(Constant::Func(bfunc));
+        enclosing.push(Op::Closure(constant));
+
+        for upvalue in upvalues.0 {
+            let bytes = match upvalue {
+                Upvalue::Local(idx) => [1, idx],
+                Upvalue::Nonlocal(idx) => [0, idx],
+            };
+            enclosing.push_bytes(&bytes);
+        }
+
+        Ok(())
     }
 
     #[instrument(level = "trace")]
@@ -172,13 +267,12 @@ impl Compiler {
         let arity = func.params.len();
         let arity: u8 = arity.try_into().expect("parser enforces limit");
 
-        // Make the name immediately available for use so it can be used inside the function
-        // itself (recursion!).
+        // Make the name immediately available so it can be used inside the function itself
+        // (recursion!).
         let enclosing = self.current();
         let slot = enclosing
             .reserve_local(func.ident.clone())
             .map_err(|err| self.error(err))?;
-
         enclosing.init_local(slot);
 
         let (bfunc, upvalues) = {
@@ -201,8 +295,8 @@ impl Compiler {
             self.block(&func.body)?;
             current.push(Op::Return);
 
-            // There's no end_scope() call here because the Return instruction handles closing the
-            // implicit function body's scope.
+            // There's no end_scope() call here because the Return instruction will pop the whole
+            // call frame.
 
             let builder = self.finish(current);
 
@@ -228,7 +322,7 @@ impl Compiler {
 
         if slot == Slot::Global {
             let global = enclosing.make_global(&func.ident);
-            enclosing.push(Op::GlobalDefine(global));
+            enclosing.push(Op::DefineGlobal(global));
         }
 
         Ok(())
@@ -246,7 +340,7 @@ impl Compiler {
 
         if slot == Slot::Global {
             let global = current.make_global(&let_.ident);
-            current.push(Op::GlobalDefine(global));
+            current.push(Op::DefineGlobal(global));
         }
 
         current.init_local(slot);
@@ -342,6 +436,7 @@ impl Compiler {
                 let id = current.add_name_constant(ident);
                 self.expression(&assign.expr)?;
                 current.push(Op::SetField(id));
+                current.push(Op::Pop);
             }
             // ident = expr
             Place::Identifier(ident) => {
@@ -645,7 +740,8 @@ impl Compiler {
     fn atom(&mut self, atom: &Atom) -> Fallible<()> {
         match atom {
             Atom::Identifier(ident) => self.expr_identifier(ident),
-            Atom::Literal(lit) => self.literal(lit),
+            Atom::Literal(lit) => self.expr_literal(lit),
+            Atom::Object(obj) => self.expr_object(obj),
         }
     }
 
@@ -687,6 +783,8 @@ impl Compiler {
     #[instrument(level = "trace")]
     fn expr_object(&mut self, obj: &Object) -> Fallible<()> {
         let current = self.current();
+
+        self.expr_identifier(&obj.ty)?;
         current.push(Op::Object);
 
         for (ident, expr) in &obj.fields {
@@ -715,7 +813,7 @@ impl Compiler {
     }
 
     #[instrument(level = "trace")]
-    fn literal(&mut self, lit: &Literal) -> Fallible<()> {
+    fn expr_literal(&mut self, lit: &Literal) -> Fallible<()> {
         let current = self.current();
 
         match lit {
@@ -868,7 +966,7 @@ impl FuncRef {
 
         let len: isize = func.chunk.code.len().try_into().unwrap();
         let target: isize = lp.start.try_into().unwrap();
-        assert!(target < len, "jump must be backwards");
+        assert!(target < len, "jump must be backwards"); // TODO: Dedicated Loop instruction?
 
         let delta: i16 = (target - len)
             .try_into()

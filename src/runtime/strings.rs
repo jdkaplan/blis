@@ -54,6 +54,7 @@ impl Strings {
         self.intern_owned(c)
     }
 
+    // TODO: Reuse the Heap GC for interned strings
     fn gc(&mut self) {
         let limit = if cfg!(feature = "gc_stress") {
             0

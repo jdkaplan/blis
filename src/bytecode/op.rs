@@ -1,3 +1,4 @@
+// TODO: Document stack effects to help test the compiler.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, strum::Display, strum::FromRepr,
 )]
@@ -13,6 +14,7 @@ pub enum Op {
     False = 0x06,
     True = 0x07,
     Object = 0x08,
+    Type(u8) = 0x09,
 
     Call(u8) = 0x10,
     Index = 0x11,
@@ -22,11 +24,13 @@ pub enum Op {
     SetLocal(u8) = 0x21,
     GetUpvalue(u8) = 0x22,
     SetUpvalue(u8) = 0x23,
-    GlobalDefine(u8) = 0x26,
+    DefineGlobal(u8) = 0x26,
     GetGlobal(u8) = 0x27,
     SetGlobal(u8) = 0x28,
     GetField(u8) = 0x29,
     SetField(u8) = 0x2a,
+    GetMethod(u8) = 0x2b,
+    SetMethod(u8) = 0x2c,
 
     Not = 0x30,
     Eq = 0x31,
@@ -94,17 +98,20 @@ impl Op {
             Op::Constant(ref mut byte)
             | Op::PopN(ref mut byte)
             | Op::PopUnderN(ref mut byte)
+            | Op::Type(ref mut byte)
             | Op::Call(ref mut byte)
             | Op::Closure(ref mut byte)
             | Op::GetLocal(ref mut byte)
             | Op::SetLocal(ref mut byte)
             | Op::GetUpvalue(ref mut byte)
             | Op::SetUpvalue(ref mut byte)
-            | Op::GlobalDefine(ref mut byte)
+            | Op::DefineGlobal(ref mut byte)
             | Op::GetGlobal(ref mut byte)
             | Op::SetGlobal(ref mut byte)
             | Op::GetField(ref mut byte)
-            | Op::SetField(ref mut byte) => {
+            | Op::SetField(ref mut byte)
+            | Op::GetMethod(ref mut byte)
+            | Op::SetMethod(ref mut byte) => {
                 *byte = *code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
             }
 
@@ -160,17 +167,20 @@ impl Op {
             Op::Constant(byte)
             | Op::PopN(byte)
             | Op::PopUnderN(byte)
+            | Op::Type(byte)
             | Op::Call(byte)
             | Op::Closure(byte)
             | Op::GetLocal(byte)
             | Op::SetLocal(byte)
             | Op::GetUpvalue(byte)
             | Op::SetUpvalue(byte)
-            | Op::GlobalDefine(byte)
+            | Op::DefineGlobal(byte)
             | Op::GetGlobal(byte)
             | Op::SetGlobal(byte)
             | Op::GetField(byte)
-            | Op::SetField(byte) => {
+            | Op::SetField(byte)
+            | Op::GetMethod(byte)
+            | Op::SetMethod(byte) => {
                 bytes.push(*byte);
             }
 

@@ -9,6 +9,7 @@ pub struct Program {
 
 #[derive(Debug, Clone)]
 pub enum Declaration {
+    Type(Type),
     Func(Func),
     Let(Let),
 
@@ -180,6 +181,7 @@ pub enum Primary {
 
 #[derive(Debug, Clone)]
 pub struct Object {
+    pub ty: Identifier,
     pub fields: Vec<(Identifier, Expression)>,
 }
 
@@ -196,6 +198,7 @@ impl Primary {
 pub enum Atom {
     Identifier(Identifier),
     Literal(Literal),
+    Object(Object),
 }
 
 #[derive(Debug, Clone)]
@@ -270,6 +273,20 @@ impl TryFrom<Expression> for Place {
             Err(PlaceError { target })
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Type {
+    pub ident: Identifier,
+    pub methods: Vec<Method>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Method {
+    pub self_: bool,
+    pub ident: Identifier,
+    pub params: Vec<Identifier>,
+    pub body: Block,
 }
 
 #[derive(Debug, Clone)]

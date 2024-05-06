@@ -4,7 +4,7 @@ use num_rational::BigRational;
 
 use crate::runtime::{HostFunc, InternedString, Object};
 
-#[derive(Debug, Clone, strum::EnumDiscriminants)]
+#[derive(Debug, Clone, strum::EnumDiscriminants, strum::EnumIs, strum::EnumTryAs)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
 pub enum Value {
     Nil,

@@ -1,0 +1,29 @@
+func main() {
+    let one = new_thing("uno");
+    let two = new_thing("dos");
+
+    print(one);
+    print(one.id, one.name);
+
+    print(two);
+    print(two.id, two.name);
+
+    one.two = two;
+    two.one = one;
+
+    print(one.two);
+    print(two.one);
+}
+
+let counter = 0;
+
+func new_thing(name) {
+    counter = counter + 1;
+
+    object {
+        id = counter,
+        name = name,
+    }
+}
+
+main();

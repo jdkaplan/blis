@@ -5,8 +5,8 @@ use tracing::{debug, instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
 use crate::runtime::{
-    Closure, HostFunc, Instance, Object, Runtime, RuntimeError, RuntimeFn, Upvalue, Value,
-    ValueType,
+    BoundMethod, Closure, HostFunc, Instance, Object, Runtime, RuntimeError, RuntimeFn, Type,
+    Upvalue, Value, ValueType,
 };
 
 #[derive(Default)]
@@ -50,6 +50,9 @@ pub enum VmError {
 
     #[error("type error: cannot perform arithmetic with `{:?}` and `{:?}`", a, b)]
     Arithmetic { a: Box<Value>, b: Box<Value> },
+
+    #[error("type error: expected {} arguments, got {}", expected, actual)]
+    Arity { expected: usize, actual: usize },
 }
 
 impl Vm {
@@ -96,16 +99,29 @@ impl Vm {
             Value::Object(obj) => {
                 let obj = unsafe { &**obj };
 
-                if let Object::Closure(closure) = obj {
-                    if argc != closure.func.arity {
-                        todo!("arity mismatch");
+                match obj {
+                    Object::Closure(closure) => {
+                        // TODO: unbound method arity?
+                        if argc != closure.func.arity {
+                            return Err(VmError::Arity {
+                                expected: closure.func.arity as usize,
+                                actual: argc as usize,
+                            });
+                        }
+
+                        // Subtract one extra slot so bp points to the caller itself.
+                        let bp = self.runtime.stack_offset(1 + argc as usize)?;
+                        self.frames.push(Frame { bp, pc: 0 });
+
+                        return Ok(());
                     }
-
-                    // Subtract one extra slot so bp points to the caller itself.
-                    let bp = self.runtime.stack_offset(1 + argc as usize)?;
-                    self.frames.push(Frame { bp, pc: 0 });
-
-                    return Ok(());
+                    Object::BoundMethod(method) => {
+                        // TODO: This makes so many assumptions. Are they even valid?
+                        self.runtime
+                            .insert_under(argc as usize, method.recv.clone())?;
+                        return self.call_value(argc + 1);
+                    }
+                    _ => (),
                 }
             }
             _ => {} // fall through
@@ -177,6 +193,8 @@ impl Vm {
     }
 
     fn run(&mut self) -> VmResult<()> {
+        // TODO: Almost every `.unwrap()` in this function should be `.expect()` or Try.
+
         macro_rules! frame {
             () => {
                 self.frames.last_mut().expect("non-empty call stack")
@@ -190,12 +208,11 @@ impl Vm {
         }
 
         macro_rules! callee {
-            ($frame:expr) => {
-                match self.runtime.stack_get($frame.bp) {
-                    Value::Object(obj) => unsafe { &**obj }.as_closure(),
-                    _ => unreachable!(),
-                }
-            };
+            ($frame:expr) => {{
+                let callee = self.runtime.stack_get($frame.bp); // Slot zero!
+                let obj = callee.try_as_object_ref().unwrap();
+                unsafe { &**obj }.try_as_closure_ref().unwrap()
+            }};
         }
 
         loop {
@@ -263,22 +280,14 @@ impl Vm {
 
                     match (a, b) {
                         (Value::Float(_), Value::Float(_)) => {
-                            let Ok(Value::Float(b)) = self.pop() else {
-                                unreachable!()
-                            };
-                            let Ok(Value::Float(a)) = self.pop() else {
-                                unreachable!()
-                            };
+                            let b = self.pop().expect("peek").try_as_float().expect("peek");
+                            let a = self.pop().expect("peek").try_as_float().expect("peek");
                             self.push(Value::Float($op_float(a, b)));
                         }
 
                         (Value::Rational(_), Value::Rational(_)) => {
-                            let Ok(Value::Rational(b)) = self.pop() else {
-                                unreachable!()
-                            };
-                            let Ok(Value::Rational(a)) = self.pop() else {
-                                unreachable!()
-                            };
+                            let b = self.pop().expect("peek").try_as_rational().expect("peek");
+                            let a = self.pop().expect("peek").try_as_rational().expect("peek");
                             self.push(Value::Rational($op_rat(a, b)));
                         }
 
@@ -362,7 +371,9 @@ impl Vm {
                             let ptr = self.runtime.intern(v);
                             Value::String(ptr)
                         }
-                        Constant::Func(_) => unreachable!(),
+                        Constant::Func(_) => {
+                            panic!("funcs can't be stack values, this should have been Op::Closure")
+                        }
                     };
 
                     self.push(v);
@@ -378,10 +389,18 @@ impl Vm {
                     self.push(Value::Boolean(true));
                 }
                 Op::Object => {
-                    let obj = Object::Instance(Instance {
-                        ty: Value::Nil,
-                        fields: Default::default(),
-                    });
+                    let ty = self.pop()?;
+
+                    let obj = Object::Instance(Instance::new(ty));
+                    let ptr = self.runtime.alloc(obj);
+                    self.push(Value::Object(ptr))
+                }
+                Op::Type(idx) => {
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let name = constant.try_as_string_ref().unwrap().clone();
+
+                    let obj = Object::Type(Type::new(name));
                     let ptr = self.runtime.alloc(obj);
                     self.push(Value::Object(ptr))
                 }
@@ -427,12 +446,12 @@ impl Vm {
                     let callee = callee!(frame!());
 
                     let upvalue = callee.upvalues[idx as usize];
-                    let upvalue = unsafe { &*upvalue }.as_upvalue();
+                    let upvalue = unsafe { &*upvalue }.try_as_upvalue_ref().unwrap();
 
                     let value = match upvalue {
                         Upvalue::Stack(idx) => self.runtime.stack_get(*idx).clone(),
                         Upvalue::Heap(obj) => {
-                            let boxed = unsafe { &**obj }.as_box();
+                            let boxed = unsafe { &**obj }.try_as_box_ref().unwrap();
                             let v = unsafe { &**boxed };
                             v.clone()
                         }
@@ -444,18 +463,18 @@ impl Vm {
                     let value = self.peek(0).unwrap().clone();
 
                     let upvalue = callee.upvalues[idx as usize];
-                    let upvalue = unsafe { &mut *upvalue }.as_upvalue_mut();
+                    let upvalue = unsafe { &mut *upvalue }.try_as_upvalue_mut().unwrap();
 
                     match upvalue {
                         Upvalue::Stack(idx) => self.runtime.stack_put(*idx, value),
                         Upvalue::Heap(obj) => {
-                            let boxed = unsafe { &**obj }.as_box();
+                            let boxed = unsafe { &**obj }.try_as_box_ref().unwrap();
                             unsafe { **boxed = value };
                         }
                     }
                 }
 
-                Op::GlobalDefine(idx) => {
+                Op::DefineGlobal(idx) => {
                     let chunk = chunk!(frame!());
                     let name = chunk.globals[idx as usize].clone();
                     let value = self.pop()?;
@@ -478,36 +497,70 @@ impl Vm {
                 Op::GetField(idx) => {
                     let chunk = chunk!(frame!());
                     let constant = &chunk.constants[idx as usize];
-                    let Constant::String(name) = constant else {
-                        unreachable!()
-                    };
-                    let name = name.clone();
+                    let name = constant.try_as_string_ref().unwrap().clone();
 
-                    let Value::Object(ptr) = self.pop()? else {
-                        todo!("type error");
-                    };
+                    let ptr = self.pop()?.try_as_object().unwrap();
+                    let obj = unsafe { &*ptr };
 
-                    let obj = unsafe { &*ptr }.as_instance();
-                    let v = obj.get_field(&name).unwrap().clone();
+                    let v = match obj {
+                        Object::Instance(i) => match i.get_field(&name) {
+                            Some(value) => value.clone(),
+                            None => {
+                                let ty = i.ty.try_as_object_ref().unwrap();
+                                let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+
+                                let method = ty.get_method(&name).expect("type check");
+                                let b = Object::BoundMethod(BoundMethod::new(ptr, method.clone()));
+                                Value::Object(self.runtime.alloc(b))
+                            }
+                        },
+
+                        // TODO: Track of the arity change for true methods
+                        Object::Type(t) => t.get_method(&name).expect("type check").clone(),
+
+                        _ => todo!("type error"),
+                    };
                     self.push(v);
                 }
                 Op::SetField(idx) => {
                     let chunk = chunk!(frame!());
                     let constant = &chunk.constants[idx as usize];
-                    let Constant::String(name) = constant else {
-                        unreachable!()
-                    };
-                    let name = name.clone();
+                    let name = constant.try_as_string_ref().unwrap().clone();
 
-                    let Value::Object(ptr) = self.peek(1)? else {
-                        todo!("type error");
-                    };
+                    let ptr = self.peek(1)?.try_as_object_ref().unwrap();
                     let ptr = *ptr;
 
                     let value = self.pop()?;
 
-                    let obj = unsafe { &mut *ptr }.as_instance_mut();
+                    let obj = unsafe { &mut *ptr }.try_as_instance_mut().unwrap();
                     obj.set_field(name, value);
+                }
+
+                Op::GetMethod(idx) => {
+                    // TODO: Is this ever used instead of GetField?
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let name = constant.try_as_string_ref().unwrap().clone();
+
+                    let obj = self.pop()?.try_as_object().unwrap();
+                    let ty = unsafe { &*obj }.try_as_type_ref().unwrap();
+
+                    let v = ty.get_method(&name).unwrap().clone();
+                    self.push(v);
+                }
+                Op::SetMethod(idx) => {
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let name = constant.try_as_string_ref().unwrap().clone();
+
+                    let method = self.pop()?;
+
+                    let obj = self.peek(0)?.try_as_object_ref().unwrap();
+                    let ty = unsafe { &mut **obj }.try_as_type_mut().unwrap();
+
+                    ty.set_method(name, method);
+
+                    // Leave the type on the stack to attach further methods.
                 }
 
                 Op::Call(argc) => {
@@ -518,10 +571,7 @@ impl Vm {
                     let frame = frame!();
                     let chunk = chunk!(frame);
                     let bp = frame.bp;
-                    let constant = &chunk.constants[idx as usize];
-                    let Constant::Func(func) = constant else {
-                        unreachable!()
-                    };
+                    let func = chunk.constants[idx as usize].try_as_func_ref().unwrap();
 
                     let mut closure = Closure {
                         func: Arc::new(func.clone()),
@@ -610,32 +660,21 @@ impl Vm {
 
                     match (a, b) {
                         (Value::Float(_), Value::Float(_)) => {
-                            let Ok(Value::Float(b)) = self.pop() else {
-                                unreachable!()
-                            };
-                            let Ok(Value::Float(a)) = self.pop() else {
-                                unreachable!()
-                            };
+                            let b = self.pop().expect("peek").try_as_float().expect("peek");
+                            let a = self.pop().expect("peek").try_as_float().expect("peek");
                             self.push(Value::Float(a + b));
                         }
 
                         (Value::Rational(_), Value::Rational(_)) => {
-                            let Ok(Value::Rational(b)) = self.pop() else {
-                                unreachable!()
-                            };
-                            let Ok(Value::Rational(a)) = self.pop() else {
-                                unreachable!()
-                            };
+                            let b = self.pop().expect("peek").try_as_rational().expect("peek");
+                            let a = self.pop().expect("peek").try_as_rational().expect("peek");
                             self.push(Value::Rational(a + b));
                         }
 
                         (Value::String(_), Value::String(_)) => {
-                            let Ok(Value::String(b)) = self.pop() else {
-                                unreachable!()
-                            };
-                            let Ok(Value::String(a)) = self.pop() else {
-                                unreachable!()
-                            };
+                            let b = self.pop().expect("peek").try_as_string().expect("peek");
+                            let a = self.pop().expect("peek").try_as_string().expect("peek");
+
                             let c = self.runtime.concatenate(a, b);
                             self.push(Value::String(c));
                         }

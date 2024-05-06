@@ -11,6 +11,12 @@ pub struct HostFunc {
     pub inner: Arc<RuntimeFn>,
 }
 
+impl Trace for HostFunc {
+    fn trace(&self, _gc: &mut Gc) {
+        // No references
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Closure {
     pub func: Arc<Func>,
@@ -22,6 +28,28 @@ impl Trace for Closure {
         for v in &self.upvalues {
             assert!(unsafe { &**v }.is_upvalue(), "{:?}", v);
             gc.mark_object(*v);
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BoundMethod {
+    pub recv: Value,
+    pub func: Value,
+}
+
+impl Trace for BoundMethod {
+    fn trace(&self, gc: &mut Gc) {
+        gc.mark_value(&self.recv);
+        gc.mark_value(&self.func);
+    }
+}
+
+impl BoundMethod {
+    pub fn new(recv: *mut Object, func: Value) -> Self {
+        Self {
+            recv: Value::Object(recv),
+            func,
         }
     }
 }

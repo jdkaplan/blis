@@ -253,13 +253,49 @@ impl<'source> Parser<'source> {
 
     #[instrument(level = "trace", ret)]
     fn decl_only(&mut self) -> Fallible<Option<Declaration>> {
-        if let Some(let_) = self.take(Token::Let) {
-            self.decl_let(let_).map(Declaration::Let).map(Some)
-        } else if let Some(func) = self.take(Token::Func) {
-            self.decl_func(func).map(Declaration::Func).map(Some)
+        if let Some(kw) = self.take(Token::Type) {
+            self.decl_struct(kw).map(Declaration::Type).map(Some)
+        } else if let Some(kw) = self.take(Token::Func) {
+            self.decl_func(kw).map(Declaration::Func).map(Some)
+        } else if let Some(kw) = self.take(Token::Let) {
+            self.decl_let(kw).map(Declaration::Let).map(Some)
         } else {
             Ok(None)
         }
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn decl_struct(&mut self, _kw: Lexeme<'_>) -> Fallible<Type> {
+        let ident = self.must_take(Token::Identifier)?;
+        let ident = Identifier::new(ident.text);
+
+        // TODO(types): parse field specs here
+
+        let methods = if let Some(_kw) = self.take(Token::With) {
+            let open = self.must_take(Token::LeftBrace)?;
+            self.type_methods(open)?
+        } else {
+            Vec::new()
+        };
+
+        Ok(Type { ident, methods })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn type_methods(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Method>> {
+        let mut methods = Vec::new();
+
+        loop {
+            if let Some(_close) = self.take(Token::RightBrace) {
+                break;
+            }
+
+            let kw = self.must_take(Token::Func)?;
+            let m = self.decl_method(kw)?;
+            methods.push(m);
+        }
+
+        Ok(methods)
     }
 
     #[instrument(level = "trace", ret)]
@@ -274,6 +310,24 @@ impl<'source> Parser<'source> {
         self.must_take(Token::Semicolon)?;
 
         Ok(Let { ident, expr })
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn decl_method(&mut self, kw: Lexeme<'_>) -> Fallible<Method> {
+        let mut self_ = false;
+        if let Some(_kw) = self.take(Token::Self_) {
+            self.must_take(Token::Dot)?;
+            self_ = true;
+        };
+
+        let func = self.decl_func(kw)?;
+
+        Ok(Method {
+            self_,
+            ident: func.ident,
+            params: func.params,
+            body: func.body,
+        })
     }
 
     #[instrument(level = "trace", ret)]
@@ -420,19 +474,30 @@ impl<'source> Parser<'source> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ExprMode {
+    All,
+    NoObject,
+}
+
 impl<'source> Parser<'source> {
     #[instrument(level = "trace", ret)]
     fn expression(&mut self) -> Fallible<Expression> {
-        self.logic_or().map(Expression::LogicOr)
+        self.logic_or(ExprMode::All).map(Expression::LogicOr)
     }
 
     #[instrument(level = "trace", ret)]
-    fn logic_or(&mut self) -> Fallible<LogicOr> {
-        let first = self.logic_and()?;
+    fn expr_no_object(&mut self) -> Fallible<Expression> {
+        self.logic_or(ExprMode::NoObject).map(Expression::LogicOr)
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn logic_or(&mut self, mode: ExprMode) -> Fallible<LogicOr> {
+        let first = self.logic_and(mode)?;
 
         let mut rest = Vec::new();
         while let Some(_or) = self.take(Token::Or) {
-            let next = self.logic_and()?;
+            let next = self.logic_and(mode)?;
             rest.push(next);
         }
 
@@ -440,12 +505,12 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn logic_and(&mut self) -> Fallible<LogicAnd> {
-        let first = self.equality()?;
+    fn logic_and(&mut self, mode: ExprMode) -> Fallible<LogicAnd> {
+        let first = self.equality(mode)?;
 
         let mut rest = Vec::new();
         while let Some(_and) = self.take(Token::And) {
-            let next = self.equality()?;
+            let next = self.equality(mode)?;
             rest.push(next);
         }
 
@@ -453,13 +518,13 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn equality(&mut self) -> Fallible<Equality> {
-        let mut a = self.comparison().map(Equality::Value)?;
+    fn equality(&mut self, mode: ExprMode) -> Fallible<Equality> {
+        let mut a = self.comparison(mode).map(Equality::Value)?;
 
         macro_rules! op {
             ($token:path, $op:path) => {
                 if let Some(_lex) = self.take($token) {
-                    let b = self.comparison()?;
+                    let b = self.comparison(mode)?;
                     a = $op(Box::new(a), b);
                     continue;
                 }
@@ -475,13 +540,13 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn comparison(&mut self) -> Fallible<Comparison> {
-        let mut a = self.term().map(Comparison::Value)?;
+    fn comparison(&mut self, mode: ExprMode) -> Fallible<Comparison> {
+        let mut a = self.term(mode).map(Comparison::Value)?;
 
         macro_rules! op {
             ($token:path, $op:path) => {
                 if let Some(_lex) = self.take($token) {
-                    let b = self.term()?;
+                    let b = self.term(mode)?;
                     a = $op(Box::new(a), b);
                     continue;
                 }
@@ -499,13 +564,13 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn term(&mut self) -> Fallible<Term> {
-        let mut a = self.factor().map(Term::Value)?;
+    fn term(&mut self, mode: ExprMode) -> Fallible<Term> {
+        let mut a = self.factor(mode).map(Term::Value)?;
 
         macro_rules! op {
             ($token:path, $op:path) => {
                 if let Some(_lex) = self.take($token) {
-                    let b = self.factor()?;
+                    let b = self.factor(mode)?;
                     a = $op(Box::new(a), b);
                     continue;
                 }
@@ -521,13 +586,13 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn factor(&mut self) -> Fallible<Factor> {
-        let mut a = self.unary().map(Factor::Value)?;
+    fn factor(&mut self, mode: ExprMode) -> Fallible<Factor> {
+        let mut a = self.unary(mode).map(Factor::Value)?;
 
         macro_rules! op {
             ($token:path, $op:path) => {
                 if let Some(_lex) = self.take($token) {
-                    let b = self.unary()?;
+                    let b = self.unary(mode)?;
                     a = $op(Box::new(a), b);
                     continue;
                 }
@@ -544,7 +609,7 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn unary(&mut self) -> Fallible<Unary> {
+    fn unary(&mut self, mode: ExprMode) -> Fallible<Unary> {
         enum Op {
             Neg,
             Not,
@@ -568,7 +633,7 @@ impl<'source> Parser<'source> {
             break;
         }
 
-        let mut a = self.call().map(Unary::Value)?;
+        let mut a = self.call(mode).map(Unary::Value)?;
         while let Some(op) = ops.pop() {
             a = match op {
                 Op::Neg => Unary::Neg(Box::new(a)),
@@ -579,8 +644,8 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn call(&mut self) -> Fallible<Call> {
-        let mut callee = self.primary().map(Call::Value)?;
+    fn call(&mut self, mode: ExprMode) -> Fallible<Call> {
+        let mut callee = self.primary(mode).map(Call::Value)?;
 
         loop {
             if let Some(open) = self.take(Token::LeftParen) {
@@ -633,29 +698,48 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn primary(&mut self) -> Fallible<Primary> {
+    fn primary(&mut self, mode: ExprMode) -> Fallible<Primary> {
         if let Some(open) = self.take(Token::LeftBrace) {
             self.expr_block(open).map(Primary::Block)
         } else if let Some(if_) = self.take(Token::If) {
             self.expr_if(if_).map(Primary::If)
         } else if let Some(open) = self.take(Token::LeftParen) {
             self.expr_group(open).map(Box::new).map(Primary::Group)
-        } else if let Some(object) = self.take(Token::Object) {
-            self.expr_object(object).map(Primary::Object)
         } else {
-            self.atom().map(Primary::Atom)
+            self.atom(mode).map(Primary::Atom)
         }
     }
 }
 
 impl<'source> Parser<'source> {
     #[instrument(level = "trace", ret)]
-    fn atom(&mut self) -> Fallible<Atom> {
-        if let Some(ident) = self.take(Token::Identifier) {
-            Ok(Atom::Identifier(Identifier::new(ident.text)))
-        } else {
-            self.literal().map(Atom::Literal)
+    fn atom(&mut self, mode: ExprMode) -> Fallible<Atom> {
+        if let Some(ident) = self.take(Token::Self_) {
+            let ident = Identifier::new(ident.text);
+            return Ok(Atom::Identifier(ident));
         }
+
+        if let Some(ident) = self.take(Token::Identifier) {
+            let ident = Identifier::new(ident.text);
+
+            // If this expression is allowed to end in an object literal, check for the opening
+            // brace. Otherwise, let the brace be considered for some outer structure.
+            //
+            // This non-greedy option makes it possible to keep `if ident {` for simple
+            // if-condition expressions while still allowing `if (obj{}) {` if someone really wants
+            // that.
+            //
+            // TODO(let_chains_2): https://github.com/rust-lang/rust/issues/53667
+            if mode == ExprMode::All {
+                if let Some(open) = self.take(Token::LeftBrace) {
+                    return self.expr_object(ident, open).map(Atom::Object);
+                }
+            }
+
+            return Ok(Atom::Identifier(ident));
+        }
+
+        self.literal().map(Atom::Literal)
     }
 
     #[instrument(level = "trace", ret)]
@@ -698,7 +782,8 @@ impl<'source> Parser<'source> {
 
     #[instrument(level = "trace", ret)]
     fn expr_if(&mut self, _kw: Lexeme<'_>) -> Fallible<If> {
-        let condition = self.expression()?;
+        // Even Rust resolves the parser ambiguity this way, so do the same for now!
+        let condition = self.expr_no_object()?;
         let consequent = self.block()?;
 
         let mut alternative = None;
@@ -721,10 +806,9 @@ impl<'source> Parser<'source> {
     }
 
     #[instrument(level = "trace", ret)]
-    fn expr_object(&mut self, _kw: Lexeme<'_>) -> Fallible<Object> {
-        let open = self.must_take(Token::LeftBrace)?;
+    fn expr_object(&mut self, ty: Identifier, open: Lexeme<'_>) -> Fallible<Object> {
         let fields = self.object_fields(open)?;
-        Ok(Object { fields })
+        Ok(Object { ty, fields })
     }
 
     #[instrument(level = "trace", ret)]

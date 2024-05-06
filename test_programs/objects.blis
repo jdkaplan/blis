@@ -1,6 +1,6 @@
 func main() {
-    let one = new_thing("uno");
-    let two = new_thing("dos");
+    let one = Counter.new("uno");
+    let two = Counter.new("dos");
 
     print(one);
     print(one.id, one.name);
@@ -8,6 +8,7 @@ func main() {
     print(two);
     print(two.id, two.name);
 
+    // Eventually, gradual typing will let you prevent this. But for now...
     one.two = two;
     two.one = one;
 
@@ -15,14 +16,25 @@ func main() {
     print(two.one);
 }
 
-let counter = 0;
+let id = 0;
 
-func new_thing(name) {
-    counter = counter + 1;
+type Counter with {
+    func new(name) {
+        id = id + 1;
 
-    object {
-        id = counter,
-        name = name,
+        Counter {
+            id = id,
+            name = name,
+            count = 0,
+        }
+    }
+
+    func self.incr() {
+        self.add(1);
+    }
+
+    func self.add(delta) {
+        self.count = self.count + delta;
     }
 }
 

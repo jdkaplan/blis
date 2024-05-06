@@ -67,13 +67,39 @@ pub enum Token {
     Let,
     Loop,
     Nil,
-    Object,
     Or,
     Return,
+    Self_,
     True,
+    Type,
+    With,
 
     // Synthetic tokens
     #[default]
     Error,
     Eof,
+}
+
+impl Token {
+    pub fn match_keyword(text: &str) -> Option<Self> {
+        match text {
+            "and" => Some(Token::And),
+            "break" => Some(Token::Break),
+            "continue" => Some(Token::Continue),
+            "else" => Some(Token::Else),
+            "false" => Some(Token::False),
+            "func" => Some(Token::Func),
+            "if" => Some(Token::If),
+            "let" => Some(Token::Let),
+            "loop" => Some(Token::Loop),
+            "nil" => Some(Token::Nil),
+            "or" => Some(Token::Or),
+            "return" => Some(Token::Return),
+            "self" => Some(Token::Self_),
+            "true" => Some(Token::True),
+            "type" => Some(Token::Type),
+            "with" => Some(Token::With),
+            _ => None,
+        }
+    }
 }

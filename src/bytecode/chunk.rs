@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::bytecode::{Func, Op, OpError};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, strum::EnumIs, strum::EnumTryAs)]
 pub enum Constant {
     Rational(BigRational),
     Float(f64),
@@ -49,7 +49,7 @@ impl Chunk {
 impl Chunk {
     pub fn define_global(&mut self, name: String) -> u8 {
         let id = self.make_global(name);
-        self.push(Op::GlobalDefine(id));
+        self.push(Op::DefineGlobal(id));
         id
     }
 

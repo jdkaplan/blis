@@ -1,15 +1,22 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use crate::runtime::{Closure, Gc, Trace, Upvalue, Value};
+use crate::runtime::{BoundMethod, Closure, Gc, HostFunc, Trace, Upvalue, Value};
 
-#[derive(Debug, strum::EnumTryAs)]
+#[derive(Debug, strum::EnumIs, strum::EnumTryAs)]
 pub enum Object {
+    // Upvalues
     Box(*mut Value),
-    Closure(Closure),
     Upvalue(Upvalue),
-    Type(Type),
+
+    // Functions
+    BoundMethod(BoundMethod),
+    Closure(Closure),
+    HostFunc(HostFunc),
+
+    // Objects
     Instance(Instance),
+    Type(Type),
 
     #[cfg(feature = "gc_tombstone")]
     Tombstone,
@@ -18,17 +25,26 @@ pub enum Object {
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Object::Upvalue(_) => write!(f, "upvalue"),
             Object::Box(ptr) => {
                 let v = unsafe { &**ptr };
                 write!(f, "{}", v)
             }
+
+            Object::BoundMethod(_) => write!(f, "bound method"), // TODO: show name
             Object::Closure(o) => write!(f, "closure {}", o.func.name),
-            Object::Upvalue(_) => write!(f, "upvalue"),
-            Object::Type(_) => write!(f, "type"),
-            Object::Instance(_) => write!(f, "instance"),
+            Object::HostFunc(v) => write!(f, "func {:?}", v.name),
+
+            Object::Type(t) => write!(f, "type {}", t.name),
+
+            Object::Instance(i) => {
+                let ty = i.ty.try_as_object_ref().unwrap();
+                let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+                write!(f, "instance of {}", ty.name)
+            }
 
             #[cfg(feature = "gc_tombstone")]
-            Object::Tombstone => unreachable!(),
+            Object::Tombstone => panic!("use after free"),
         }
     }
 }
@@ -37,66 +53,18 @@ impl Trace for Object {
     fn trace(&self, gc: &mut Gc) {
         match self {
             Object::Box(v) => gc.mark_value(unsafe { &**v }),
+
+            Object::BoundMethod(v) => v.trace(gc),
             Object::Closure(v) => v.trace(gc),
-            Object::Upvalue(v) => v.trace(gc),
-            Object::Type(v) => v.trace(gc),
+            Object::HostFunc(v) => v.trace(gc),
             Object::Instance(v) => v.trace(gc),
+            Object::Type(v) => v.trace(gc),
+            Object::Upvalue(v) => v.trace(gc),
 
             #[cfg(feature = "gc_tombstone")]
-            Object::Tombstone => unreachable!(),
+            Object::Tombstone => panic!("use after free"),
         }
     }
-}
-
-macro_rules! impl_as_obj {
-    ($Var:path, $Ty:ty, $is:ident, $as_ref:ident, $as_mut:ident) => {
-        pub fn $is(&self) -> bool {
-            match self {
-                $Var(_) => true,
-                _ => false,
-            }
-        }
-
-        pub fn $as_ref(&self) -> &$Ty {
-            match self {
-                $Var(v) => v,
-                obj => unreachable!("{:?}", obj),
-            }
-        }
-
-        pub fn $as_mut(&mut self) -> &mut $Ty {
-            match self {
-                $Var(v) => v,
-                obj => unreachable!("{:?}", obj),
-            }
-        }
-    };
-}
-
-impl Object {
-    impl_as_obj!(Object::Box, *mut Value, is_box, as_box, as_box_mut);
-    impl_as_obj!(
-        Object::Upvalue,
-        Upvalue,
-        is_upvalue,
-        as_upvalue,
-        as_upvalue_mut
-    );
-    impl_as_obj!(
-        Object::Closure,
-        Closure,
-        is_closure,
-        as_closure,
-        as_closure_mut
-    );
-    impl_as_obj!(Object::Type, Type, is_type, as_type, as_type_mut);
-    impl_as_obj!(
-        Object::Instance,
-        Instance,
-        is_instance,
-        as_instance,
-        as_instance_mut
-    );
 }
 
 #[derive(Debug)]
@@ -148,11 +116,9 @@ impl Trace for Instance {
 
 impl Instance {
     pub fn new(ty: Value) -> Self {
-        let Value::Object(obj) = ty else {
-            unreachable!()
-        };
+        let obj = ty.try_as_object_ref().unwrap();
 
-        assert!(unsafe { &*obj }.is_type());
+        assert!(unsafe { &**obj }.is_type());
 
         Self {
             ty,

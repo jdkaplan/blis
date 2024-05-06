@@ -8,7 +8,7 @@ pub mod strings;
 pub mod upvalue;
 pub mod value;
 
-pub use func::{Closure, HostFunc, RuntimeFn};
+pub use func::{BoundMethod, Closure, HostFunc, RuntimeFn};
 pub use heap::{Gc, GcRoots, Heap, Trace};
 pub use object::{Instance, Object, Type};
 pub use strings::{InternedString, Strings};
@@ -108,6 +108,12 @@ impl Runtime {
     pub fn stack_empty(&self) -> bool {
         self.stack.is_empty()
     }
+
+    pub fn insert_under(&mut self, n: usize, value: Value) -> RuntimeResult<()> {
+        let pos = self.stack_offset(n)?;
+        self.stack.insert(pos, value);
+        Ok(())
+    }
 }
 
 // Globals
@@ -152,14 +158,16 @@ impl Runtime {
     }
 
     pub fn recapture_upvalue(&mut self, bp: usize, index: usize) -> *mut Object {
-        let Value::Object(obj) = &self.stack[bp] else {
-            unreachable!()
-        };
+        let enclosing = self.stack[bp].try_as_object_ref().unwrap();
+        let enclosing = unsafe { &**enclosing }.try_as_closure_ref().unwrap();
 
-        let enclosing = unsafe { &**obj }.as_closure();
         let obj = enclosing.upvalues[index];
-        let upvalue = unsafe { &*obj };
-        trace!({ ?enclosing, ?obj, ?upvalue}, "capture parent");
+
+        {
+            let upvalue = unsafe { &*obj };
+            assert!(upvalue.is_upvalue());
+            trace!({ ?enclosing, ?index, ?obj, ?upvalue}, "capture parent");
+        }
 
         obj
     }
@@ -173,7 +181,7 @@ impl Runtime {
 
         let roots = GcRoots::new(&self.stack, &self.globals);
         self.upvalues
-            .close_range(&mut self.heap, roots, &self.stack, range);
+            .close(&mut self.heap, roots, &self.stack, range);
     }
 }
 
