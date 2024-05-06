@@ -1,19 +1,17 @@
-use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use num_rational::BigRational;
-use tracing::{instrument, trace};
+use tracing::{debug, instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
-use crate::runtime::{Closure, HostFunc, RuntimeFn, Strings, Upvalue, Upvalues, Value, ValueType};
+use crate::runtime::{
+    Closure, HostFunc, Object, Runtime, RuntimeError, RuntimeFn, Upvalue, Value, ValueType,
+};
 
 #[derive(Default)]
 pub struct Vm {
-    stack: Vec<Value>,
-    globals: BTreeMap<String, Value>,
     frames: Vec<Frame>,
-    upvalues: Upvalues,
-    strings: Strings,
+    runtime: Runtime,
 }
 
 fn host_print(_argc: u8, argv: &[Value]) -> Value {
@@ -40,15 +38,8 @@ pub enum VmError {
     #[error(transparent)]
     Op(#[from] OpError),
 
-    #[error(
-        "stack error: expected value at depth {}, but stack length was {}",
-        depth,
-        len
-    )]
-    NoValue { depth: usize, len: usize },
-
-    #[error("name error: global variable `{}` was not defined", name)]
-    UndefinedGlobal { name: String },
+    #[error(transparent)]
+    Runtime(#[from] RuntimeError),
 
     #[error("type error: expected `{}`, got `{:?}`", expected, actual)]
     Type { expected: String, actual: Value },
@@ -62,35 +53,25 @@ pub enum VmError {
 
 impl Vm {
     fn push(&mut self, value: Value) {
-        self.stack.push(value)
+        self.runtime.push(value)
     }
 
     fn pop(&mut self) -> VmResult<Value> {
-        self.stack.pop().ok_or(VmError::NoValue {
-            depth: 0,
-            len: self.stack.len(),
-        })
+        self.runtime.pop().map_err(Into::into)
     }
 
     fn pop_n(&mut self, n: u8) -> VmResult<()> {
-        let n = n as usize;
-        let len = self.stack.len();
+        let popped = self.runtime.pop_n(n as usize)?;
 
-        let new_len = len.checked_sub(n);
-        let new_len = new_len.ok_or(VmError::NoValue { depth: n, len })?;
-
-        for (slot, value) in self.stack[new_len..].iter().enumerate() {
+        for (slot, value) in popped {
             trace!({ ?slot, %value, }, "pop_n");
         }
-        self.stack.truncate(new_len);
+
         Ok(())
     }
 
     fn peek(&self, depth: usize) -> VmResult<&Value> {
-        self.stack.rget(depth).ok_or(VmError::NoValue {
-            depth,
-            len: self.stack.len(),
-        })
+        self.runtime.peek(depth).map_err(Into::into)
     }
 }
 
@@ -101,8 +82,7 @@ impl Vm {
         match callee {
             Value::HostFunc(f) => {
                 let ret = {
-                    let start = self.stack.len() - argc as usize;
-                    let argv = &self.stack[start..];
+                    let argv = self.runtime.argv(argc as usize);
 
                     (f.inner)(argc, argv)
                 };
@@ -110,41 +90,42 @@ impl Vm {
                 // Replace the whole call frame (including the callee) with the return value.
                 self.pop_n(argc + 1)?;
                 self.push(ret);
-                Ok(())
+                return Ok(());
             }
-            Value::Closure(closure) => {
-                if argc != closure.func.arity {
-                    todo!("arity mismatch");
+            Value::Object(obj) => {
+                let obj = unsafe { &**obj };
+
+                if let Object::Closure(closure) = obj {
+                    if argc != closure.func.arity {
+                        todo!("arity mismatch");
+                    }
+
+                    // Subtract one extra slot so bp points to the caller itself.
+                    let bp = self.runtime.stack_offset(1 + argc as usize)?;
+                    self.frames.push(Frame { bp, pc: 0 });
+
+                    return Ok(());
                 }
-                let argc: usize = argc.into();
-
-                // Subtract one extra slot so bp points to the caller itself.
-                let bp = self.stack.len().checked_sub(1 + argc).unwrap();
-                self.frames.push(Frame { bp, pc: 0 });
-
-                Ok(())
             }
-            actual => Err(VmError::Type {
-                expected: String::from("function"),
-                actual: actual.clone(),
-            }),
+            _ => {} // fall through
         }
+
+        Err(VmError::Type {
+            expected: String::from("function"),
+            actual: callee.clone(),
+        })
     }
 
     #[instrument(level = "trace", ret, skip(self))]
-    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> Arc<Mutex<Upvalue>> {
+    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> *mut Object {
         match location {
             1 => {
                 let slot = bp + index as usize;
-
-                self.upvalues.capture(slot)
+                self.runtime.capture_local(slot)
             }
             0 => {
                 // This points to wherever the _parent's_ upvalue does.
-                let Value::Closure(enclosing) = &self.stack[bp] else {
-                    unreachable!()
-                };
-                enclosing.upvalues[index as usize].clone()
+                self.runtime.recapture_upvalue(bp, index as usize)
             }
             other => panic!("invalid upvalue location: {:?}", other),
         }
@@ -152,25 +133,25 @@ impl Vm {
 
     #[instrument(level = "trace", skip(self))]
     fn close_upvalues(&mut self, len: usize) {
-        self.upvalues.close(&self.stack, len);
+        self.runtime.close_upvalues(len)
     }
 }
 
 impl Vm {
     pub fn new() -> Self {
         let mut vm = Self::default();
-        vm.set_host_func("print", host_print);
+        vm.define_host_func("print", host_print);
         vm
     }
 
-    pub fn set_host_func(&mut self, name: &'static str, f: RuntimeFn) {
+    pub fn define_host_func(&mut self, name: &'static str, f: RuntimeFn) {
         let name = String::from(name);
 
         let hosted = Value::HostFunc(HostFunc {
             name: name.clone(),
             inner: Arc::new(f),
         });
-        self.globals.insert(name, hosted);
+        self.runtime.define_global(name, hosted);
     }
 
     pub fn interpret(&mut self, chunk: Chunk) -> VmResult<()> {
@@ -181,12 +162,14 @@ impl Vm {
             chunk,
         };
 
-        let script = Value::Closure(Closure {
+        let script = Object::Closure(Closure {
             func: Arc::new(func),
             upvalues: vec![],
         });
 
-        self.push(script);
+        let ptr = self.runtime.alloc(script);
+
+        self.push(Value::Object(ptr));
         self.call_value(0)?;
 
         self.run()
@@ -207,25 +190,23 @@ impl Vm {
 
         macro_rules! callee {
             ($frame:expr) => {
-                match &self.stack[$frame.bp] {
-                    Value::Closure(closure) => closure,
+                match self.runtime.stack_get($frame.bp) {
+                    Value::Object(obj) => unsafe { &**obj }.as_closure(),
                     _ => unreachable!(),
                 }
             };
         }
 
         loop {
+            self.runtime.trace_stack();
+
             let op = {
                 let frame = frame!();
                 let chunk = chunk!(frame);
 
-                for (slot, value) in self.stack.iter().enumerate() {
-                    trace!({ ?slot, %value }, "stack");
-                }
-
                 let pc = &mut frame.pc;
                 let bp = frame.bp;
-                trace!({ ?pc, ?bp }, "fetch");
+                debug!({ ?pc, ?bp }, "fetch");
 
                 let op = Op::scan(&chunk.code[*pc..])?;
                 let Some(op) = op else {
@@ -235,7 +216,7 @@ impl Vm {
                 op
             };
 
-            trace!({ ?op }, "execute");
+            debug!({ ?op }, "execute");
 
             macro_rules! jump {
                 ($delta:expr) => {{
@@ -312,49 +293,58 @@ impl Vm {
 
             match op {
                 Op::Return => {
+                    let frame = self.frames.pop().expect("non-empty call stack");
+
+                    // Stack locations at bp or after are about to disappear. Close any open
+                    // upvalues that point to them.
+                    self.close_upvalues(frame.bp);
+
+                    // This is the return value that will be pushed back on after popping the
+                    // call frame.
                     let value = self.pop()?;
 
-                    // Stack locations at bp or above are about to disappear. Close any open
-                    // upvalues that point to them.
-                    let bp = frame!().bp;
-                    self.close_upvalues(bp);
-
-                    let frame = self.frames.pop().expect("non-empty call stack");
-                    if self.frames.is_empty() {
-                        // Pop `main` itself to leave the value stack empty.
-                        self.pop()?;
-                        assert!(self.stack.is_empty());
-                        return Ok(());
-                    }
-
                     // Pop any local state from the returning function.
-                    self.stack.truncate(frame.bp);
+                    self.runtime.pop_frame(frame.bp);
 
                     trace!({ ?value }, "returning");
                     self.push(value);
+
+                    // If this is the top-level script's return, exit instead.
+                    if self.frames.is_empty() {
+                        self.pop()?;
+                        assert!(self.runtime.stack_empty());
+                        return Ok(());
+                    }
                 }
 
                 Op::Pop => {
+                    // No need to close upvalues here. This instruction is only used to pop
+                    // intermediate values that cannot be captured (since they don't have names).
+
                     let v = self.pop()?;
                     trace!({ ?v }, "pop");
                 }
                 Op::PopN(n) => {
                     // These n stack locations are about to disappear. Close any open upvalues that
                     // point to them.
-                    let len = self.stack.len() - n as usize;
+                    let len = self.runtime.stack_offset(n as usize)?;
                     self.close_upvalues(len);
 
                     self.pop_n(n)?;
                 }
 
                 Op::PopUnderN(n) => {
+                    // These n stack locations underneath the block expression value are about to
+                    // disappear. Close any open upvalues that point to them.
+                    //
+                    // GC: The value itself must stay on the stack to make sure it's reachable as
+                    // a root.
+                    let start = self.runtime.stack_offset(1 + n as usize)?;
+                    let end = self.runtime.stack_offset(0)?;
+                    self.runtime.close_upvalues_range(start..end);
+
                     // Save the block's expression value to push back on.
                     let v = self.pop()?;
-
-                    // These n stack locations are about to disappear. Close any open upvalues that
-                    // point to them.
-                    let len = self.stack.len() - n as usize;
-                    self.close_upvalues(len);
 
                     self.pop_n(n)?;
                     self.push(v);
@@ -368,7 +358,7 @@ impl Vm {
                         Constant::Rational(v) => Value::Rational(v.clone()),
                         Constant::Float(v) => Value::Float(*v),
                         Constant::String(v) => {
-                            let ptr = self.strings.intern_ref(v);
+                            let ptr = self.runtime.intern(v);
                             Value::String(ptr)
                         }
                         Constant::Func(_) => unreachable!(),
@@ -411,24 +401,31 @@ impl Vm {
 
                 Op::GetLocal(slot) => {
                     let bp = frame!().bp;
-                    let value = self.stack[bp + slot as usize].clone();
+                    let idx = bp + slot as usize;
+
+                    let value = self.runtime.stack_get(idx).clone();
                     self.push(value);
                 }
                 Op::SetLocal(slot) => {
                     let bp = frame!().bp;
+                    let idx = bp + slot as usize;
+
                     let value = self.pop()?;
-                    self.stack[bp + slot as usize] = value;
+                    self.runtime.stack_put(idx, value);
                 }
 
                 Op::GetUpvalue(idx) => {
                     let callee = callee!(frame!());
-                    let upvalue = &callee.upvalues[idx as usize];
 
-                    let value = {
-                        let upvalue = upvalue.lock().unwrap();
-                        match &*upvalue {
-                            Upvalue::Stack(slot) => self.stack[*slot].clone(),
-                            Upvalue::Heap(mu) => mu.lock().unwrap().clone(),
+                    let upvalue = callee.upvalues[idx as usize];
+                    let upvalue = unsafe { &*upvalue }.as_upvalue();
+
+                    let value = match upvalue {
+                        Upvalue::Stack(idx) => self.runtime.stack_get(*idx).clone(),
+                        Upvalue::Heap(obj) => {
+                            let boxed = unsafe { &**obj }.as_box();
+                            let v = unsafe { &**boxed };
+                            v.clone()
                         }
                     };
                     self.push(value);
@@ -437,44 +434,36 @@ impl Vm {
                     let callee = callee!(frame!());
                     let value = self.peek(0).unwrap().clone();
 
-                    let upvalue = callee.upvalues[idx as usize].clone();
+                    let upvalue = callee.upvalues[idx as usize];
+                    let upvalue = unsafe { &mut *upvalue }.as_upvalue_mut();
 
-                    let mut upvalue = upvalue.lock().unwrap();
-                    match &mut *upvalue {
-                        Upvalue::Stack(slot) => self.stack[*slot] = value,
-                        Upvalue::Heap(mu) => {
-                            let mut v = mu.lock().unwrap();
-                            *v = value;
+                    match upvalue {
+                        Upvalue::Stack(idx) => self.runtime.stack_put(*idx, value),
+                        Upvalue::Heap(obj) => {
+                            let boxed = unsafe { &**obj }.as_box();
+                            unsafe { **boxed = value };
                         }
                     }
                 }
 
                 Op::GlobalDefine(idx) => {
                     let chunk = chunk!(frame!());
-                    let global = chunk.globals[idx as usize].clone();
+                    let name = chunk.globals[idx as usize].clone();
                     let value = self.pop()?;
-                    self.globals.insert(global, value);
+                    self.runtime.define_global(name, value);
                 }
                 Op::GetGlobal(idx) => {
                     let chunk = chunk!(frame!());
-                    let global = chunk.globals[idx as usize].clone();
-
-                    let Some(value) = self.globals.get(&global) else {
-                        return Err(VmError::UndefinedGlobal { name: global });
-                    };
+                    let name = &chunk.globals[idx as usize];
+                    let value = self.runtime.get_global(name)?;
                     self.push(value.clone());
                 }
                 Op::SetGlobal(idx) => {
                     let chunk = chunk!(frame!());
-                    let global = chunk.globals[idx as usize].clone();
+                    let name = chunk.globals[idx as usize].clone();
 
                     let value = self.pop()?;
-
-                    let Some(dest) = self.globals.get_mut(&global) else {
-                        return Err(VmError::UndefinedGlobal { name: global });
-                    };
-
-                    *dest = value;
+                    self.runtime.set_global(name, value)?;
                 }
 
                 Op::Call(argc) => {
@@ -517,7 +506,9 @@ impl Vm {
                     // And now put the new pc back where it belongs (after all the upvalue data).
                     frame!().pc = pc;
 
-                    self.push(Value::Closure(closure));
+                    let obj = Object::Closure(closure);
+                    let ptr = self.runtime.alloc(obj);
+                    self.push(Value::Object(ptr));
                 }
 
                 Op::Not => {
@@ -601,7 +592,7 @@ impl Vm {
                             let Ok(Value::String(a)) = self.pop() else {
                                 unreachable!()
                             };
-                            let c = self.strings.concatenate(a, b);
+                            let c = self.runtime.concatenate(a, b);
                             self.push(Value::String(c));
                         }
 

@@ -21,7 +21,6 @@ fn init_tracing() {
     use tracing_subscriber::EnvFilter;
 
     tracing_subscriber::fmt()
-        .pretty()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 }
@@ -87,7 +86,7 @@ impl Run {
         };
 
         let mut vm = Vm::new();
-        vm.interpret(program).wrap_err("runtime error")
+        vm.interpret(program).map_err(|err| eyre::eyre!("{}", err))
     }
 }
 

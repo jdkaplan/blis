@@ -1,94 +1,126 @@
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::ops::Range;
 
-use tracing::trace;
+use tracing::{instrument, trace};
 
-use crate::runtime::Value;
+use crate::runtime::{Gc, GcRoots, Heap, Object, Trace, Value};
 
 #[derive(Debug, Clone)]
 pub enum Upvalue {
     Stack(usize),
-    Heap(Arc<Mutex<Value>>),
+    Heap(*mut Object), // *mut Object::Box(_)
 }
 
-#[derive(Debug, Clone)]
-pub struct Upvalues {
-    upvalues: Vec<Arc<Mutex<Upvalue>>>,
-    gc_at: usize,
-}
+impl Trace for Upvalue {
+    fn trace(&self, gc: &mut Gc) {
+        match self {
+            Upvalue::Stack(_) => {
+                // The whole stack is already marked.
+            }
 
-impl Default for Upvalues {
-    fn default() -> Self {
-        Self {
-            // TODO: tune
-            upvalues: Vec::with_capacity(16),
-            gc_at: 16,
+            Upvalue::Heap(obj) => {
+                gc.mark_object(*obj);
+            }
         }
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Upvalues {
+    open: Vec<*mut Object>, // *mut Object::Upvalue(_)
 }
 
 impl Upvalues {
-    pub fn capture(&mut self, idx: usize) -> Arc<Mutex<Upvalue>> {
-        self.gc();
+    /// Always `*mut Object::Upvalue(_)`
+    #[instrument(level = "trace", skip(self))]
+    pub fn capture(&mut self, heap: &mut Heap, roots: GcRoots<'_, '_>, slot: usize) -> *mut Object {
+        let upvalue = Upvalue::Stack(slot);
+        let obj = Object::Upvalue(upvalue);
 
-        let upvalue = Upvalue::Stack(idx);
-        let arc = Arc::new(Mutex::new(upvalue));
-        self.upvalues.push(arc.clone());
-        arc
+        let ptr = heap.claim(roots, obj);
+        self.open.push(ptr);
+        ptr
     }
 
-    pub fn close(&mut self, stack: &[Value], len: usize) {
-        self.gc();
+    #[instrument(level = "trace", skip(self))]
+    pub fn close(&mut self, heap: &mut Heap, roots: GcRoots<'_, '_>, stack: &[Value], len: usize) {
+        trace!({ ?len, stack=stack.len(), open=self.open.len() }, "close upvalues");
 
-        let mut ptrs: BTreeMap<usize, Arc<Mutex<Value>>> = BTreeMap::new();
+        let upvalues = std::mem::take(&mut self.open);
+        let mut closed: BTreeMap<usize, *mut Object> = BTreeMap::new();
 
-        for upvalue in &self.upvalues {
-            let mut upvalue = upvalue.lock().unwrap();
+        let roots = roots.with_upvalues(&upvalues);
 
+        for ptr in upvalues.iter().copied() {
+            let upvalue = unsafe { &*ptr }.as_upvalue();
             let Upvalue::Stack(slot) = *upvalue else {
-                // This was already closed.
-                continue;
+                unreachable!();
             };
 
             if slot < len {
-                // This one stays alive for now.
+                trace!({ ?ptr, ?slot, value = ?&stack[slot] }, "keep open");
+                self.open.push(ptr);
                 continue;
             }
 
-            // This _MUST_ reuse a pointer that was just created for it.
-            if let Some(ptr) = ptrs.get(&slot) {
-                *upvalue = Upvalue::Heap(ptr.clone());
+            // This _MUST_ reuse a value box that was just created for it.
+            let boxed = if let Some(&boxed) = closed.get(&slot) {
+                boxed
+            } else {
+                let value = stack[slot].clone();
+                trace!({ ?ptr, ?slot, %value }, "close upvalue");
+
+                let boxed = heap.claim_value(roots, value);
+                closed.insert(slot, boxed);
+                boxed
+            };
+
+            let upvalue = unsafe { &mut *ptr }.as_upvalue_mut();
+            *upvalue = Upvalue::Heap(boxed);
+        }
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub fn close_range(
+        &mut self,
+        heap: &mut Heap,
+        roots: GcRoots<'_, '_>,
+        stack: &[Value],
+        range: Range<usize>,
+    ) {
+        trace!({ ?range, stack=stack.len(), open=self.open.len() }, "close upvalues");
+
+        let upvalues = std::mem::take(&mut self.open);
+        let mut closed: BTreeMap<usize, *mut Object> = BTreeMap::new();
+
+        let roots = roots.with_upvalues(&upvalues);
+
+        for ptr in upvalues.iter().copied() {
+            let upvalue = unsafe { &*ptr }.as_upvalue();
+            let Upvalue::Stack(slot) = *upvalue else {
+                unreachable!();
+            };
+
+            if range.contains(&slot) {
+                trace!({ ?ptr, ?slot, value = ?&stack[slot] }, "keep open");
+                self.open.push(ptr);
                 continue;
             }
 
-            let value = stack[slot].clone();
-            trace!({ ?slot, %value }, "close upvalue");
+            // This _MUST_ reuse a value box that was just created for it.
+            let boxed = if let Some(&boxed) = closed.get(&slot) {
+                boxed
+            } else {
+                let value = stack[slot].clone();
+                trace!({ ?ptr, ?slot, %value }, "close upvalue");
 
-            let ptr = Arc::new(Mutex::new(value));
-            ptrs.insert(slot, ptr.clone());
-            *upvalue = Upvalue::Heap(ptr);
+                let boxed = heap.claim_value(roots, value);
+                closed.insert(slot, boxed);
+                boxed
+            };
+
+            let upvalue = unsafe { &mut *ptr }.as_upvalue_mut();
+            *upvalue = Upvalue::Heap(boxed);
         }
-    }
-
-    fn gc(&mut self) {
-        let limit = if cfg!(feature = "gc_stress") {
-            0
-        } else {
-            self.gc_at
-        };
-
-        if self.upvalues.len() > limit {
-            self.remove_unreachable();
-        }
-    }
-
-    pub fn remove_unreachable(&mut self) {
-        let before = self.upvalues.len();
-
-        self.upvalues.retain(|arc| Arc::strong_count(arc) > 1);
-
-        let after = self.upvalues.len();
-        self.gc_at = 2 * after;
-        trace!({ %before, %after, next_gc=self.gc_at }, "Upvalues::remove_unreachable");
     }
 }

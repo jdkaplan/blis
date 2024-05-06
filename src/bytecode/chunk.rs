@@ -11,7 +11,7 @@ pub enum Constant {
     Func(Func),
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Chunk {
     pub constants: Vec<Constant>,
     pub globals: Vec<String>,

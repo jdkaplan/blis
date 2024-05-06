@@ -6,16 +6,10 @@ pub mod op;
 pub use chunk::{Chunk, Constant};
 pub use op::{Op, OpError};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Func {
     pub name: String,
     pub arity: u8,
     pub upvalues: u8,
     pub chunk: Chunk,
-}
-
-impl PartialEq for Func {
-    fn eq(&self, _other: &Self) -> bool {
-        false
-    }
 }

@@ -2,7 +2,9 @@ use std::fmt;
 
 use num_rational::BigRational;
 
-use crate::runtime::{Closure, HostFunc, InternedString};
+use crate::runtime::{HostFunc, InternedString};
+
+use super::heap::Object;
 
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -12,8 +14,8 @@ pub enum Value {
     Float(f64),
     Rational(BigRational),
     String(InternedString),
-    Closure(Closure),
     HostFunc(HostFunc),
+    Object(*mut Object),
 }
 
 impl fmt::Display for Value {
@@ -24,8 +26,11 @@ impl fmt::Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Rational(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
-            Value::Closure(v) => write!(f, "<func {:?}>", v.func.name),
             Value::HostFunc(v) => write!(f, "<func {:?}>", v.name),
+            Value::Object(ptr) => {
+                let obj = unsafe { &**ptr };
+                write!(f, "<{} {:?}>", obj, ptr)
+            }
         }
     }
 }
@@ -74,10 +79,11 @@ impl PartialEq for Value {
 
             // Functions are never equal to anything. In theory, they could be equal to themselves,
             // but getting clear rules for identity there doesn't feel worth it.
-            (Value::Closure(_), Value::Closure(_)) => false,
-            (Value::Closure(_), _) => false,
             (Value::HostFunc(_), Value::HostFunc(_)) => false,
             (Value::HostFunc(_), _) => false,
+
+            (Value::Object(a), Value::Object(b)) => a == b,
+            (Value::Object(_), _) => false,
         }
     }
 }
@@ -104,10 +110,11 @@ impl PartialOrd for Value {
             (Value::String(_), _) => None,
 
             // Functions aren't comparable to each other nor to values of other types.
-            (Value::Closure(_), Value::Closure(_)) => None,
-            (Value::Closure(_), _) => None,
             (Value::HostFunc(_), Value::HostFunc(_)) => None,
             (Value::HostFunc(_), _) => None,
+
+            (Value::Object(_), Value::Object(_)) => None,
+            (Value::Object(_), _) => None,
         }
     }
 }
