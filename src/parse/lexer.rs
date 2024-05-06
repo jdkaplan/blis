@@ -277,6 +277,7 @@ fn keyword_or_identifier(text: &str) -> Token {
         "let" => Token::Let,
         "loop" => Token::Loop,
         "nil" => Token::Nil,
+        "object" => Token::Object,
         "or" => Token::Or,
         "return" => Token::Return,
         "true" => Token::True,

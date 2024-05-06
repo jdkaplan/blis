@@ -12,6 +12,7 @@ pub enum Op {
     Nil = 0x05,
     False = 0x06,
     True = 0x07,
+    Object = 0x08,
 
     Call(u8) = 0x10,
     Index = 0x11,
@@ -24,6 +25,8 @@ pub enum Op {
     GlobalDefine(u8) = 0x26,
     GetGlobal(u8) = 0x27,
     SetGlobal(u8) = 0x28,
+    GetField(u8) = 0x29,
+    SetField(u8) = 0x2a,
 
     Not = 0x30,
     Eq = 0x31,
@@ -72,6 +75,7 @@ impl Op {
             | Op::Nil
             | Op::False
             | Op::True
+            | Op::Object
             | Op::Index
             | Op::Not
             | Op::Eq
@@ -98,7 +102,9 @@ impl Op {
             | Op::SetUpvalue(ref mut byte)
             | Op::GlobalDefine(ref mut byte)
             | Op::GetGlobal(ref mut byte)
-            | Op::SetGlobal(ref mut byte) => {
+            | Op::SetGlobal(ref mut byte)
+            | Op::GetField(ref mut byte)
+            | Op::SetField(ref mut byte) => {
                 *byte = *code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
             }
 
@@ -135,6 +141,7 @@ impl Op {
             | Op::Nil
             | Op::False
             | Op::True
+            | Op::Object
             | Op::Index
             | Op::Not
             | Op::Eq
@@ -161,7 +168,9 @@ impl Op {
             | Op::SetUpvalue(byte)
             | Op::GlobalDefine(byte)
             | Op::GetGlobal(byte)
-            | Op::SetGlobal(byte) => {
+            | Op::SetGlobal(byte)
+            | Op::GetField(byte)
+            | Op::SetField(byte) => {
                 bytes.push(*byte);
             }
 

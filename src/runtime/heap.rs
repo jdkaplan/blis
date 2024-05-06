@@ -1,118 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::fmt;
 
 use tracing::trace;
 
-use crate::runtime::{Closure, Upvalue, Value};
+use crate::runtime::{Object, Value};
 
 pub trait Trace {
     fn trace(&self, gc: &mut Gc);
-}
-
-#[derive(Debug)]
-pub enum Object {
-    Box(*mut Value),
-    Closure(Closure),
-    Upvalue(Upvalue),
-    Instance(Instance),
-
-    #[cfg(feature = "gc_tombstone")]
-    Tombstone,
-}
-
-impl fmt::Display for Object {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Object::Box(ptr) => {
-                let v = unsafe { &**ptr };
-                write!(f, "{}", v)
-            }
-            Object::Closure(o) => write!(f, "closure {}", o.func.name),
-            Object::Upvalue(_) => write!(f, "upvalue"),
-            Object::Instance(_) => write!(f, "instance"),
-
-            #[cfg(feature = "gc_tombstone")]
-            Object::Tombstone => unreachable!(),
-        }
-    }
-}
-
-impl Trace for Object {
-    fn trace(&self, gc: &mut Gc) {
-        match self {
-            Object::Box(v) => gc.mark_value(unsafe { &**v }),
-            Object::Closure(v) => v.trace(gc),
-            Object::Upvalue(v) => v.trace(gc),
-            Object::Instance(v) => v.trace(gc),
-
-            #[cfg(feature = "gc_tombstone")]
-            Object::Tombstone => unreachable!(),
-        }
-    }
-}
-
-macro_rules! impl_as_obj {
-    ($Var:path, $Ty:ty, $is:ident, $as_ref:ident, $as_mut:ident) => {
-        pub fn $is(&self) -> bool {
-            match self {
-                $Var(_) => true,
-                _ => false,
-            }
-        }
-
-        pub fn $as_ref(&self) -> &$Ty {
-            match self {
-                $Var(v) => v,
-                obj => unreachable!("{:?}", obj),
-            }
-        }
-
-        pub fn $as_mut(&mut self) -> &mut $Ty {
-            match self {
-                $Var(v) => v,
-                obj => unreachable!("{:?}", obj),
-            }
-        }
-    };
-}
-
-impl Object {
-    impl_as_obj!(Object::Box, *mut Value, is_box, as_box, as_box_mut);
-    impl_as_obj!(
-        Object::Upvalue,
-        Upvalue,
-        is_upvalue,
-        as_upvalue,
-        as_upvalue_mut
-    );
-    impl_as_obj!(
-        Object::Closure,
-        Closure,
-        is_closure,
-        as_closure,
-        as_closure_mut
-    );
-    impl_as_obj!(
-        Object::Instance,
-        Instance,
-        is_instance,
-        as_instance,
-        as_instance_mut
-    );
-}
-
-#[derive(Debug)]
-pub struct Instance {
-    pub class: Value,
-    pub fields: BTreeMap<String, Value>,
-}
-
-impl Trace for Instance {
-    fn trace(&self, gc: &mut Gc) {
-        for v in self.fields.values() {
-            gc.mark_value(v);
-        }
-    }
 }
 
 #[derive(Debug, Default)]

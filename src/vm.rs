@@ -5,7 +5,8 @@ use tracing::{debug, instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
 use crate::runtime::{
-    Closure, HostFunc, Object, Runtime, RuntimeError, RuntimeFn, Upvalue, Value, ValueType,
+    Closure, HostFunc, Instance, Object, Runtime, RuntimeError, RuntimeFn, Upvalue, Value,
+    ValueType,
 };
 
 #[derive(Default)]
@@ -376,6 +377,14 @@ impl Vm {
                 Op::True => {
                     self.push(Value::Boolean(true));
                 }
+                Op::Object => {
+                    let obj = Object::Instance(Instance {
+                        ty: Value::Nil,
+                        fields: Default::default(),
+                    });
+                    let ptr = self.runtime.alloc(obj);
+                    self.push(Value::Object(ptr))
+                }
 
                 Op::Jump(delta) => jump!(delta),
                 Op::JumpFalsePeek(delta) => {
@@ -464,6 +473,41 @@ impl Vm {
 
                     let value = self.pop()?;
                     self.runtime.set_global(name, value)?;
+                }
+
+                Op::GetField(idx) => {
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let Constant::String(name) = constant else {
+                        unreachable!()
+                    };
+                    let name = name.clone();
+
+                    let Value::Object(ptr) = self.pop()? else {
+                        todo!("type error");
+                    };
+
+                    let obj = unsafe { &*ptr }.as_instance();
+                    let v = obj.get_field(&name).unwrap().clone();
+                    self.push(v);
+                }
+                Op::SetField(idx) => {
+                    let chunk = chunk!(frame!());
+                    let constant = &chunk.constants[idx as usize];
+                    let Constant::String(name) = constant else {
+                        unreachable!()
+                    };
+                    let name = name.clone();
+
+                    let Value::Object(ptr) = self.peek(1)? else {
+                        todo!("type error");
+                    };
+                    let ptr = *ptr;
+
+                    let value = self.pop()?;
+
+                    let obj = unsafe { &mut *ptr }.as_instance_mut();
+                    obj.set_field(name, value);
                 }
 
                 Op::Call(argc) => {

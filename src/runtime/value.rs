@@ -2,9 +2,7 @@ use std::fmt;
 
 use num_rational::BigRational;
 
-use crate::runtime::{HostFunc, InternedString};
-
-use super::heap::Object;
+use crate::runtime::{HostFunc, InternedString, Object};
 
 #[derive(Debug, Clone, strum::EnumDiscriminants)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -79,6 +77,8 @@ impl PartialEq for Value {
 
             // Functions are never equal to anything. In theory, they could be equal to themselves,
             // but getting clear rules for identity there doesn't feel worth it.
+            //
+            // TODO: Should Object equality apply to host functions?
             (Value::HostFunc(_), Value::HostFunc(_)) => false,
             (Value::HostFunc(_), _) => false,
 
@@ -113,6 +113,7 @@ impl PartialOrd for Value {
             (Value::HostFunc(_), Value::HostFunc(_)) => None,
             (Value::HostFunc(_), _) => None,
 
+            // Objects have no default ordering.
             (Value::Object(_), Value::Object(_)) => None,
             (Value::Object(_), _) => None,
         }

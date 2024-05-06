@@ -341,7 +341,7 @@ impl Compiler {
 
                 let id = current.add_name_constant(ident);
                 self.expression(&assign.expr)?;
-                todo!("Op::SetField({})", id);
+                current.push(Op::SetField(id));
             }
             // ident = expr
             Place::Identifier(ident) => {
@@ -624,7 +624,8 @@ impl Compiler {
                 self.call(obj)?;
 
                 let id = current.add_name_constant(ident);
-                todo!("Op::GetField({})", id);
+                current.push(Op::GetField(id));
+                Ok(())
             }
         }
     }
@@ -636,6 +637,7 @@ impl Compiler {
             Primary::If(if_) => self.expr_if(if_),
             Primary::Atom(atom) => self.atom(atom),
             Primary::Group(expr) => self.expression(expr),
+            Primary::Object(obj) => self.expr_object(obj),
         }
     }
 
@@ -678,6 +680,21 @@ impl Compiler {
 
         // 'skip_alt:
         current.set_jump_target(skip_alt);
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace")]
+    fn expr_object(&mut self, obj: &Object) -> Fallible<()> {
+        let current = self.current();
+        current.push(Op::Object);
+
+        for (ident, expr) in &obj.fields {
+            let id = current.add_name_constant(ident);
+
+            self.expression(expr)?;
+            current.push(Op::SetField(id));
+        }
 
         Ok(())
     }
