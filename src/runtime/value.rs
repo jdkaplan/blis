@@ -2,7 +2,7 @@ use std::fmt;
 
 use num_rational::BigRational;
 
-use crate::runtime::{HostFunc, InternedString, Object};
+use crate::runtime::{InternedString, Object};
 
 #[derive(Debug, Clone, strum::EnumDiscriminants, strum::EnumIs, strum::EnumTryAs)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -12,7 +12,6 @@ pub enum Value {
     Float(f64),
     Rational(BigRational),
     String(InternedString),
-    HostFunc(HostFunc),
     Object(*mut Object),
 }
 
@@ -24,7 +23,6 @@ impl fmt::Display for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Rational(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
-            Value::HostFunc(v) => write!(f, "<func {:?}>", v.name),
             Value::Object(ptr) => {
                 let obj = unsafe { &**ptr };
                 write!(f, "<{} {:?}>", obj, ptr)
@@ -75,14 +73,15 @@ impl PartialEq for Value {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::String(_), _) => false,
 
-            // Functions are never equal to anything. In theory, they could be equal to themselves,
-            // but getting clear rules for identity there doesn't feel worth it.
-            //
-            // TODO: Should Object equality apply to host functions?
-            (Value::HostFunc(_), Value::HostFunc(_)) => false,
-            (Value::HostFunc(_), _) => false,
+            (Value::Object(a), Value::Object(b)) => {
+                let aa = unsafe { &**a };
+                let bb = unsafe { &**b };
 
-            (Value::Object(a), Value::Object(b)) => a == b,
+                match (aa, bb) {
+                    (Object::List(aa), Object::List(bb)) => aa == bb,
+                    _ => a == b,
+                }
+            }
             (Value::Object(_), _) => false,
         }
     }
@@ -109,12 +108,16 @@ impl PartialOrd for Value {
             (Value::String(a), Value::String(b)) => a.partial_cmp(b),
             (Value::String(_), _) => None,
 
-            // Functions aren't comparable to each other nor to values of other types.
-            (Value::HostFunc(_), Value::HostFunc(_)) => None,
-            (Value::HostFunc(_), _) => None,
+            // Objects can't be compared in general, but Lists are special!
+            (Value::Object(a), Value::Object(b)) => {
+                let aa = unsafe { &**a };
+                let bb = unsafe { &**b };
 
-            // Objects have no default ordering.
-            (Value::Object(_), Value::Object(_)) => None,
+                match (aa, bb) {
+                    (Object::List(aa), Object::List(bb)) => aa.partial_cmp(bb),
+                    _ => None,
+                }
+            }
             (Value::Object(_), _) => None,
         }
     }

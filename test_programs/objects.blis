@@ -13,7 +13,9 @@ func main() {
     two.one = one;
 
     print(one.two);
+    print(one["two"]);
     print(two.one);
+    print(two["one"]);
 }
 
 let id = 0;

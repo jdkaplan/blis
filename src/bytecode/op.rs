@@ -13,12 +13,12 @@ pub enum Op {
     Nil = 0x05,
     False = 0x06,
     True = 0x07,
-    Object = 0x08,
-    Type(u8) = 0x09,
+    List(u8) = 0x08,
+    Object = 0x09,
+    Type(u8) = 0x0a,
 
     Call(u8) = 0x10,
-    Index = 0x11,
-    Closure(u8) = 0x12,
+    Closure(u8) = 0x11,
 
     GetLocal(u8) = 0x20,
     SetLocal(u8) = 0x21,
@@ -31,6 +31,8 @@ pub enum Op {
     SetField(u8) = 0x2a,
     GetMethod(u8) = 0x2b,
     SetMethod(u8) = 0x2c,
+    GetIndex = 0x2d,
+    SetIndex = 0x2e,
 
     Not = 0x30,
     Eq = 0x31,
@@ -80,7 +82,6 @@ impl Op {
             | Op::False
             | Op::True
             | Op::Object
-            | Op::Index
             | Op::Not
             | Op::Eq
             | Op::Ne
@@ -93,11 +94,14 @@ impl Op {
             | Op::Sub
             | Op::Mul
             | Op::Div
-            | Op::Rem => {}
+            | Op::Rem
+            | Op::GetIndex
+            | Op::SetIndex => {}
 
             Op::Constant(ref mut byte)
             | Op::PopN(ref mut byte)
             | Op::PopUnderN(ref mut byte)
+            | Op::List(ref mut byte)
             | Op::Type(ref mut byte)
             | Op::Call(ref mut byte)
             | Op::Closure(ref mut byte)
@@ -149,7 +153,6 @@ impl Op {
             | Op::False
             | Op::True
             | Op::Object
-            | Op::Index
             | Op::Not
             | Op::Eq
             | Op::Ne
@@ -162,11 +165,14 @@ impl Op {
             | Op::Sub
             | Op::Mul
             | Op::Div
-            | Op::Rem => {}
+            | Op::Rem
+            | Op::GetIndex
+            | Op::SetIndex => {}
 
             Op::Constant(byte)
             | Op::PopN(byte)
             | Op::PopUnderN(byte)
+            | Op::List(byte)
             | Op::Type(byte)
             | Op::Call(byte)
             | Op::Closure(byte)

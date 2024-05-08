@@ -95,6 +95,9 @@ impl Heap {
         for root in roots.globals.values() {
             gc.mark_value(root);
         }
+        for root in roots.builtins.values() {
+            gc.mark_value(root);
+        }
         if let Some(upvalues) = roots.upvalues {
             for root in upvalues {
                 gc.mark_object(*root);
@@ -132,14 +135,20 @@ impl Heap {
 pub struct GcRoots<'a, 'b> {
     stack: &'a [Value],
     globals: &'a BTreeMap<String, Value>,
+    builtins: &'a BTreeMap<String, Value>,
     upvalues: Option<&'b [*mut Object]>, // *mut Object::Upvalue
 }
 
 impl<'a> GcRoots<'a, '_> {
-    pub fn new(stack: &'a [Value], globals: &'a BTreeMap<String, Value>) -> Self {
+    pub fn new(
+        stack: &'a [Value],
+        globals: &'a BTreeMap<String, Value>,
+        builtins: &'a BTreeMap<String, Value>,
+    ) -> Self {
         Self {
             stack,
             globals,
+            builtins,
             upvalues: None,
         }
     }

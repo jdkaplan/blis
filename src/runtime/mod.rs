@@ -10,7 +10,7 @@ pub mod value;
 
 pub use func::{BoundMethod, Closure, HostFunc, RuntimeFn};
 pub use heap::{Gc, GcRoots, Heap, Trace};
-pub use object::{Instance, Object, Type};
+pub use object::{Instance, List, Object, Type};
 pub use strings::{InternedString, Strings};
 pub use upvalue::{Upvalue, Upvalues};
 pub use value::{Value, ValueType};
@@ -19,6 +19,7 @@ pub use value::{Value, ValueType};
 pub struct Runtime {
     stack: Vec<Value>,
     globals: BTreeMap<String, Value>,
+    builtins: BTreeMap<String, Value>,
 
     upvalues: Upvalues,
     strings: Strings,
@@ -58,15 +59,11 @@ impl Runtime {
         })
     }
 
-    pub fn pop_n(&mut self, n: usize) -> RuntimeResult<Vec<(usize, Value)>> {
+    pub fn pop_n(&mut self, n: usize) -> RuntimeResult<Vec<Value>> {
         let len = self.stack_offset(n)?;
 
         let popped = self.stack.split_off(len);
-        Ok(popped
-            .into_iter()
-            .enumerate()
-            .map(|(i, v)| (i + len, v))
-            .collect())
+        Ok(popped)
     }
 
     pub fn pop_frame(&mut self, bp: usize) {
@@ -99,6 +96,10 @@ impl Runtime {
             .ok_or(RuntimeError::NoValue { depth: n, len })
     }
 
+    pub fn stack_len(&self) -> usize {
+        self.stack.len()
+    }
+
     pub fn trace_stack(&self) {
         for (slot, value) in self.stack.iter().enumerate() {
             trace!({ ?slot, %value }, "stack");
@@ -109,7 +110,13 @@ impl Runtime {
         self.stack.is_empty()
     }
 
-    pub fn insert_under(&mut self, n: usize, value: Value) -> RuntimeResult<()> {
+    pub fn replace(&mut self, n: usize, value: Value) -> RuntimeResult<()> {
+        let pos = self.stack_offset(n)?;
+        self.stack[pos] = value;
+        Ok(())
+    }
+
+    pub fn insert_as(&mut self, n: usize, value: Value) -> RuntimeResult<()> {
         let pos = self.stack_offset(n)?;
         self.stack.insert(pos, value);
         Ok(())
@@ -148,12 +155,24 @@ impl Runtime {
     }
 }
 
+// Builtins
+impl Runtime {
+    pub fn define_builtin(&mut self, name: String, value: Value) {
+        let prev = self.builtins.insert(name, value);
+        assert_eq!(prev, None);
+    }
+
+    pub fn get_builtin(&self, name: &str) -> &Value {
+        self.builtins.get(name).unwrap()
+    }
+}
+
 // Upvalues
 impl Runtime {
     pub fn capture_local(&mut self, slot: usize) -> *mut Object {
         trace!({ ?slot, value = ?self.stack[slot]}, "capture local");
 
-        let roots = GcRoots::new(&self.stack, &self.globals);
+        let roots = GcRoots::new(&self.stack, &self.globals, &self.builtins);
         self.upvalues.capture(&mut self.heap, roots, slot)
     }
 
@@ -179,7 +198,7 @@ impl Runtime {
     pub fn close_upvalues_range(&mut self, range: Range<usize>) {
         trace!({ ?range }, "closing upvalues");
 
-        let roots = GcRoots::new(&self.stack, &self.globals);
+        let roots = GcRoots::new(&self.stack, &self.globals, &self.builtins);
         self.upvalues
             .close(&mut self.heap, roots, &self.stack, range);
     }
@@ -199,7 +218,7 @@ impl Runtime {
 // Heap
 impl Runtime {
     pub fn alloc(&mut self, obj: Object) -> *mut Object {
-        let roots = GcRoots::new(&self.stack, &self.globals);
+        let roots = GcRoots::new(&self.stack, &self.globals, &self.builtins);
         self.heap.claim(roots, obj)
     }
 }

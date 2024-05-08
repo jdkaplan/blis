@@ -739,7 +739,35 @@ impl<'source> Parser<'source> {
             return Ok(Atom::Identifier(ident));
         }
 
+        if let Some(open) = self.take(Token::LeftBracket) {
+            let items = self.list_items(open)?;
+            return Ok(Atom::List(List { items }));
+        }
+
         self.literal().map(Atom::Literal)
+    }
+
+    #[instrument(level = "trace", ret)]
+    fn list_items(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Expression>> {
+        let mut args = Vec::new();
+
+        loop {
+            if let Some(_close) = self.take(Token::RightBracket) {
+                break;
+            }
+
+            let expr = self.expression()?;
+            args.push(expr);
+
+            if let Some(_sep) = self.take(Token::Comma) {
+                continue;
+            } else {
+                self.must_take(Token::RightBracket)?;
+                break;
+            }
+        }
+
+        Ok(args)
     }
 
     #[instrument(level = "trace", ret)]

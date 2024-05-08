@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
+use num_bigint::BigInt;
+
 use crate::runtime::{BoundMethod, Closure, Gc, HostFunc, Trace, Upvalue, Value};
 
 #[derive(Debug, strum::EnumIs, strum::EnumTryAs)]
@@ -17,6 +19,7 @@ pub enum Object {
     // Objects
     Instance(Instance),
     Type(Type),
+    List(List),
 
     #[cfg(feature = "gc_tombstone")]
     Tombstone,
@@ -36,6 +39,8 @@ impl fmt::Display for Object {
             Object::HostFunc(v) => write!(f, "func {:?}", v.name),
 
             Object::Type(t) => write!(f, "type {}", t.name),
+
+            Object::List(_) => write!(f, "list"),
 
             Object::Instance(i) => {
                 let ty = i.ty.try_as_object_ref().unwrap();
@@ -58,6 +63,7 @@ impl Trace for Object {
             Object::Closure(v) => v.trace(gc),
             Object::HostFunc(v) => v.trace(gc),
             Object::Instance(v) => v.trace(gc),
+            Object::List(v) => v.trace(gc),
             Object::Type(v) => v.trace(gc),
             Object::Upvalue(v) => v.trace(gc),
 
@@ -132,5 +138,59 @@ impl Instance {
 
     pub fn set_field(&mut self, name: String, value: Value) {
         self.fields.insert(name, value);
+    }
+
+    /// # Safety
+    ///
+    /// The ptr must point to a live Object::Instance(_) value.
+    pub unsafe fn get_method(ptr: *mut Object, name: &str) -> Option<Object> {
+        let i = unsafe { &*ptr }.try_as_instance_ref().unwrap();
+
+        let ty = i.ty.try_as_object_ref().unwrap();
+        let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+
+        if let Some(method) = ty.get_method(name) {
+            let bound = BoundMethod::new(ptr, method.clone());
+            Some(Object::BoundMethod(bound))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, PartialOrd)]
+pub struct List {
+    pub items: Vec<Value>,
+}
+
+impl Trace for List {
+    fn trace(&self, gc: &mut Gc) {
+        for v in &self.items {
+            gc.mark_value(v);
+        }
+    }
+}
+
+impl List {
+    pub fn new(items: Vec<Value>) -> Self {
+        Self { items }
+    }
+
+    pub fn get_item(&self, key: &BigInt) -> Option<Value> {
+        if let Ok(key) = TryInto::<usize>::try_into(key) {
+            self.items.get(key).cloned()
+        } else {
+            None
+        }
+    }
+
+    pub fn set_item(&mut self, key: &BigInt, value: Value) -> Option<Value> {
+        if let Ok(key) = TryInto::<usize>::try_into(key) {
+            let slot = self.items.get_mut(key)?;
+            let prev = std::mem::replace(slot, value);
+            Some(prev)
+        } else {
+            None
+        }
     }
 }

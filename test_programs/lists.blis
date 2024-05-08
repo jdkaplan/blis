@@ -1,0 +1,20 @@
+func main() {
+    let expected = [1, "🈔", "tres", nil];
+    let actual = [];
+
+    actual.append(1);
+    actual.append("🈔");
+    actual.append(expected);
+    actual.append(nil);
+
+    print(expected);
+    print(actual);
+    print(expected == actual);
+
+    actual[2] = "tres";
+    print(expected);
+    print(actual);
+    print(expected == actual);
+}
+
+main();

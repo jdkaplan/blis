@@ -438,8 +438,25 @@ impl Compiler {
                 current.push(Op::SetField(id));
                 current.push(Op::Pop);
             }
-            // ident = expr
+            Place::Index(obj, key) => {
+                // Evaluate left-to-right so that
+                //
+                //     obj_expr[idx_expr] = expr;
+                //
+                // is the same as
+                //
+                //     let obj = obj_expr;
+                //     let idx = idx_expr;
+                //     obj[idx] = val;
+                //
+                self.call(obj)?;
+                self.expression(key)?;
+
+                self.expression(&assign.expr)?;
+                current.push(Op::SetIndex);
+            }
             Place::Identifier(ident) => {
+                // ident = expr
                 self.expression(&assign.expr)?;
 
                 if let Some((slot, _local)) = current.resolve_local(ident) {
@@ -711,7 +728,7 @@ impl Compiler {
             Call::Index(obj, key) => {
                 self.call(obj)?;
                 self.expression(key)?;
-                current.push(Op::Index);
+                current.push(Op::GetIndex);
                 Ok(())
             }
 
@@ -742,6 +759,7 @@ impl Compiler {
             Atom::Identifier(ident) => self.expr_identifier(ident),
             Atom::Literal(lit) => self.expr_literal(lit),
             Atom::Object(obj) => self.expr_object(obj),
+            Atom::List(list) => self.expr_list(list),
         }
     }
 
@@ -793,6 +811,21 @@ impl Compiler {
             self.expression(expr)?;
             current.push(Op::SetField(id));
         }
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace")]
+    fn expr_list(&mut self, list: &List) -> Fallible<()> {
+        let len: u8 = list.items.len().try_into().expect("time for BigList");
+
+        let current = self.current();
+
+        for expr in &list.items {
+            self.expression(expr)?;
+        }
+
+        current.push(Op::List(len));
 
         Ok(())
     }

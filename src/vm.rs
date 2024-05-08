@@ -5,7 +5,7 @@ use tracing::{debug, instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
 use crate::runtime::{
-    BoundMethod, Closure, HostFunc, Instance, Object, Runtime, RuntimeError, RuntimeFn, Type,
+    BoundMethod, Closure, HostFunc, Instance, List, Object, Runtime, RuntimeError, RuntimeFn, Type,
     Upvalue, Value, ValueType,
 };
 
@@ -24,6 +24,18 @@ fn host_print(_argc: u8, argv: &[Value]) -> Value {
     }
 
     println!();
+    Value::Nil
+}
+
+fn host_list_append(argc: u8, argv: &[Value]) -> Value {
+    assert_eq!(argc, 2);
+
+    let elt = argv[1].clone();
+
+    let ptr = argv[0].try_as_object_ref().unwrap();
+    let list = unsafe { &mut **ptr }.try_as_list_mut().unwrap();
+
+    list.items.push(elt);
     Value::Nil
 }
 
@@ -53,6 +65,12 @@ pub enum VmError {
 
     #[error("type error: expected {} arguments, got {}", expected, actual)]
     Arity { expected: usize, actual: usize },
+
+    #[error("index error: value `{}` cannot be indexed", value)]
+    Index { value: Value },
+
+    #[error("key error: value `{}` cannot be indexed by `{}`", value, key)]
+    Key { value: Value, key: Value },
 }
 
 impl Vm {
@@ -64,14 +82,16 @@ impl Vm {
         self.runtime.pop().map_err(Into::into)
     }
 
-    fn pop_n(&mut self, n: u8) -> VmResult<()> {
+    fn pop_n(&mut self, n: u8) -> VmResult<Vec<Value>> {
         let popped = self.runtime.pop_n(n as usize)?;
+        let len = self.runtime.stack_len();
 
-        for (slot, value) in popped {
+        for (i, value) in popped.iter().enumerate() {
+            let slot = i + len;
             trace!({ ?slot, %value, }, "pop_n");
         }
 
-        Ok(())
+        Ok(popped)
     }
 
     fn peek(&self, depth: usize) -> VmResult<&Value> {
@@ -82,9 +102,17 @@ impl Vm {
 impl Vm {
     fn call_value(&mut self, argc: u8) -> VmResult<()> {
         let callee = self.peek(argc as usize)?;
+        let Some(ptr) = callee.try_as_object_ref() else {
+            return Err(VmError::Type {
+                expected: String::from("function"),
+                actual: callee.clone(),
+            });
+        };
 
-        match callee {
-            Value::HostFunc(f) => {
+        let obj = unsafe { &**ptr };
+
+        match obj {
+            Object::HostFunc(f) => {
                 let ret = {
                     let argv = self.runtime.argv(argc as usize);
 
@@ -94,43 +122,42 @@ impl Vm {
                 // Replace the whole call frame (including the callee) with the return value.
                 self.pop_n(argc + 1)?;
                 self.push(ret);
-                return Ok(());
+                Ok(())
             }
-            Value::Object(obj) => {
-                let obj = unsafe { &**obj };
 
-                match obj {
-                    Object::Closure(closure) => {
-                        // TODO: unbound method arity?
-                        if argc != closure.func.arity {
-                            return Err(VmError::Arity {
-                                expected: closure.func.arity as usize,
-                                actual: argc as usize,
-                            });
-                        }
-
-                        // Subtract one extra slot so bp points to the caller itself.
-                        let bp = self.runtime.stack_offset(1 + argc as usize)?;
-                        self.frames.push(Frame { bp, pc: 0 });
-
-                        return Ok(());
-                    }
-                    Object::BoundMethod(method) => {
-                        // TODO: This makes so many assumptions. Are they even valid?
-                        self.runtime
-                            .insert_under(argc as usize, method.recv.clone())?;
-                        return self.call_value(argc + 1);
-                    }
-                    _ => (),
+            Object::Closure(closure) => {
+                // TODO: unbound method arity?
+                if argc != closure.func.arity {
+                    return Err(VmError::Arity {
+                        expected: closure.func.arity as usize,
+                        actual: argc as usize,
+                    });
                 }
-            }
-            _ => {} // fall through
-        }
 
-        Err(VmError::Type {
-            expected: String::from("function"),
-            actual: callee.clone(),
-        })
+                // Subtract one extra slot so bp points to the caller itself.
+                let bp = self.runtime.stack_offset(1 + argc as usize)?;
+                self.frames.push(Frame { bp, pc: 0 });
+
+                Ok(())
+            }
+
+            Object::BoundMethod(method) => {
+                let method_argc = argc.checked_add(1).unwrap();
+
+                // Replace the bound method with its real implementation.
+                self.runtime
+                    .replace(method_argc as usize, method.func.clone())?;
+
+                // Insert the receiver as the first argument.
+                self.runtime.insert_as(argc as usize, method.recv.clone())?;
+                self.call_value(method_argc)
+            }
+
+            _ => Err(VmError::Type {
+                expected: String::from("function"),
+                actual: callee.clone(),
+            }),
+        }
     }
 
     #[instrument(level = "trace", ret, skip(self))]
@@ -158,17 +185,48 @@ impl Vm {
     pub fn new() -> Self {
         let mut vm = Self::default();
         vm.define_host_func("print", host_print);
+        vm.define_host_type("List", vec![("append", host_list_append)]);
         vm
     }
 
     pub fn define_host_func(&mut self, name: &'static str, f: RuntimeFn) {
         let name = String::from(name);
 
-        let hosted = Value::HostFunc(HostFunc {
+        let obj = Object::HostFunc(HostFunc {
             name: name.clone(),
             inner: Arc::new(f),
         });
-        self.runtime.define_global(name, hosted);
+        let ptr = self.runtime.alloc(obj);
+
+        self.runtime.define_global(name, Value::Object(ptr));
+    }
+
+    pub fn define_host_type(
+        &mut self,
+        name: &'static str,
+        methods: Vec<(&'static str, RuntimeFn)>,
+    ) {
+        let ty_name = String::from(name);
+
+        let ty = Object::Type(Type::new(ty_name.clone()));
+        let ty_ptr = self.runtime.alloc(ty);
+
+        self.runtime
+            .define_global(ty_name.clone(), Value::Object(ty_ptr));
+
+        for (name, method) in methods {
+            let method_name = String::from(name);
+            let method = Object::HostFunc(HostFunc {
+                name: method_name.clone(),
+                inner: Arc::new(method),
+            });
+            let method_ptr = self.runtime.alloc(method);
+
+            let ty = unsafe { &mut *ty_ptr }.try_as_type_mut().unwrap();
+            ty.set_method(method_name, Value::Object(method_ptr));
+        }
+
+        self.runtime.define_builtin(ty_name, Value::Object(ty_ptr));
     }
 
     pub fn interpret(&mut self, chunk: Chunk) -> VmResult<()> {
@@ -388,6 +446,12 @@ impl Vm {
                 Op::True => {
                     self.push(Value::Boolean(true));
                 }
+                Op::List(len) => {
+                    let items = self.pop_n(len)?;
+                    let list = List::new(items);
+                    let obj = self.runtime.alloc(Object::List(list));
+                    self.push(Value::Object(obj));
+                }
                 Op::Object => {
                     let ty = self.pop()?;
 
@@ -499,24 +563,31 @@ impl Vm {
                     let constant = &chunk.constants[idx as usize];
                     let name = constant.try_as_string_ref().unwrap().clone();
 
-                    let ptr = self.pop()?.try_as_object().unwrap();
-                    let obj = unsafe { &*ptr };
+                    let recv = self.pop()?.try_as_object().unwrap();
+                    let obj = unsafe { &*recv };
 
                     let v = match obj {
                         Object::Instance(i) => match i.get_field(&name) {
                             Some(value) => value.clone(),
                             None => {
-                                let ty = i.ty.try_as_object_ref().unwrap();
-                                let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
-
-                                let method = ty.get_method(&name).expect("type check");
-                                let b = Object::BoundMethod(BoundMethod::new(ptr, method.clone()));
+                                let b = unsafe { Instance::get_method(recv, &name) };
+                                let b = b.expect("type check");
                                 Value::Object(self.runtime.alloc(b))
                             }
                         },
 
-                        // TODO: Track of the arity change for true methods
+                        // TODO: Track the arity change for true methods
                         Object::Type(t) => t.get_method(&name).expect("type check").clone(),
+
+                        Object::List(_) => {
+                            let ty = self.runtime.get_builtin("List");
+                            let ty = ty.try_as_object_ref().unwrap();
+                            let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+
+                            let method = ty.get_method(&name).expect("type check").clone();
+                            let b = Object::BoundMethod(BoundMethod::new(recv, method));
+                            Value::Object(self.runtime.alloc(b))
+                        }
 
                         _ => todo!("type error"),
                     };
@@ -563,10 +634,96 @@ impl Vm {
                     // Leave the type on the stack to attach further methods.
                 }
 
+                Op::GetIndex => {
+                    let key = self.pop()?;
+                    let ptr = self.pop()?.try_as_object().unwrap();
+                    let obj = unsafe { &*ptr };
+
+                    let v = match key {
+                        Value::Rational(ref rat) if rat.is_integer() => {
+                            let int = rat.numer();
+
+                            match obj {
+                                Object::List(l) => match l.get_item(int) {
+                                    Some(v) => v,
+                                    None => {
+                                        return Err(VmError::Key {
+                                            value: Value::Object(ptr),
+                                            key,
+                                        });
+                                    }
+                                },
+
+                                _ => todo!("type error"),
+                            }
+                        }
+                        Value::String(name) => {
+                            match obj {
+                                Object::Instance(i) => match i.get_field(&name) {
+                                    Some(value) => value.clone(),
+                                    None => {
+                                        let b = unsafe { Instance::get_method(ptr, &name) };
+                                        let b = b.expect("type check");
+                                        Value::Object(self.runtime.alloc(b))
+                                    }
+                                },
+
+                                // TODO: Track the arity change for true methods
+                                Object::Type(t) => t.get_method(&name).expect("type check").clone(),
+
+                                _ => todo!("type error"),
+                            }
+                        }
+
+                        Value::Nil
+                        | Value::Boolean(_)
+                        | Value::Float(_)
+                        | Value::Rational(_)
+                        | Value::Object(_) => todo!("custom index behavior?"),
+                    };
+
+                    self.push(v);
+                }
+
+                Op::SetIndex => {
+                    let val = self.pop()?;
+                    let key = self.pop()?;
+                    let ptr = self.pop()?.try_as_object().unwrap();
+
+                    match key {
+                        Value::Rational(ref rat) if rat.is_integer() => {
+                            let int = rat.numer();
+
+                            match unsafe { &mut *ptr } {
+                                Object::List(l) => {
+                                    l.set_item(int, val).ok_or_else(|| VmError::Key {
+                                        value: Value::Object(ptr),
+                                        key,
+                                    })?;
+                                }
+                                _ => todo!("type error"),
+                            }
+                        }
+                        Value::String(name) => match unsafe { &mut *ptr } {
+                            Object::Instance(i) => {
+                                i.set_field((*name).clone(), val);
+                            }
+
+                            _ => todo!("type error"),
+                        },
+
+                        Value::Nil
+                        | Value::Boolean(_)
+                        | Value::Float(_)
+                        | Value::Rational(_)
+                        | Value::Object(_) => todo!("custom index behavior?"),
+                    };
+                }
+
                 Op::Call(argc) => {
                     self.call_value(argc)?;
                 }
-                Op::Index => todo!(),
+
                 Op::Closure(idx) => {
                     let frame = frame!();
                     let chunk = chunk!(frame);
