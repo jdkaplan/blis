@@ -3,12 +3,12 @@ use std::ops::Range;
 
 use tracing::{instrument, trace};
 
-use crate::runtime::{Gc, GcRoots, Heap, Object, Trace, Value};
+use crate::runtime::{Gc, GcRoots, Heap, ObjPtr, Object, Trace, Value};
 
 #[derive(Debug, Clone)]
 pub enum Upvalue {
     Stack(usize),
-    Heap(*mut Object), // *mut Object::Box(_)
+    Heap(ObjPtr), // Object::Box(_)
 }
 
 impl Trace for Upvalue {
@@ -27,13 +27,13 @@ impl Trace for Upvalue {
 
 #[derive(Debug, Clone, Default)]
 pub struct Upvalues {
-    open: Vec<*mut Object>, // *mut Object::Upvalue(_)
+    open: Vec<ObjPtr>, // Object::Upvalue(_)
 }
 
 impl Upvalues {
-    /// Always `*mut Object::Upvalue(_)`
+    /// Always `Object::Upvalue(_)`
     #[instrument(level = "trace", skip(self))]
-    pub fn capture(&mut self, heap: &mut Heap, roots: GcRoots<'_, '_>, slot: usize) -> *mut Object {
+    pub fn capture(&mut self, heap: &mut Heap, roots: GcRoots<'_, '_>, slot: usize) -> ObjPtr {
         let upvalue = Upvalue::Stack(slot);
         let obj = Object::Upvalue(upvalue);
 
@@ -53,14 +53,17 @@ impl Upvalues {
         trace!({ ?range, stack=stack.len(), open=self.open.len() }, "close upvalues");
 
         let upvalues = std::mem::take(&mut self.open);
-        let mut closed: BTreeMap<usize, *mut Object> = BTreeMap::new();
+        let mut closed: BTreeMap<usize, ObjPtr> = BTreeMap::new();
 
         let roots = roots.with_upvalues(&upvalues);
 
         for ptr in upvalues.iter().copied() {
-            let upvalue = unsafe { &*ptr }.try_as_upvalue_ref().unwrap();
-            let Upvalue::Stack(slot) = *upvalue else {
-                panic!("closed upvalue in open set: {:?}", upvalue);
+            let slot = {
+                let upvalue = unsafe { ptr.as_ref() }.try_as_upvalue_ref().unwrap();
+                let Upvalue::Stack(slot) = *upvalue else {
+                    panic!("closed upvalue in open set: {:?}", upvalue);
+                };
+                slot
             };
 
             if range.contains(&slot) {
@@ -81,7 +84,7 @@ impl Upvalues {
                 boxed
             };
 
-            let upvalue = unsafe { &mut *ptr }.try_as_upvalue_mut().unwrap();
+            let upvalue = unsafe { ptr.as_mut() }.try_as_upvalue_mut().unwrap();
             *upvalue = Upvalue::Heap(boxed);
         }
     }

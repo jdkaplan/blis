@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::bytecode::Func;
-use crate::runtime::{Gc, Object, Trace, Value};
+use crate::runtime::{Gc, ObjPtr, Trace, Value};
 
 pub type RuntimeFn = fn(argc: u8, argv: &[Value]) -> Value;
 
@@ -20,13 +20,13 @@ impl Trace for HostFunc {
 #[derive(Debug, Clone)]
 pub struct Closure {
     pub func: Arc<Func>,
-    pub upvalues: Vec<*mut Object>, // *mut Object::Upvalue(_)
+    pub upvalues: Vec<ObjPtr>, // Object::Upvalue(_)
 }
 
 impl Trace for Closure {
     fn trace(&self, gc: &mut Gc) {
         for v in &self.upvalues {
-            assert!(unsafe { &**v }.is_upvalue(), "{:?}", v);
+            assert!(unsafe { v.as_ref() }.is_upvalue(), "{:?}", v);
             gc.mark_object(*v);
         }
     }
@@ -46,7 +46,7 @@ impl Trace for BoundMethod {
 }
 
 impl BoundMethod {
-    pub fn new(recv: *mut Object, func: Value) -> Self {
+    pub fn new(recv: ObjPtr, func: Value) -> Self {
         Self {
             recv: Value::Object(recv),
             func,

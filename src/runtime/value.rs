@@ -2,7 +2,7 @@ use std::fmt;
 
 use num_rational::BigRational;
 
-use crate::runtime::{InternedString, Object};
+use crate::runtime::{InternedString, ObjPtr, Object};
 
 #[derive(Debug, Clone, strum::EnumDiscriminants, strum::EnumIs, strum::EnumTryAs)]
 #[strum_discriminants(name(ValueType), derive(Hash, strum::EnumString, strum::Display))]
@@ -12,7 +12,7 @@ pub enum Value {
     Float(f64),
     Rational(BigRational),
     String(InternedString),
-    Object(*mut Object),
+    Object(ObjPtr),
 }
 
 impl fmt::Display for Value {
@@ -24,7 +24,7 @@ impl fmt::Display for Value {
             Value::Rational(v) => write!(f, "{}", v),
             Value::String(v) => write!(f, "{}", v),
             Value::Object(ptr) => {
-                let obj = unsafe { &**ptr };
+                let obj = unsafe { ptr.as_ref() };
                 write!(f, "<{} {:?}>", obj, ptr)
             }
         }
@@ -74,8 +74,8 @@ impl PartialEq for Value {
             (Value::String(_), _) => false,
 
             (Value::Object(a), Value::Object(b)) => {
-                let aa = unsafe { &**a };
-                let bb = unsafe { &**b };
+                let aa = unsafe { a.as_ref() };
+                let bb = unsafe { b.as_ref() };
 
                 match (aa, bb) {
                     (Object::List(aa), Object::List(bb)) => aa == bb,
@@ -110,8 +110,8 @@ impl PartialOrd for Value {
 
             // Objects can't be compared in general, but Lists are special!
             (Value::Object(a), Value::Object(b)) => {
-                let aa = unsafe { &**a };
-                let bb = unsafe { &**b };
+                let aa = unsafe { a.as_ref() };
+                let bb = unsafe { b.as_ref() };
 
                 match (aa, bb) {
                     (Object::List(aa), Object::List(bb)) => aa.partial_cmp(bb),

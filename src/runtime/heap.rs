@@ -4,6 +4,25 @@ use tracing::trace;
 
 use crate::runtime::{Object, Value};
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct ObjPtr(*mut Object);
+
+impl ObjPtr {
+    /// # Safety
+    ///
+    /// The ObjPtr must point to a live Object value.
+    pub unsafe fn as_ref<'a>(self) -> &'a Object {
+        unsafe { &*self.0 }
+    }
+
+    /// # Safety
+    ///
+    /// The ObjPtr must point to a live Object value.
+    pub unsafe fn as_mut<'a>(self) -> &'a mut Object {
+        unsafe { &mut *self.0 }
+    }
+}
+
 pub trait Trace {
     fn trace(&self, gc: &mut Gc);
 }
@@ -22,7 +41,7 @@ impl Heap {
         }
     }
 
-    pub fn claim(&mut self, roots: GcRoots<'_, '_>, obj: Object) -> *mut Object {
+    pub fn claim(&mut self, roots: GcRoots<'_, '_>, obj: Object) -> ObjPtr {
         let limit = if cfg!(feature = "gc_stress") {
             0
         } else {
@@ -33,15 +52,15 @@ impl Heap {
         self.alloc(obj)
     }
 
-    /// Always `*mut Object::Box(_)`
-    pub fn claim_value(&mut self, roots: GcRoots<'_, '_>, v: Value) -> *mut Object {
+    /// Always `Object::Box(_)`
+    pub fn claim_value(&mut self, roots: GcRoots<'_, '_>, v: Value) -> ObjPtr {
         let ptr = Box::into_raw(Box::new(v));
         self.claim(roots, Object::Box(ptr))
     }
 }
 
 impl Heap {
-    fn alloc(&mut self, obj: Object) -> *mut Object {
+    fn alloc(&mut self, obj: Object) -> ObjPtr {
         trace!({ ?obj }, "alloc");
 
         let ptr = Box::into_raw(Box::new(obj));
@@ -49,7 +68,7 @@ impl Heap {
         assert!(self.objects.insert(ptr));
         trace!({ ?ptr }, "alloc");
 
-        ptr
+        ObjPtr(ptr)
     }
 
     fn dealloc(&mut self, ptr: *mut Object) {
@@ -108,7 +127,6 @@ impl Heap {
         obj.trace(&mut gc);
         while let Some(ptr) = gc.pending.pop_front() {
             let obj = unsafe { ptr.as_ref().unwrap() };
-
             obj.trace(&mut gc);
         }
 
@@ -136,7 +154,7 @@ pub struct GcRoots<'a, 'b> {
     stack: &'a [Value],
     globals: &'a BTreeMap<String, Value>,
     builtins: &'a BTreeMap<String, Value>,
-    upvalues: Option<&'b [*mut Object]>, // *mut Object::Upvalue
+    upvalues: Option<&'b [ObjPtr]>, // Object::Upvalue
 }
 
 impl<'a> GcRoots<'a, '_> {
@@ -155,7 +173,7 @@ impl<'a> GcRoots<'a, '_> {
 }
 
 impl<'a, 'b> GcRoots<'a, 'b> {
-    pub fn with_upvalues<'u: 'b>(&self, upvalues: &'b [*mut Object]) -> Self {
+    pub fn with_upvalues<'u: 'b>(&self, upvalues: &'b [ObjPtr]) -> Self {
         Self {
             upvalues: Some(upvalues),
             ..*self
@@ -176,7 +194,7 @@ impl Gc {
         }
     }
 
-    pub fn mark_object(&mut self, ptr: *mut Object) {
+    pub fn mark_object(&mut self, ObjPtr(ptr): ObjPtr) {
         if self.marked.insert(ptr) {
             self.pending.push_back(ptr);
         }

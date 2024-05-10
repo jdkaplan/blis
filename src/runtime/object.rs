@@ -3,7 +3,7 @@ use std::fmt;
 
 use num_bigint::BigInt;
 
-use crate::runtime::{BoundMethod, Closure, Gc, HostFunc, Trace, Upvalue, Value};
+use crate::runtime::{BoundMethod, Closure, Gc, HostFunc, ObjPtr, Trace, Upvalue, Value};
 
 #[derive(Debug, strum::EnumIs, strum::EnumTryAs)]
 pub enum Object {
@@ -44,7 +44,7 @@ impl fmt::Display for Object {
 
             Object::Instance(i) => {
                 let ty = i.ty.try_as_object_ref().unwrap();
-                let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+                let ty = unsafe { ty.as_ref() }.try_as_type_ref().unwrap();
                 write!(f, "instance of {}", ty.name)
             }
 
@@ -124,7 +124,7 @@ impl Instance {
     pub fn new(ty: Value) -> Self {
         let obj = ty.try_as_object_ref().unwrap();
 
-        assert!(unsafe { &**obj }.is_type());
+        assert!(unsafe { obj.as_ref() }.is_type());
 
         Self {
             ty,
@@ -143,11 +143,11 @@ impl Instance {
     /// # Safety
     ///
     /// The ptr must point to a live Object::Instance(_) value.
-    pub unsafe fn get_method(ptr: *mut Object, name: &str) -> Option<Object> {
-        let i = unsafe { &*ptr }.try_as_instance_ref().unwrap();
+    pub unsafe fn get_method(ptr: ObjPtr, name: &str) -> Option<Object> {
+        let i = unsafe { ptr.as_ref() }.try_as_instance_ref().unwrap();
 
         let ty = i.ty.try_as_object_ref().unwrap();
-        let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+        let ty = unsafe { ty.as_ref() }.try_as_type_ref().unwrap();
 
         if let Some(method) = ty.get_method(name) {
             let bound = BoundMethod::new(ptr, method.clone());

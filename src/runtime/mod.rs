@@ -9,7 +9,7 @@ pub mod upvalue;
 pub mod value;
 
 pub use func::{BoundMethod, Closure, HostFunc, RuntimeFn};
-pub use heap::{Gc, GcRoots, Heap, Trace};
+pub use heap::{Gc, GcRoots, Heap, ObjPtr, Trace};
 pub use object::{Instance, List, Object, Type};
 pub use strings::{InternedString, Strings};
 pub use upvalue::{Upvalue, Upvalues};
@@ -45,7 +45,7 @@ pub enum RuntimeError {
 impl Runtime {
     pub fn push(&mut self, value: Value) {
         if let Value::Object(obj) = value {
-            let obj = unsafe { &*obj };
+            let obj = unsafe { obj.as_ref() };
             assert!(!obj.is_box());
             assert!(!obj.is_upvalue());
         }
@@ -169,26 +169,26 @@ impl Runtime {
 
 // Upvalues
 impl Runtime {
-    pub fn capture_local(&mut self, slot: usize) -> *mut Object {
+    pub fn capture_local(&mut self, slot: usize) -> ObjPtr {
         trace!({ ?slot, value = ?self.stack[slot]}, "capture local");
 
         let roots = GcRoots::new(&self.stack, &self.globals, &self.builtins);
         self.upvalues.capture(&mut self.heap, roots, slot)
     }
 
-    pub fn recapture_upvalue(&mut self, bp: usize, index: usize) -> *mut Object {
+    pub fn recapture_upvalue(&mut self, bp: usize, index: usize) -> ObjPtr {
         let enclosing = self.stack[bp].try_as_object_ref().unwrap();
-        let enclosing = unsafe { &**enclosing }.try_as_closure_ref().unwrap();
+        let enclosing = unsafe { enclosing.as_ref() }.try_as_closure_ref().unwrap();
 
-        let obj = enclosing.upvalues[index];
+        let ptr = enclosing.upvalues[index];
 
         {
-            let upvalue = unsafe { &*obj };
+            let upvalue = unsafe { ptr.as_ref() };
             assert!(upvalue.is_upvalue());
-            trace!({ ?enclosing, ?index, ?obj, ?upvalue}, "capture parent");
+            trace!({ ?enclosing, ?index, ?ptr, ?upvalue}, "capture parent");
         }
 
-        obj
+        ptr
     }
 
     pub fn close_upvalues(&mut self, len: usize) {
@@ -217,7 +217,7 @@ impl Runtime {
 
 // Heap
 impl Runtime {
-    pub fn alloc(&mut self, obj: Object) -> *mut Object {
+    pub fn alloc(&mut self, obj: Object) -> ObjPtr {
         let roots = GcRoots::new(&self.stack, &self.globals, &self.builtins);
         self.heap.claim(roots, obj)
     }

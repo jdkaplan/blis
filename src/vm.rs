@@ -5,8 +5,8 @@ use tracing::{debug, instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
 use crate::runtime::{
-    BoundMethod, Closure, HostFunc, Instance, List, Object, Runtime, RuntimeError, RuntimeFn, Type,
-    Upvalue, Value, ValueType,
+    BoundMethod, Closure, HostFunc, Instance, List, ObjPtr, Object, Runtime, RuntimeError,
+    RuntimeFn, Type, Upvalue, Value, ValueType,
 };
 
 #[derive(Default)]
@@ -33,7 +33,7 @@ fn host_list_append(argc: u8, argv: &[Value]) -> Value {
     let elt = argv[1].clone();
 
     let ptr = argv[0].try_as_object_ref().unwrap();
-    let list = unsafe { &mut **ptr }.try_as_list_mut().unwrap();
+    let list = unsafe { ptr.as_mut() }.try_as_list_mut().unwrap();
 
     list.items.push(elt);
     Value::Nil
@@ -109,9 +109,7 @@ impl Vm {
             });
         };
 
-        let obj = unsafe { &**ptr };
-
-        match obj {
+        match unsafe { ptr.as_ref() } {
             Object::HostFunc(f) => {
                 let ret = {
                     let argv = self.runtime.argv(argc as usize);
@@ -161,7 +159,7 @@ impl Vm {
     }
 
     #[instrument(level = "trace", ret, skip(self))]
-    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> *mut Object {
+    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> ObjPtr {
         match location {
             1 => {
                 let slot = bp + index as usize;
@@ -222,7 +220,7 @@ impl Vm {
             });
             let method_ptr = self.runtime.alloc(method);
 
-            let ty = unsafe { &mut *ty_ptr }.try_as_type_mut().unwrap();
+            let ty = unsafe { ty_ptr.as_mut() }.try_as_type_mut().unwrap();
             ty.set_method(method_name, Value::Object(method_ptr));
         }
 
@@ -269,7 +267,7 @@ impl Vm {
             ($frame:expr) => {{
                 let callee = self.runtime.stack_get($frame.bp); // Slot zero!
                 let obj = callee.try_as_object_ref().unwrap();
-                unsafe { &**obj }.try_as_closure_ref().unwrap()
+                unsafe { obj.as_ref() }.try_as_closure_ref().unwrap()
             }};
         }
 
@@ -510,14 +508,13 @@ impl Vm {
                     let callee = callee!(frame!());
 
                     let upvalue = callee.upvalues[idx as usize];
-                    let upvalue = unsafe { &*upvalue }.try_as_upvalue_ref().unwrap();
+                    let upvalue = unsafe { upvalue.as_ref() }.try_as_upvalue_ref().unwrap();
 
                     let value = match upvalue {
                         Upvalue::Stack(idx) => self.runtime.stack_get(*idx).clone(),
                         Upvalue::Heap(obj) => {
-                            let boxed = unsafe { &**obj }.try_as_box_ref().unwrap();
-                            let v = unsafe { &**boxed };
-                            v.clone()
+                            let boxed = unsafe { obj.as_ref() }.try_as_box_ref().unwrap();
+                            unsafe { &**boxed }.clone()
                         }
                     };
                     self.push(value);
@@ -527,12 +524,12 @@ impl Vm {
                     let value = self.peek(0).unwrap().clone();
 
                     let upvalue = callee.upvalues[idx as usize];
-                    let upvalue = unsafe { &mut *upvalue }.try_as_upvalue_mut().unwrap();
+                    let upvalue = unsafe { upvalue.as_mut() }.try_as_upvalue_mut().unwrap();
 
                     match upvalue {
                         Upvalue::Stack(idx) => self.runtime.stack_put(*idx, value),
                         Upvalue::Heap(obj) => {
-                            let boxed = unsafe { &**obj }.try_as_box_ref().unwrap();
+                            let boxed = unsafe { obj.as_ref() }.try_as_box_ref().unwrap();
                             unsafe { **boxed = value };
                         }
                     }
@@ -564,9 +561,8 @@ impl Vm {
                     let name = constant.try_as_string_ref().unwrap().clone();
 
                     let recv = self.pop()?.try_as_object().unwrap();
-                    let obj = unsafe { &*recv };
 
-                    let v = match obj {
+                    let v = match unsafe { recv.as_ref() } {
                         Object::Instance(i) => match i.get_field(&name) {
                             Some(value) => value.clone(),
                             None => {
@@ -582,7 +578,7 @@ impl Vm {
                         Object::List(_) => {
                             let ty = self.runtime.get_builtin("List");
                             let ty = ty.try_as_object_ref().unwrap();
-                            let ty = unsafe { &**ty }.try_as_type_ref().unwrap();
+                            let ty = unsafe { ty.as_ref() }.try_as_type_ref().unwrap();
 
                             let method = ty.get_method(&name).expect("type check").clone();
                             let b = Object::BoundMethod(BoundMethod::new(recv, method));
@@ -591,6 +587,7 @@ impl Vm {
 
                         _ => todo!("type error"),
                     };
+
                     self.push(v);
                 }
                 Op::SetField(idx) => {
@@ -598,12 +595,11 @@ impl Vm {
                     let constant = &chunk.constants[idx as usize];
                     let name = constant.try_as_string_ref().unwrap().clone();
 
-                    let ptr = self.peek(1)?.try_as_object_ref().unwrap();
-                    let ptr = *ptr;
+                    let recv = *self.peek(1)?.try_as_object_ref().unwrap();
 
                     let value = self.pop()?;
 
-                    let obj = unsafe { &mut *ptr }.try_as_instance_mut().unwrap();
+                    let obj = unsafe { recv.as_mut() }.try_as_instance_mut().unwrap();
                     obj.set_field(name, value);
                 }
 
@@ -614,7 +610,7 @@ impl Vm {
                     let name = constant.try_as_string_ref().unwrap().clone();
 
                     let obj = self.pop()?.try_as_object().unwrap();
-                    let ty = unsafe { &*obj }.try_as_type_ref().unwrap();
+                    let ty = unsafe { obj.as_ref() }.try_as_type_ref().unwrap();
 
                     let v = ty.get_method(&name).unwrap().clone();
                     self.push(v);
@@ -627,7 +623,7 @@ impl Vm {
                     let method = self.pop()?;
 
                     let obj = self.peek(0)?.try_as_object_ref().unwrap();
-                    let ty = unsafe { &mut **obj }.try_as_type_mut().unwrap();
+                    let ty = unsafe { obj.as_mut() }.try_as_type_mut().unwrap();
 
                     ty.set_method(name, method);
 
@@ -636,19 +632,18 @@ impl Vm {
 
                 Op::GetIndex => {
                     let key = self.pop()?;
-                    let ptr = self.pop()?.try_as_object().unwrap();
-                    let obj = unsafe { &*ptr };
+                    let recv = self.pop()?.try_as_object().unwrap();
 
                     let v = match key {
                         Value::Rational(ref rat) if rat.is_integer() => {
                             let int = rat.numer();
 
-                            match obj {
+                            match unsafe { recv.as_ref() } {
                                 Object::List(l) => match l.get_item(int) {
                                     Some(v) => v,
                                     None => {
                                         return Err(VmError::Key {
-                                            value: Value::Object(ptr),
+                                            value: Value::Object(recv),
                                             key,
                                         });
                                     }
@@ -658,11 +653,13 @@ impl Vm {
                             }
                         }
                         Value::String(name) => {
-                            match obj {
+                            // Safety: There are two overlapping references to `recv` here, but
+                            // they're both _immutable_.
+                            match unsafe { recv.as_ref() } {
                                 Object::Instance(i) => match i.get_field(&name) {
                                     Some(value) => value.clone(),
                                     None => {
-                                        let b = unsafe { Instance::get_method(ptr, &name) };
+                                        let b = unsafe { Instance::get_method(recv, &name) };
                                         let b = b.expect("type check");
                                         Value::Object(self.runtime.alloc(b))
                                     }
@@ -688,23 +685,23 @@ impl Vm {
                 Op::SetIndex => {
                     let val = self.pop()?;
                     let key = self.pop()?;
-                    let ptr = self.pop()?.try_as_object().unwrap();
+                    let recv = self.pop()?.try_as_object().unwrap();
 
                     match key {
                         Value::Rational(ref rat) if rat.is_integer() => {
-                            let int = rat.numer();
+                            let idx = rat.numer();
 
-                            match unsafe { &mut *ptr } {
+                            match unsafe { recv.as_mut() } {
                                 Object::List(l) => {
-                                    l.set_item(int, val).ok_or_else(|| VmError::Key {
-                                        value: Value::Object(ptr),
+                                    l.set_item(idx, val).ok_or_else(|| VmError::Key {
+                                        value: Value::Object(recv),
                                         key,
                                     })?;
                                 }
                                 _ => todo!("type error"),
                             }
                         }
-                        Value::String(name) => match unsafe { &mut *ptr } {
+                        Value::String(name) => match unsafe { recv.as_mut() } {
                             Object::Instance(i) => {
                                 i.set_field((*name).clone(), val);
                             }
