@@ -50,11 +50,12 @@ pub enum Op {
     Rem = 0x3c,
 
     // Jumps
-    Jump(i16) = 0x60,
-    JumpFalsePeek(i16) = 0x61,
-    JumpFalsePop(i16) = 0x62,
-    JumpTruePeek(i16) = 0x63,
-    JumpTruePop(i16) = 0x64,
+    Jump(u16) = 0x60,
+    JumpFalsePeek(u16) = 0x61,
+    JumpFalsePop(u16) = 0x62,
+    JumpTruePeek(u16) = 0x63,
+    JumpTruePop(u16) = 0x64,
+    Loop(u16) = 0x65,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -123,10 +124,11 @@ impl Op {
             | Op::JumpFalsePeek(ref mut int)
             | Op::JumpFalsePop(ref mut int)
             | Op::JumpTruePeek(ref mut int)
-            | Op::JumpTruePop(ref mut int) => {
+            | Op::JumpTruePop(ref mut int)
+            | Op::Loop(ref mut int) => {
                 let hi = code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
                 let lo = code.get(2).ok_or(OpError::MissingByte { op, b: 2 })?;
-                *int = i16::from_be_bytes([*hi, *lo]);
+                *int = u16::from_be_bytes([*hi, *lo]);
             }
         }
 
@@ -194,7 +196,8 @@ impl Op {
             | Op::JumpFalsePeek(int)
             | Op::JumpFalsePop(int)
             | Op::JumpTruePeek(int)
-            | Op::JumpTruePop(int) => {
+            | Op::JumpTruePop(int)
+            | Op::Loop(int) => {
                 bytes.extend(int.to_be_bytes());
             }
         }

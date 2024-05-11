@@ -370,7 +370,7 @@ impl Compiler {
         let n: u8 = locals.len().try_into().unwrap();
         current.push(Op::PopN(n));
 
-        let jump = current.prepare_jump(Op::Jump(i16::MAX));
+        let jump = current.prepare_jump(Op::Jump(u16::MAX));
         current
             .add_break(&break_.label, jump)
             .map_err(|err| self.error(err))
@@ -532,7 +532,7 @@ impl Compiler {
         let mut shorts = Vec::new();
         for and in &or.rest {
             // jump_true_peek 'short_circuit
-            let short = current.prepare_jump(Op::JumpTruePeek(i16::MAX));
+            let short = current.prepare_jump(Op::JumpTruePeek(u16::MAX));
             shorts.push(short);
 
             // pop ; <a> was falsey
@@ -561,7 +561,7 @@ impl Compiler {
         let mut shorts = Vec::new();
         for eq in &and.rest {
             // jump_false_peek 'short_circuit
-            let short = current.prepare_jump(Op::JumpFalsePeek(i16::MAX));
+            let short = current.prepare_jump(Op::JumpFalsePeek(u16::MAX));
             shorts.push(short);
 
             // pop ; <a> was truthy
@@ -771,7 +771,7 @@ impl Compiler {
         self.expression(&if_.condition)?;
 
         // jump_false_pop 'skip_conseq [peek cond]
-        let skip_conseq = current.prepare_jump(Op::JumpFalsePop(i16::MAX));
+        let skip_conseq = current.prepare_jump(Op::JumpFalsePop(u16::MAX));
 
         // <consequent>
         self.block(&if_.consequent)?;
@@ -784,7 +784,7 @@ impl Compiler {
         };
 
         // jump 'skip_alt
-        let skip_alt = current.prepare_jump(Op::Jump(i16::MAX));
+        let skip_alt = current.prepare_jump(Op::Jump(u16::MAX));
 
         // 'skip_conseq:
         current.set_jump_target(skip_conseq);
@@ -999,12 +999,12 @@ impl FuncRef {
 
         let len: isize = func.chunk.code.len().try_into().unwrap();
         let target: isize = lp.start.try_into().unwrap();
-        assert!(target < len, "jump must be backwards"); // TODO: Dedicated Loop instruction?
+        assert!(target < len, "jump must be backwards");
 
-        let delta: i16 = (target - len)
+        let delta: u16 = (len - target)
             .try_into()
             .expect("jump offset fits in two bytes");
-        func.chunk.push(Op::Jump(delta));
+        func.chunk.push(Op::Loop(delta));
         Ok(())
     }
 }

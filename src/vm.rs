@@ -292,7 +292,7 @@ impl Vm {
 
             debug!({ ?op }, "execute");
 
-            macro_rules! jump {
+            macro_rules! jump_forward {
                 ($delta:expr) => {{
                     let pc = &mut frame!().pc;
 
@@ -300,11 +300,19 @@ impl Vm {
                     *pc = pc.checked_sub(op.size_bytes()).unwrap();
 
                     let delta = $delta;
-                    if delta.is_negative() {
-                        *pc = pc.checked_sub((-delta) as usize).unwrap();
-                    } else {
-                        *pc = pc.checked_add(delta as usize).unwrap();
-                    }
+                    *pc = pc.checked_add(delta as usize).unwrap();
+                }};
+            }
+
+            macro_rules! jump_back {
+                ($delta:expr) => {{
+                    let pc = &mut frame!().pc;
+
+                    // pc was already moved past this op. Put it back before jumping.
+                    *pc = pc.checked_sub(op.size_bytes()).unwrap();
+
+                    let delta = $delta;
+                    *pc = pc.checked_sub(delta as usize).unwrap();
                 }};
             }
 
@@ -467,27 +475,28 @@ impl Vm {
                     self.push(Value::Object(ptr))
                 }
 
-                Op::Jump(delta) => jump!(delta),
+                Op::Jump(delta) => jump_forward!(delta),
                 Op::JumpFalsePeek(delta) => {
                     if !self.peek(0)?.truthy() {
-                        jump!(delta);
+                        jump_forward!(delta);
                     }
                 }
                 Op::JumpFalsePop(delta) => {
                     if !self.pop()?.truthy() {
-                        jump!(delta);
+                        jump_forward!(delta);
                     }
                 }
                 Op::JumpTruePeek(delta) => {
                     if self.peek(0)?.truthy() {
-                        jump!(delta);
+                        jump_forward!(delta);
                     }
                 }
                 Op::JumpTruePop(delta) => {
                     if self.pop()?.truthy() {
-                        jump!(delta);
+                        jump_forward!(delta);
                     }
                 }
+                Op::Loop(delta) => jump_back!(delta),
 
                 Op::GetLocal(slot) => {
                     let bp = frame!().bp;
