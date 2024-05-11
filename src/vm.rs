@@ -144,7 +144,7 @@ impl Vm {
 
                 // Replace the bound method with its real implementation.
                 self.runtime
-                    .replace(method_argc as usize, method.func.clone())?;
+                    .replace(method_argc as usize, Value::Object(method.func))?;
 
                 // Insert the receiver as the first argument.
                 self.runtime.insert_as(argc as usize, method.recv.clone())?;

@@ -25,6 +25,12 @@ pub enum Object {
     Tombstone,
 }
 
+impl Object {
+    pub fn is_callable(&self) -> bool {
+        self.is_bound_method() || self.is_closure() || self.is_host_func()
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -34,7 +40,7 @@ impl fmt::Display for Object {
                 write!(f, "{}", v)
             }
 
-            Object::BoundMethod(_) => write!(f, "bound method"), // TODO: show name
+            Object::BoundMethod(b) => write!(f, "bound method {}", b.name()),
             Object::Closure(o) => write!(f, "closure {}", o.func.name),
             Object::HostFunc(v) => write!(f, "func {:?}", v.name),
 
