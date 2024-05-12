@@ -1,0 +1,10 @@
+---
+source: src/lib.rs
+description: "let a = \"a\";\nlet b = \"b\";\nlet c = \"c\";\n\nlet x = a;\nprintln(x);\n\nx = a + a;\nprintln(x);\n\nx = x + b;\nprintln(x);\n\nx = x + x;\nprintln(x);\n\na = x + x;\nprintln(a);\n\na = nil;\nb = nil;\nc = nil;\nx = nil;\n\"\";\n"
+input_file: test_programs/strings.blis
+---
+a
+aa
+aab
+aabaab
+aabaabaabaab

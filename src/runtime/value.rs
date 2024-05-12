@@ -25,7 +25,7 @@ impl fmt::Display for Value {
             Value::String(v) => write!(f, "{}", v),
             Value::Object(ptr) => {
                 let obj = unsafe { ptr.as_ref() };
-                write!(f, "<{} {:?}>", obj, ptr)
+                write!(f, "<{} {}>", obj, ptr)
             }
         }
     }

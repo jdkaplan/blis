@@ -1,0 +1,23 @@
+---
+source: src/compile.rs
+assertion_line: 1286
+description: "1;\n"
+input_file: test_programs/one.blis
+---
+Chunk(
+  constants: [
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+  ],
+  globals: [],
+  code: [
+    4,
+    0,
+    1,
+    5,
+    0,
+  ],
+)

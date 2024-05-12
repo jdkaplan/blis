@@ -7,7 +7,7 @@ use eyre::Context;
 use blis::bytecode::Chunk;
 use blis::compile::Compiler;
 use blis::parse::Parser;
-use blis::vm::Vm;
+use blis::vm::{Vm, VmOptions};
 
 fn main() -> eyre::Result<()> {
     color_eyre::install()?;
@@ -85,7 +85,13 @@ impl Run {
             Compiler::compile(&ast).wrap_err("compile error")?
         };
 
-        let mut vm = Vm::new();
+        let mut stdout = std::io::stdout();
+        let mut stderr = std::io::stderr();
+
+        let mut vm = Vm::new(VmOptions {
+            stdout: Box::new(&mut stdout),
+            stderr: Box::new(&mut stderr),
+        });
         vm.interpret(program).map_err(|err| eyre::eyre!("{}", err))
     }
 }

@@ -4,39 +4,21 @@ use num_rational::BigRational;
 use tracing::{debug, instrument, trace};
 
 use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
+use crate::runtime::host;
 use crate::runtime::{
-    BoundMethod, Closure, HostFunc, Instance, List, ObjPtr, Object, Runtime, RuntimeError,
-    RuntimeFn, Type, Upvalue, Value, ValueType,
+    BoundMethod, Closure, HostFn, HostFunc, Instance, List, ObjPtr, Object, Runtime, RuntimeError,
+    Type, Upvalue, Value, ValueType,
 };
 
-#[derive(Default)]
-pub struct Vm {
+pub struct Vm<'fd> {
+    opts: VmOptions<'fd>,
     frames: Vec<Frame>,
     runtime: Runtime,
 }
 
-fn host_print(_argc: u8, argv: &[Value]) -> Value {
-    if let Some(first) = argv.first() {
-        print!("{}", first);
-        for v in &argv[1..] {
-            print!(" {}", v);
-        }
-    }
-
-    println!();
-    Value::Nil
-}
-
-fn host_list_append(argc: u8, argv: &[Value]) -> Value {
-    assert_eq!(argc, 2);
-
-    let elt = argv[1].clone();
-
-    let ptr = argv[0].try_as_object_ref().unwrap();
-    let list = unsafe { ptr.as_mut() }.try_as_list_mut().unwrap();
-
-    list.items.push(elt);
-    Value::Nil
+pub struct VmOptions<'a> {
+    pub stdout: Box<&'a mut dyn std::io::Write>,
+    pub stderr: Box<&'a mut dyn std::io::Write>,
 }
 
 struct Frame {
@@ -73,7 +55,7 @@ pub enum VmError {
     Key { value: Value, key: Value },
 }
 
-impl Vm {
+impl Vm<'_> {
     fn push(&mut self, value: Value) {
         self.runtime.push(value)
     }
@@ -99,7 +81,7 @@ impl Vm {
     }
 }
 
-impl Vm {
+impl Vm<'_> {
     fn call_value(&mut self, argc: u8) -> VmResult<()> {
         let callee = self.peek(argc as usize)?;
         let Some(ptr) = callee.try_as_object_ref() else {
@@ -114,7 +96,7 @@ impl Vm {
                 let ret = {
                     let argv = self.runtime.argv(argc as usize);
 
-                    (f.inner)(argc, argv)
+                    (f.inner)(&mut self.opts, argc, argv)
                 };
 
                 // Replace the whole call frame (including the callee) with the return value.
@@ -179,15 +161,24 @@ impl Vm {
     }
 }
 
-impl Vm {
-    pub fn new() -> Self {
-        let mut vm = Self::default();
-        vm.define_host_func("print", host_print);
-        vm.define_host_type("List", vec![("append", host_list_append)]);
+impl<'fd> Vm<'fd> {
+    pub fn new(opts: VmOptions<'fd>) -> Self {
+        let mut vm = Self {
+            opts,
+            frames: Vec::new(),
+            runtime: Runtime::default(),
+        };
+
+        vm.define_host_func("print", host::print);
+        vm.define_host_func("println", host::println);
+
+        vm.define_host_type("object", vec![]);
+        vm.define_host_type("List", vec![("append", host::list_append)]);
+
         vm
     }
 
-    pub fn define_host_func(&mut self, name: &'static str, f: RuntimeFn) {
+    pub fn define_host_func(&mut self, name: &'static str, f: HostFn) {
         let name = String::from(name);
 
         let obj = Object::HostFunc(HostFunc {
@@ -199,11 +190,7 @@ impl Vm {
         self.runtime.define_global(name, Value::Object(ptr));
     }
 
-    pub fn define_host_type(
-        &mut self,
-        name: &'static str,
-        methods: Vec<(&'static str, RuntimeFn)>,
-    ) {
+    pub fn define_host_type(&mut self, name: &'static str, methods: Vec<(&'static str, HostFn)>) {
         let ty_name = String::from(name);
 
         let ty = Object::Type(Type::new(ty_name.clone()));

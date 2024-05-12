@@ -1,0 +1,46 @@
+---
+source: src/parse/parser.rs
+description: "func main() {\n    let a = 0;\n    let a = 1;\n}\n"
+input_file: test_programs/err_compile/duplicate_variable.blis
+---
+Program(
+  decls: [
+    Func(Func(
+      ident: Identifier(
+        name: "main",
+      ),
+      params: [],
+      body: Block(
+        decls: [
+          Let(Let(
+            ident: Identifier(
+              name: "a",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Let(Let(
+            ident: Identifier(
+              name: "a",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                  1,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+        ],
+        expr: None,
+      ),
+    )),
+  ],
+)

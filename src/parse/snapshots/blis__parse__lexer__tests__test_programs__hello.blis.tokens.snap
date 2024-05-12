@@ -1,0 +1,37 @@
+---
+source: src/parse/lexer.rs
+description: "println(\"Hello, World!\");\n"
+input_file: test_programs/hello.blis
+---
+[
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"Hello, World!\"",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

@@ -1,0 +1,273 @@
+---
+source: src/parse/parser.rs
+description: "let a = \"a\";\nlet b = \"b\";\nlet c = \"c\";\n\nlet x = a;\nprintln(x);\n\nx = a + a;\nprintln(x);\n\nx = x + b;\nprintln(x);\n\nx = x + x;\nprintln(x);\n\na = x + x;\nprintln(a);\n\na = nil;\nb = nil;\nc = nil;\nx = nil;\n\"\";\n"
+input_file: test_programs/strings.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "a",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("a"))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "b",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("b"))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "c",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("c"))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "x",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+            name: "a",
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "x",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "x",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+            name: "a",
+          ))))))), Value(Value(Value(Atom(Identifier(Identifier(
+            name: "a",
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "x",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "x",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+            name: "x",
+          ))))))), Value(Value(Value(Atom(Identifier(Identifier(
+            name: "b",
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "x",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "x",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+            name: "x",
+          ))))))), Value(Value(Value(Atom(Identifier(Identifier(
+            name: "x",
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "x",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "a",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+            name: "x",
+          ))))))), Value(Value(Value(Atom(Identifier(Identifier(
+            name: "x",
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "a",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "a",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "b",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "c",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "x",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(Atom(Literal(String(""))))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

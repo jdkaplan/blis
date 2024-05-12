@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use num_rational::BigRational;
+use serde::Serialize;
 use tracing::{debug, instrument};
 
 use crate::bytecode;
@@ -10,7 +11,7 @@ use crate::bytecode::chunk::PendingJump;
 use crate::bytecode::{Chunk, Constant, Op};
 use crate::parse::ast::*;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Serialize)]
 pub struct CompileErrors(Vec<CompileError>);
 
 impl std::fmt::Display for CompileErrors {
@@ -28,7 +29,7 @@ impl std::fmt::Display for CompileErrors {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Serialize)]
 pub enum CompileError {
     #[error(
         "variable redeclared in the same scope: `{}`",
@@ -37,7 +38,7 @@ pub enum CompileError {
     DuplicateVariable(Identifier),
 
     #[error("{0}")]
-    Other(String),
+    Other(String), // TODO: Define other compile errors
 }
 
 type CompileResult<T> = Result<T, CompileError>;
@@ -1248,5 +1249,56 @@ impl Loops {
                 "continue statement outside of loop",
             )))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use rstest::rstest;
+
+    use crate::bytecode::Chunk;
+    use crate::parse::Parser;
+    use crate::testing::snapshot_name;
+
+    use super::{CompileErrors, Compiler};
+
+    fn compile(source: &str) -> Result<Chunk, CompileErrors> {
+        let ast = Parser::parse(source).unwrap();
+        Compiler::compile(&ast)
+    }
+
+    #[rstest]
+    fn test_programs(
+        #[files("test_programs/*.blis")]
+        #[files("test_programs/err_runtime/*.blis")]
+        path: PathBuf,
+    ) {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let chunk = compile(&source).unwrap();
+
+        todo!("snapshot disassembly");
+        insta::with_settings!({
+            input_file => &path,
+            description => source,
+            omit_expression => true,
+        }, {
+            insta::assert_ron_snapshot!(snapshot_name(&path, "chunk"), chunk);
+        })
+    }
+
+    #[rstest]
+    fn test_compile_errors(#[files("test_programs/err_compile/*.blis")] path: PathBuf) {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let errors = compile(&source).unwrap_err();
+
+        insta::with_settings!({
+            input_file => &path,
+            description => source,
+            omit_expression => true,
+        }, {
+            insta::assert_ron_snapshot!(snapshot_name(&path, "errors"), errors);
+        })
     }
 }

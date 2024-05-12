@@ -1,0 +1,81 @@
+---
+source: src/parse/parser.rs
+description: "if 123 {\n    \"Yes\"\n} else {\n    \"No\"\n}\n\nif nil {\n    \"❌\"\n} else {\n    \"✓\"\n}\n"
+input_file: test_programs/if.blis
+---
+Program(
+  decls: [
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(If(If(
+          condition: LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                123,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+          consequent: Block(
+            decls: [],
+            expr: Some(LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("Yes"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+          ),
+          alternative: Some(Block(
+            decls: [],
+            expr: Some(LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("No"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+          )),
+        )))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(If(If(
+          condition: LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+          consequent: Block(
+            decls: [],
+            expr: Some(LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("❌"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+          ),
+          alternative: Some(Block(
+            decls: [],
+            expr: Some(LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("✓"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+          )),
+        )))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

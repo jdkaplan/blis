@@ -1,0 +1,652 @@
+---
+source: src/parse/lexer.rs
+description: "func main() {\n    func outer(x) {\n        println(\"outer\");\n\n        func middle(name) {\n            println(\"middle\", name);\n\n            func inner() {\n                println(\"inner\", name);\n                println(x);\n                x = x + 1;\n                println(x);\n                println(\"-----\");\n            }\n\n            inner\n        }\n\n        middle\n    }\n\n    let middle = outer(0);\n    let inner1 = middle(\"first\");\n    inner1();\n    inner1();\n\n    let inner2 = middle(\"second\");\n    inner2();\n\n    middle = nil;\n\n    inner1();\n    inner1 = nil;\n\n    inner2();\n    inner2 = nil;\n}\n\nmain();\n"
+input_file: test_programs/closures_stress.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "outer",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 3,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"outer\"",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "middle",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "name",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 6,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 6,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"middle\"",
+    line: 6,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "name",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 6,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 6,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner",
+    line: 8,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 8,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 8,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 9,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"inner\"",
+    line: 9,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "name",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 10,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 11,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 11,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 11,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 11,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 13,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 13,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"-----\"",
+    line: 13,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 13,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 13,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 14,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner",
+    line: 16,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "middle",
+    line: 19,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 20,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 22,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "middle",
+    line: 22,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 22,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "outer",
+    line: 22,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 22,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "0",
+    line: 22,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 22,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 22,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 23,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner1",
+    line: 23,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 23,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "middle",
+    line: 23,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 23,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"first\"",
+    line: 23,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 23,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 23,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner1",
+    line: 24,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 24,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 24,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 24,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner1",
+    line: 25,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 25,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 25,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 25,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 27,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner2",
+    line: 27,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 27,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "middle",
+    line: 27,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 27,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"second\"",
+    line: 27,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 27,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 27,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner2",
+    line: 28,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 28,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 28,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 28,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "middle",
+    line: 30,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 30,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 30,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 30,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner1",
+    line: 32,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 32,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 32,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 32,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner1",
+    line: 33,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 33,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 33,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 33,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner2",
+    line: 35,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 35,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 35,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 35,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner2",
+    line: 36,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 36,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 36,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 36,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 37,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 39,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 39,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 39,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 39,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 40,
+  ),
+]

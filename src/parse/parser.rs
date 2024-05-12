@@ -4,12 +4,13 @@ use std::str::Chars;
 
 use itertools::{peek_nth, PeekNth};
 use num_bigint::{BigInt, ParseBigIntError};
+use serde::Serialize;
 use tracing::{debug, instrument};
 
 use crate::parse::ast::*;
 use crate::parse::{Lexeme, LexemeOwned, Lexer, Token};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Serialize)]
 pub struct ParseErrors(Vec<ParseError>);
 
 impl std::fmt::Display for ParseErrors {
@@ -27,7 +28,28 @@ impl std::fmt::Display for ParseErrors {
     }
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
+mod serde_ext {
+    use std::num::ParseFloatError;
+
+    use num_bigint::ParseBigIntError;
+    use serde::ser::Serializer;
+
+    pub fn serialize_parse_big_int_error<S: Serializer>(
+        err: &ParseBigIntError,
+        ser: S,
+    ) -> Result<S::Ok, S::Error> {
+        ser.serialize_str(&err.to_string())
+    }
+
+    pub fn serialize_parse_float_error<S: Serializer>(
+        err: &ParseFloatError,
+        ser: S,
+    ) -> Result<S::Ok, S::Error> {
+        ser.serialize_str(&err.to_string())
+    }
+}
+
+#[derive(thiserror::Error, Debug, Clone, Serialize)]
 pub enum ParseError {
     #[error("{0}")]
     Other(String),
@@ -39,9 +61,11 @@ pub enum ParseError {
     Syntax(#[from] SyntaxError),
 
     #[error(transparent)]
+    #[serde(serialize_with = "serde_ext::serialize_parse_big_int_error")]
     ParseInt(ParseBigIntError),
 
     #[error(transparent)]
+    #[serde(serialize_with = "serde_ext::serialize_parse_float_error")]
     ParseFloat(ParseFloatError),
 
     #[error(transparent)]
@@ -66,7 +90,7 @@ impl std::fmt::Debug for Parser<'_> {
     }
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
+#[derive(thiserror::Error, Debug, Clone, Serialize)]
 #[error("syntax error: expected {:?}, got {:?}", expected, actual)]
 pub struct SyntaxError {
     expected: Token,
@@ -115,16 +139,6 @@ impl<L, R> Either<L, R> {
         match self {
             Either::L(l) => Either::L(f(l)),
             Either::R(r) => Either::R(r),
-        }
-    }
-
-    fn map_r<F, T>(self, f: F) -> Either<L, T>
-    where
-        F: FnOnce(R) -> T,
-    {
-        match self {
-            Either::L(l) => Either::L(l),
-            Either::R(r) => Either::R(f(r)),
         }
     }
 }
@@ -1016,4 +1030,48 @@ fn unescape_unicode(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
     }
 
     char::from_u32(v).map(|c| vec![c]).unwrap_or(taken)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use rstest::rstest;
+
+    use crate::testing::snapshot_name;
+
+    use super::Parser;
+
+    #[rstest]
+    fn test_programs(
+        #[files("test_programs/*.blis")]
+        #[files("test_programs/err_compile/*.blis")]
+        #[files("test_programs/err_runtime/*.blis")]
+        path: PathBuf,
+    ) {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let ast = Parser::parse(&source).unwrap();
+
+        insta::with_settings!({
+            input_file => &path,
+            description => source,
+            omit_expression => true,
+        }, {
+            insta::assert_ron_snapshot!(snapshot_name(&path, "ast"), ast);
+        })
+    }
+
+    #[rstest]
+    fn test_parse_errors(#[files("test_programs/err_parse/*.blis")] path: PathBuf) {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let errors = Parser::parse(&source).unwrap_err();
+
+        insta::with_settings!({
+            input_file => &path,
+            description => source,
+            omit_expression => true,
+        }, {
+            insta::assert_ron_snapshot!(snapshot_name(&path, "errors"), errors);
+        })
+    }
 }

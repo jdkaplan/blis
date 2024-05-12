@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "println(\"Hello, World!\");\n"
+input_file: test_programs/hello.blis
+---
+Hello, World!

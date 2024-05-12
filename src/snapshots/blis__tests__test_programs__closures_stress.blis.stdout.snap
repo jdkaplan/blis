@@ -1,0 +1,28 @@
+---
+source: src/lib.rs
+description: "func main() {\n    func outer(x) {\n        println(\"outer\");\n\n        func middle(name) {\n            println(\"middle\", name);\n\n            func inner() {\n                println(\"inner\", name);\n                println(x);\n                x = x + 1;\n                println(x);\n                println(\"-----\");\n            }\n\n            inner\n        }\n\n        middle\n    }\n\n    let middle = outer(0);\n    let inner1 = middle(\"first\");\n    inner1();\n    inner1();\n\n    let inner2 = middle(\"second\");\n    inner2();\n\n    middle = nil;\n\n    inner1();\n    inner1 = nil;\n\n    inner2();\n    inner2 = nil;\n}\n\nmain();\n"
+input_file: test_programs/closures_stress.blis
+---
+outer
+middle first
+inner first
+0
+1
+-----
+inner first
+1
+2
+-----
+middle second
+inner second
+2
+3
+-----
+inner first
+3
+4
+-----
+inner second
+4
+5
+-----

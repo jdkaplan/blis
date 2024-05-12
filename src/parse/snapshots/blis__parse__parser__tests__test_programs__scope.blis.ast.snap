@@ -1,0 +1,181 @@
+---
+source: src/parse/parser.rs
+description: "let a = {\n    \"a\"\n};\nlet aa = {\n    if true { a } else { 2 }\n};\na = nil;\n\nlet b = if \"true\" { \"one\" } else { \"two\" };\nb = if b { a } else { b };\n"
+input_file: test_programs/scope.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "a",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Block(Block(
+            decls: [],
+            expr: Some(LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("a"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+          )))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "aa",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Block(Block(
+            decls: [],
+            expr: Some(LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(If(If(
+                  condition: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(Boolean(true))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                  consequent: Block(
+                    decls: [],
+                    expr: Some(LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                          name: "a",
+                        ))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    ))),
+                  ),
+                  alternative: Some(Block(
+                    decls: [],
+                    expr: Some(LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                          2,
+                        ])))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    ))),
+                  )),
+                )))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+          )))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "a",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Let(Let(
+      ident: Identifier(
+        name: "b",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(If(If(
+            condition: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("true"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+            consequent: Block(
+              decls: [],
+              expr: Some(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("one"))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              ))),
+            ),
+            alternative: Some(Block(
+              decls: [],
+              expr: Some(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("two"))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              ))),
+            )),
+          )))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "b",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(If(If(
+            condition: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                  name: "b",
+                ))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+            consequent: Block(
+              decls: [],
+              expr: Some(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                    name: "a",
+                  ))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              ))),
+            ),
+            alternative: Some(Block(
+              decls: [],
+              expr: Some(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                    name: "b",
+                  ))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              ))),
+            )),
+          )))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+  ],
+)

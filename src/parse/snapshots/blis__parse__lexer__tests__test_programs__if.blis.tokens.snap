@@ -1,0 +1,102 @@
+---
+source: src/parse/lexer.rs
+description: "if 123 {\n    \"Yes\"\n} else {\n    \"No\"\n}\n\nif nil {\n    \"❌\"\n} else {\n    \"✓\"\n}\n"
+input_file: test_programs/if.blis
+---
+[
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "123",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"Yes\"",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 3,
+  ),
+  Lexeme(
+    token: Else,
+    text: "else",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 3,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"No\"",
+    line: 4,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 5,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 7,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 7,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 7,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"❌\"",
+    line: 8,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 9,
+  ),
+  Lexeme(
+    token: Else,
+    text: "else",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 9,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"✓\"",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 11,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 12,
+  ),
+]

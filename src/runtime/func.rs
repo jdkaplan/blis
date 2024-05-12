@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use crate::bytecode::Func;
-use crate::runtime::{Gc, ObjPtr, Object, Trace, Value};
-
-pub type RuntimeFn = fn(argc: u8, argv: &[Value]) -> Value;
+use crate::runtime::{Gc, HostFn, ObjPtr, Object, Trace, Value};
 
 #[derive(Debug, Clone)]
 pub struct HostFunc {
     pub name: String,
-    pub inner: Arc<RuntimeFn>,
+    pub inner: Arc<HostFn>,
 }
 
 impl Trace for HostFunc {

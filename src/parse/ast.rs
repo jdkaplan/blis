@@ -1,13 +1,14 @@
 use num_bigint::BigInt;
+use serde::Serialize;
 
 use crate::parse::Token;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Program {
     pub decls: Vec<Declaration>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Declaration {
     Type(Type),
     Func(Func),
@@ -16,7 +17,7 @@ pub enum Declaration {
     Statement(Statement),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Statement {
     Break(Break),
     Continue(Continue),
@@ -26,7 +27,7 @@ pub enum Statement {
     Expression(Expression),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Expression {
     LogicOr(LogicOr),
 }
@@ -39,7 +40,7 @@ impl Expression {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct LogicOr {
     pub first: LogicAnd,
     pub rest: Vec<LogicAnd>,
@@ -51,7 +52,7 @@ impl LogicOr {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct LogicAnd {
     pub first: Equality,
     pub rest: Vec<Equality>,
@@ -63,7 +64,7 @@ impl LogicAnd {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Equality {
     Value(Comparison),
 
@@ -80,7 +81,7 @@ impl Equality {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Comparison {
     Value(Term),
 
@@ -99,7 +100,7 @@ impl Comparison {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Term {
     Value(Factor),
 
@@ -116,7 +117,7 @@ impl Term {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Factor {
     Value(Unary),
 
@@ -134,7 +135,7 @@ impl Factor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Unary {
     Value(Call),
 
@@ -151,7 +152,7 @@ impl Unary {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Call {
     Value(Primary),
 
@@ -169,7 +170,7 @@ impl Call {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Primary {
     Block(Block),
     If(If),
@@ -179,13 +180,13 @@ pub enum Primary {
     Atom(Atom),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Object {
     pub ty: Identifier,
     pub fields: Vec<(Identifier, Expression)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct List {
     pub items: Vec<Expression>,
 }
@@ -199,7 +200,7 @@ impl Primary {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Atom {
     Identifier(Identifier),
     Literal(Literal),
@@ -207,20 +208,20 @@ pub enum Atom {
     List(List),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Assignment {
     pub place: Place,
     pub expr: Expression,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Place {
     Field(Call, Identifier),
     Identifier(Identifier),
     Index(Call, Box<Expression>),
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
+#[derive(thiserror::Error, Debug, Clone, Serialize)]
 #[error("cannot assign to `{:?}`, wanted {:?}", target, Token::Identifier)]
 pub struct PlaceError {
     pub target: Expression,
@@ -283,13 +284,13 @@ impl TryFrom<Expression> for Place {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Type {
     pub ident: Identifier,
     pub methods: Vec<Method>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Method {
     pub self_: bool,
     pub ident: Identifier,
@@ -297,49 +298,49 @@ pub struct Method {
     pub body: Block,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Func {
     pub ident: Identifier,
     pub params: Vec<Identifier>,
     pub body: Block,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Let {
     pub ident: Identifier,
     pub expr: Expression,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Loop {
     pub label: Option<Identifier>,
     pub body: Block,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Break {
     pub label: Option<Identifier>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Continue {
     pub label: Option<Identifier>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Block {
     pub decls: Vec<Declaration>,
     pub expr: Option<Box<Expression>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct If {
     pub condition: Box<Expression>,
     pub consequent: Block,
     pub alternative: Option<Block>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Identifier {
     pub name: String,
 }
@@ -356,7 +357,7 @@ impl Identifier {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Literal {
     Nil,
     Boolean(bool),

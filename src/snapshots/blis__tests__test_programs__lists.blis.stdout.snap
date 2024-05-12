@@ -1,0 +1,11 @@
+---
+source: src/lib.rs
+description: "func main() {\n    let expected = [1, \"🈔\", \"tres\", nil];\n    let actual = [];\n\n    actual.append(1);\n    actual.append(\"🈔\");\n    actual.append(expected);\n    actual.append(nil);\n\n    println(expected);\n    println(actual);\n    println(expected == actual);\n\n    actual[2] = \"tres\";\n    println(expected);\n    println(actual);\n    println(expected == actual);\n}\n\nmain();\n"
+input_file: test_programs/lists.blis
+---
+<list 0x000000000001>
+<list 0x000000000002>
+false
+<list 0x000000000001>
+<list 0x000000000002>
+true

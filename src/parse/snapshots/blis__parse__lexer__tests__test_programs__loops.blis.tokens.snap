@@ -1,0 +1,787 @@
+---
+source: src/parse/lexer.rs
+description: "func main() {\n    let x = 0;\n    loop twice {\n        if x >= 2 {\n            break;\n        }\n\n        println(\"twice before\", x);\n        x = x + 1;\n        println(\"twice after \", x);\n    }\n    println(\"out of twice\", x);\n\n    loop outer {\n        if x < 0 {\n            println(\"break outer\", x);\n            break;\n        }\n\n        loop inner {\n            loop {\n                break;\n            }\n\n            if x > 2 {\n                println(\"break inner\", x);\n                break;\n            }\n\n            println(\"inner before\", x);\n            x = x + 1;\n            println(\"inner after \", x);\n        }\n        println(\"out of inner\", x);\n        // x = 3\n\n        if x > 2 {\n            x = -1;\n            continue;\n        }\n\n        println(\"never happens\");\n        x = x - 1;\n    }\n    println(\"out of outer\", x);\n}\n\nmain();\n"
+input_file: test_programs/loops.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 2,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 2,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "0",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Loop,
+    text: "loop",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "twice",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 3,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 4,
+  ),
+  Lexeme(
+    token: GreaterEqual,
+    text: ">=",
+    line: 4,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 4,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 4,
+  ),
+  Lexeme(
+    token: Break,
+    text: "break",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 8,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 8,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"twice before\"",
+    line: 8,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 8,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 8,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 9,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 9,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 9,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 10,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"twice after \"",
+    line: 10,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 10,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"out of twice\"",
+    line: 12,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: Loop,
+    text: "loop",
+    line: 14,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "outer",
+    line: 14,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 14,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 15,
+  ),
+  Lexeme(
+    token: Less,
+    text: "<",
+    line: 15,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "0",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 16,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 16,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"break outer\"",
+    line: 16,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 16,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 16,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 16,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 16,
+  ),
+  Lexeme(
+    token: Break,
+    text: "break",
+    line: 17,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 17,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 18,
+  ),
+  Lexeme(
+    token: Loop,
+    text: "loop",
+    line: 20,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner",
+    line: 20,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 20,
+  ),
+  Lexeme(
+    token: Loop,
+    text: "loop",
+    line: 21,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 21,
+  ),
+  Lexeme(
+    token: Break,
+    text: "break",
+    line: 22,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 22,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 23,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 25,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 25,
+  ),
+  Lexeme(
+    token: Greater,
+    text: ">",
+    line: 25,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 25,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 25,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 26,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 26,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"break inner\"",
+    line: 26,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 26,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 26,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 26,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 26,
+  ),
+  Lexeme(
+    token: Break,
+    text: "break",
+    line: 27,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 27,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 28,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 30,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 30,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"inner before\"",
+    line: 30,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 30,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 30,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 30,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 30,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 31,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 31,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 31,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 31,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 31,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 31,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 32,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 32,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"inner after \"",
+    line: 32,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 32,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 32,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 32,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 32,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 33,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 34,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 34,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"out of inner\"",
+    line: 34,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 34,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 34,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 34,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 34,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 37,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 37,
+  ),
+  Lexeme(
+    token: Greater,
+    text: ">",
+    line: 37,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 37,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 37,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 38,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 38,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 38,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 38,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 38,
+  ),
+  Lexeme(
+    token: Continue,
+    text: "continue",
+    line: 39,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 39,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 40,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 42,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 42,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"never happens\"",
+    line: 42,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 42,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 42,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 43,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 43,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 43,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 43,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 43,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 43,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 44,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 45,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 45,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"out of outer\"",
+    line: 45,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 45,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 45,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 45,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 45,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 46,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 48,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 48,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 48,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 48,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 49,
+  ),
+]

@@ -1,0 +1,28 @@
+---
+source: src/parse/parser.rs
+description: "println(\"1\" + 1);\n"
+input_file: test_programs/err_runtime/bad_math.blis
+---
+Program(
+  decls: [
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Add(Value(Value(Value(Value(Atom(Literal(String("1"))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

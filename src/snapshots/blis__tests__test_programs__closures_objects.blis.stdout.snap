@@ -1,0 +1,11 @@
+---
+source: src/lib.rs
+description: "func main() {\n    let one = new_thing(\"uno\");\n    let two = new_thing(\"dos\");\n\n    println(one);\n    println(one.id, one.name);\n\n    println(two);\n    println(two.id, two.name);\n\n    one.two = two;\n    two.one = one;\n\n    println(one.two);\n    println(two.one);\n}\n\nlet counter = 0;\n\nfunc new_thing(name) {\n    counter = counter + 1;\n\n    object {\n        id = counter,\n        name = name,\n    }\n}\n\nmain();\n"
+input_file: test_programs/closures_objects.blis
+---
+<instance of object 0x000000000001>
+1 uno
+<instance of object 0x000000000002>
+2 dos
+<instance of object 0x000000000002>
+<instance of object 0x000000000001>

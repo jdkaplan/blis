@@ -2,20 +2,20 @@ func main() {
     let one = Counter.new("uno");
     let two = Counter.new("dos");
 
-    print(one);
-    print(one.id, one.name);
+    println(one);
+    println(one.id, one.name);
 
-    print(two);
-    print(two.id, two.name);
+    println(two);
+    println(two.id, two.name);
 
     // Eventually, gradual typing will let you prevent this. But for now...
     one.two = two;
     two.one = one;
 
-    print(one.two);
-    print(one["two"]);
-    print(two.one);
-    print(two["one"]);
+    println(one.two);
+    println(one["two"]);
+    println(two.one);
+    println(two["one"]);
 }
 
 let id = 0;
