@@ -7,14 +7,14 @@ func main() {
     actual.append(expected);
     actual.append(nil);
 
-    print(expected);
-    print(actual);
-    print(expected == actual);
+    println(expected);
+    println(actual);
+    println(expected == actual);
 
     actual[2] = "tres";
-    print(expected);
-    print(actual);
-    print(expected == actual);
+    println(expected);
+    println(actual);
+    println(expected == actual);
 }
 
 main();

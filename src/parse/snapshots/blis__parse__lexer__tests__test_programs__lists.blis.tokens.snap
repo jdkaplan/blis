@@ -1,0 +1,502 @@
+---
+source: src/parse/lexer.rs
+description: "func main() {\n    let expected = [1, \"🈔\", \"tres\", nil];\n    let actual = [];\n\n    actual.append(1);\n    actual.append(\"🈔\");\n    actual.append(expected);\n    actual.append(nil);\n\n    println(expected);\n    println(actual);\n    println(expected == actual);\n\n    actual[2] = \"tres\";\n    println(expected);\n    println(actual);\n    println(expected == actual);\n}\n\nmain();\n"
+input_file: test_programs/lists.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "expected",
+    line: 2,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftBracket,
+    text: "[",
+    line: 2,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 2,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 2,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"🈔\"",
+    line: 2,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 2,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"tres\"",
+    line: 2,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 2,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightBracket,
+    text: "]",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 3,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftBracket,
+    text: "[",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightBracket,
+    text: "]",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 5,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "append",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 5,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 6,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "append",
+    line: 6,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 6,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"🈔\"",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 6,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 7,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "append",
+    line: 7,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "expected",
+    line: 7,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 7,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 8,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "append",
+    line: 8,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 8,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 8,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 8,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "expected",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 10,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 11,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 11,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 11,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "expected",
+    line: 12,
+  ),
+  Lexeme(
+    token: EqualEqual,
+    text: "==",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 14,
+  ),
+  Lexeme(
+    token: LeftBracket,
+    text: "[",
+    line: 14,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 14,
+  ),
+  Lexeme(
+    token: RightBracket,
+    text: "]",
+    line: 14,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 14,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"tres\"",
+    line: 14,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 14,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "expected",
+    line: 15,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 15,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 16,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 16,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 16,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 16,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 16,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 17,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "expected",
+    line: 17,
+  ),
+  Lexeme(
+    token: EqualEqual,
+    text: "==",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "actual",
+    line: 17,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 17,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 17,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 18,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 20,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 20,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 20,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 20,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 21,
+  ),
+]

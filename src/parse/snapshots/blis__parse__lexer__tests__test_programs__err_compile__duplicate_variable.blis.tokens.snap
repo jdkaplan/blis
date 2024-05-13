@@ -1,0 +1,92 @@
+---
+source: src/parse/lexer.rs
+description: "func main() {\n    let a = 0;\n    let a = 1;\n}\n"
+input_file: test_programs/err_compile/duplicate_variable.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 2,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 2,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "0",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 3,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 3,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 4,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 5,
+  ),
+]

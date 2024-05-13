@@ -1,0 +1,447 @@
+---
+source: src/parse/lexer.rs
+description: "let a = \"a\";\nlet b = \"b\";\nlet c = \"c\";\n\nlet x = a;\nprintln(x);\n\nx = a + a;\nprintln(x);\n\nx = x + b;\nprintln(x);\n\nx = x + x;\nprintln(x);\n\na = x + x;\nprintln(a);\n\na = nil;\nb = nil;\nc = nil;\nx = nil;\n\"\";\n"
+input_file: test_programs/strings.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"a\"",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 2,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 2,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"b\"",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "c",
+    line: 3,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 3,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"c\"",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 5,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 6,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 6,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 8,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 8,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 8,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 11,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 11,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 11,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 14,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 14,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 14,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 14,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 14,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 14,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 15,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 15,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 17,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 17,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 17,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 18,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 18,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 18,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 18,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 18,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 20,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 20,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 20,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 20,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 21,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 21,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 21,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 21,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "c",
+    line: 22,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 22,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 22,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 22,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 23,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 23,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 23,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 23,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"\"",
+    line: 24,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 24,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 25,
+  ),
+]

@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "if 123 {\n    \"Yes\"\n} else {\n    \"No\"\n}\n\nif nil {\n    \"❌\"\n} else {\n    \"✓\"\n}\n"
+input_file: test_programs/if.blis
+---
+

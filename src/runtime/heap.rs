@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::fmt;
 
 use tracing::trace;
 
@@ -6,6 +7,12 @@ use crate::runtime::{Object, Value};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ObjPtr(*mut Object);
+
+impl fmt::Display for ObjPtr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
 
 impl ObjPtr {
     /// # Safety

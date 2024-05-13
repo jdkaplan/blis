@@ -5,15 +5,15 @@ func main() {
             break;
         }
 
-        print("twice before", x);
+        println("twice before", x);
         x = x + 1;
-        print("twice after ", x);
+        println("twice after ", x);
     }
-    print("out of twice", x);
+    println("out of twice", x);
 
     loop outer {
         if x < 0 {
-            print("break outer", x);
+            println("break outer", x);
             break;
         }
 
@@ -23,15 +23,15 @@ func main() {
             }
 
             if x > 2 {
-                print("break inner", x);
+                println("break inner", x);
                 break;
             }
 
-            print("inner before", x);
+            println("inner before", x);
             x = x + 1;
-            print("inner after ", x);
+            println("inner after ", x);
         }
-        print("out of inner", x);
+        println("out of inner", x);
         // x = 3
 
         if x > 2 {
@@ -39,10 +39,10 @@ func main() {
             continue;
         }
 
-        print("never happens");
+        println("never happens");
         x = x - 1;
     }
-    print("out of outer", x);
+    println("out of outer", x);
 }
 
 main();

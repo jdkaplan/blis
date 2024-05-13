@@ -1,0 +1,169 @@
+---
+source: src/compile.rs
+description: "func main() {\n    func outer(x) {\n        println(\"outer\");\n\n        func middle(name) {\n            println(\"middle\", name);\n\n            func inner() {\n                println(\"inner\", name);\n                println(x);\n                x = x + 1;\n                println(x);\n                println(\"-----\");\n            }\n\n            inner\n        }\n\n        middle\n    }\n\n    let middle = outer(0);\n    let inner1 = middle(\"first\");\n    inner1();\n    inner1();\n\n    let inner2 = middle(\"second\");\n    inner2();\n\n    middle = nil;\n\n    inner1();\n    inner1 = nil;\n\n    inner2();\n    inner2 = nil;\n}\n\nmain();\n"
+input_file: test_programs/closures_stress.blis
+---
+DisassembledChunk(
+  constants: [
+    Func(DisassembledFunc(
+      name: "main",
+      arity: 0,
+      upvalues: 0,
+      chunk: DisassembledChunk(
+        constants: [
+          Func(DisassembledFunc(
+            name: "outer",
+            arity: 1,
+            upvalues: 0,
+            chunk: DisassembledChunk(
+              constants: [
+                String("outer"),
+                Func(DisassembledFunc(
+                  name: "middle",
+                  arity: 1,
+                  upvalues: 1,
+                  chunk: DisassembledChunk(
+                    constants: [
+                      String("middle"),
+                      Func(DisassembledFunc(
+                        name: "inner",
+                        arity: 0,
+                        upvalues: 2,
+                        chunk: DisassembledChunk(
+                          constants: [
+                            String("inner"),
+                            Rational(((1, [
+                              1,
+                            ]), (1, [
+                              1,
+                            ]))),
+                            String("-----"),
+                          ],
+                          globals: [
+                            "println",
+                          ],
+                          code: [
+                            GetGlobal(0),
+                            Constant(0),
+                            GetUpvalue(0),
+                            Call(2),
+                            Pop,
+                            GetGlobal(0),
+                            GetUpvalue(1),
+                            Call(1),
+                            Pop,
+                            GetUpvalue(1),
+                            Constant(1),
+                            Add,
+                            SetUpvalue(1),
+                            GetGlobal(0),
+                            GetUpvalue(1),
+                            Call(1),
+                            Pop,
+                            GetGlobal(0),
+                            Constant(2),
+                            Call(1),
+                            Pop,
+                            Nil,
+                            PopUnderN(0),
+                            Return,
+                          ],
+                        ),
+                      )),
+                    ],
+                    globals: [
+                      "println",
+                    ],
+                    code: [
+                      GetGlobal(0),
+                      Constant(0),
+                      GetLocal(1),
+                      Call(2),
+                      Pop,
+                      Closure(1, 2, [
+                        Local(1),
+                        Nonlocal(0),
+                      ]),
+                      GetLocal(2),
+                      PopUnderN(1),
+                      Return,
+                    ],
+                  ),
+                )),
+              ],
+              globals: [
+                "println",
+              ],
+              code: [
+                GetGlobal(0),
+                Constant(0),
+                Call(1),
+                Pop,
+                Closure(1, 1, [
+                  Local(1),
+                ]),
+                GetLocal(2),
+                PopUnderN(1),
+                Return,
+              ],
+            ),
+          )),
+          Rational(((0, []), (1, [
+            1,
+          ]))),
+          String("first"),
+          String("second"),
+        ],
+        globals: [],
+        code: [
+          Closure(0, 0, []),
+          GetLocal(1),
+          Constant(1),
+          Call(1),
+          GetLocal(2),
+          Constant(2),
+          Call(1),
+          GetLocal(3),
+          Call(0),
+          Pop,
+          GetLocal(3),
+          Call(0),
+          Pop,
+          GetLocal(2),
+          Constant(3),
+          Call(1),
+          GetLocal(4),
+          Call(0),
+          Pop,
+          Nil,
+          SetLocal(2),
+          GetLocal(3),
+          Call(0),
+          Pop,
+          Nil,
+          SetLocal(3),
+          GetLocal(4),
+          Call(0),
+          Pop,
+          Nil,
+          SetLocal(4),
+          Nil,
+          PopUnderN(4),
+          Return,
+        ],
+      ),
+    )),
+  ],
+  globals: [
+    "main",
+  ],
+  code: [
+    Closure(0, 0, []),
+    DefineGlobal(0),
+    GetGlobal(0),
+    Call(0),
+    Pop,
+    Nil,
+    Return,
+  ],
+)

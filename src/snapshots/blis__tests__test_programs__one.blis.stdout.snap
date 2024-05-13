@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "1;\n"
+input_file: test_programs/one.blis
+---
+

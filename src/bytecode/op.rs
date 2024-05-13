@@ -1,7 +1,21 @@
+use serde::{Deserialize, Serialize};
+
 // TODO: Document stack effects to help test the compiler.
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, strum::Display, strum::FromRepr,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::FromRepr,
+    strum::EnumDiscriminants,
 )]
+#[strum_discriminants(name(Opcode), derive(Hash, strum::EnumString, strum::Display))]
 #[repr(u8)]
 pub enum Op {
     Return = 0x00,
@@ -18,7 +32,7 @@ pub enum Op {
     Type(u8) = 0x0a,
 
     Call(u8) = 0x10,
-    Closure(u8) = 0x11,
+    Closure(u8, u8, Vec<Capture>) = 0x11,
 
     GetLocal(u8) = 0x20,
     SetLocal(u8) = 0x21,
@@ -58,13 +72,31 @@ pub enum Op {
     Loop(u16) = 0x65,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum Capture {
+    Local(u8),
+    Nonlocal(u8),
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum OpError {
     #[error("unknown opcode: {:x}", opcode)]
     UnknownOpcode { opcode: u8 },
 
-    #[error("missing byte for op: {:?}, byte {}", op, b)]
-    MissingByte { op: Op, b: usize },
+    #[error("missing byte for op: {:?}, byte {}", opcode, offset)]
+    MissingByte { opcode: Opcode, offset: usize },
+}
+
+trait SliceExt {
+    fn get_byte(&self, offset: usize, opcode: Opcode) -> Result<u8, OpError>;
+}
+
+impl SliceExt for [u8] {
+    fn get_byte(&self, offset: usize, opcode: Opcode) -> Result<u8, OpError> {
+        self.get(offset)
+            .copied()
+            .ok_or(OpError::MissingByte { opcode, offset })
+    }
 }
 
 impl Op {
@@ -74,6 +106,7 @@ impl Op {
         };
 
         let op = Self::from_repr(opcode).ok_or(OpError::UnknownOpcode { opcode })?;
+        let opcode: Opcode = op.clone().into();
 
         let mut build = op;
         match build {
@@ -105,7 +138,6 @@ impl Op {
             | Op::List(ref mut byte)
             | Op::Type(ref mut byte)
             | Op::Call(ref mut byte)
-            | Op::Closure(ref mut byte)
             | Op::GetLocal(ref mut byte)
             | Op::SetLocal(ref mut byte)
             | Op::GetUpvalue(ref mut byte)
@@ -117,7 +149,7 @@ impl Op {
             | Op::SetField(ref mut byte)
             | Op::GetMethod(ref mut byte)
             | Op::SetMethod(ref mut byte) => {
-                *byte = *code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
+                *byte = code.get_byte(1, opcode)?;
             }
 
             Op::Jump(ref mut int)
@@ -126,9 +158,29 @@ impl Op {
             | Op::JumpTruePeek(ref mut int)
             | Op::JumpTruePop(ref mut int)
             | Op::Loop(ref mut int) => {
-                let hi = code.get(1).ok_or(OpError::MissingByte { op, b: 1 })?;
-                let lo = code.get(2).ok_or(OpError::MissingByte { op, b: 2 })?;
-                *int = u16::from_be_bytes([*hi, *lo]);
+                let hi = code.get_byte(1, opcode)?;
+                let lo = code.get_byte(2, opcode)?;
+                *int = u16::from_be_bytes([hi, lo]);
+            }
+
+            Op::Closure(ref mut constant_id, ref mut upvalue_count, ref mut captures) => {
+                *constant_id = code.get_byte(1, opcode)?;
+                *upvalue_count = code.get_byte(2, opcode)?;
+
+                let mut b = 3;
+                for _ in 0..(*upvalue_count) {
+                    let loc = code.get_byte(b, opcode)?;
+                    b += 1;
+
+                    let idx = code.get_byte(b, opcode)?;
+                    b += 1;
+
+                    captures.push(match loc {
+                        1 => Capture::Local(idx),
+                        0 => Capture::Nonlocal(idx),
+                        other => panic!("invalid upvalue location: {:?}", other),
+                    })
+                }
             }
         }
 
@@ -177,7 +229,6 @@ impl Op {
             | Op::List(byte)
             | Op::Type(byte)
             | Op::Call(byte)
-            | Op::Closure(byte)
             | Op::GetLocal(byte)
             | Op::SetLocal(byte)
             | Op::GetUpvalue(byte)
@@ -199,6 +250,23 @@ impl Op {
             | Op::JumpTruePop(int)
             | Op::Loop(int) => {
                 bytes.extend(int.to_be_bytes());
+            }
+
+            Op::Closure(constant_id, upvalue_count, upvalues) => {
+                bytes.push(*constant_id);
+                bytes.push(*upvalue_count);
+                for upvalue in upvalues {
+                    match upvalue {
+                        Capture::Local(idx) => {
+                            bytes.push(1);
+                            bytes.push(*idx);
+                        }
+                        Capture::Nonlocal(idx) => {
+                            bytes.push(0);
+                            bytes.push(*idx);
+                        }
+                    }
+                }
             }
         }
 

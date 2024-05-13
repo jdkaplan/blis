@@ -1,0 +1,306 @@
+---
+source: src/parse/parser.rs
+description: "func main() {\n    let expected = [1, \"🈔\", \"tres\", nil];\n    let actual = [];\n\n    actual.append(1);\n    actual.append(\"🈔\");\n    actual.append(expected);\n    actual.append(nil);\n\n    println(expected);\n    println(actual);\n    println(expected == actual);\n\n    actual[2] = \"tres\";\n    println(expected);\n    println(actual);\n    println(expected == actual);\n}\n\nmain();\n"
+input_file: test_programs/lists.blis
+---
+Program(
+  decls: [
+    Func(Func(
+      ident: Identifier(
+        name: "main",
+      ),
+      params: [],
+      body: Block(
+        decls: [
+          Let(Let(
+            ident: Identifier(
+              name: "expected",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(List(List(
+                  items: [
+                    LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                          1,
+                        ])))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )),
+                    LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("🈔"))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )),
+                    LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("tres"))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )),
+                    LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )),
+                  ],
+                ))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Let(Let(
+            ident: Identifier(
+              name: "actual",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(List(List(
+                  items: [],
+                ))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Field(Value(Atom(Identifier(Identifier(
+                name: "actual",
+              )))), Identifier(
+                name: "append",
+              )), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                      1,
+                    ])))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Field(Value(Atom(Identifier(Identifier(
+                name: "actual",
+              )))), Identifier(
+                name: "append",
+              )), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("🈔"))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Field(Value(Atom(Identifier(Identifier(
+                name: "actual",
+              )))), Identifier(
+                name: "append",
+              )), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "expected",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Field(Value(Atom(Identifier(Identifier(
+                name: "actual",
+              )))), Identifier(
+                name: "append",
+              )), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "expected",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "actual",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "expected",
+                    ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "actual",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Index(Value(Atom(Identifier(Identifier(
+              name: "actual",
+            )))), LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                  2,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            ))),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("tres"))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "expected",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "actual",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "expected",
+                    ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "actual",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+        ],
+        expr: None,
+      ),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "main",
+        )))), [])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

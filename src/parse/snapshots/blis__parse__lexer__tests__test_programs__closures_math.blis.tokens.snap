@@ -1,0 +1,272 @@
+---
+source: src/parse/lexer.rs
+description: "func main() {\n    func adder(a) {\n        func add(b) {\n            a + b\n        }\n\n        add\n    }\n\n    let add_1 = adder(1);\n    println(add_1(2));\n    println(add_1(3));\n}\n\nmain();\n"
+input_file: test_programs/closures_math.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "adder",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 2,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "add",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 4,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 4,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "add",
+    line: 7,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 8,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "add_1",
+    line: 10,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "adder",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 10,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 10,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 11,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "add_1",
+    line: 11,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 11,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 11,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 11,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 11,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "add_1",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "3",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 13,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 15,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 15,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 15,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 16,
+  ),
+]

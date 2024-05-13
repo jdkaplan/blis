@@ -1,0 +1,18 @@
+---
+source: src/parse/parser.rs
+description: "1;\n"
+input_file: test_programs/one.blis
+---
+Program(
+  decls: [
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+          1,
+        ])))))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

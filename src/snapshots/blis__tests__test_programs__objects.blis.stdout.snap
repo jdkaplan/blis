@@ -1,0 +1,13 @@
+---
+source: src/lib.rs
+description: "func main() {\n    let one = Counter.new(\"uno\");\n    let two = Counter.new(\"dos\");\n\n    println(one);\n    println(one.id, one.name);\n\n    println(two);\n    println(two.id, two.name);\n\n    // Eventually, gradual typing will let you prevent this. But for now...\n    one.two = two;\n    two.one = one;\n\n    println(one.two);\n    println(one[\"two\"]);\n    println(two.one);\n    println(two[\"one\"]);\n}\n\nlet id = 0;\n\ntype Counter with {\n    func new(name) {\n        id = id + 1;\n\n        Counter {\n            id = id,\n            name = name,\n            count = 0,\n        }\n    }\n\n    func self.incr() {\n        self.add(1);\n    }\n\n    func self.add(delta) {\n        self.count = self.count + delta;\n    }\n}\n\nmain();\n"
+input_file: test_programs/objects.blis
+---
+<instance of Counter 0x000000000001>
+1 <closure new 0x000000000002>
+<instance of Counter 0x000000000003>
+2 <closure new 0x000000000002>
+<instance of Counter 0x000000000003>
+<instance of Counter 0x000000000003>
+<instance of Counter 0x000000000001>
+<instance of Counter 0x000000000001>

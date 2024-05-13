@@ -3,40 +3,22 @@ use std::sync::Arc;
 use num_rational::BigRational;
 use tracing::{debug, instrument, trace};
 
-use crate::bytecode::{Chunk, Constant, Func, Op, OpError};
+use crate::bytecode::{Capture, Chunk, Constant, Func, Op, OpError};
+use crate::runtime::host;
 use crate::runtime::{
-    BoundMethod, Closure, HostFunc, Instance, List, ObjPtr, Object, Runtime, RuntimeError,
-    RuntimeFn, Type, Upvalue, Value, ValueType,
+    BoundMethod, Closure, HostFn, HostFunc, Instance, List, ObjPtr, Object, Runtime, RuntimeError,
+    Type, Upvalue, Value, ValueType,
 };
 
-#[derive(Default)]
-pub struct Vm {
+pub struct Vm<'fd> {
+    opts: VmOptions<'fd>,
     frames: Vec<Frame>,
     runtime: Runtime,
 }
 
-fn host_print(_argc: u8, argv: &[Value]) -> Value {
-    if let Some(first) = argv.first() {
-        print!("{}", first);
-        for v in &argv[1..] {
-            print!(" {}", v);
-        }
-    }
-
-    println!();
-    Value::Nil
-}
-
-fn host_list_append(argc: u8, argv: &[Value]) -> Value {
-    assert_eq!(argc, 2);
-
-    let elt = argv[1].clone();
-
-    let ptr = argv[0].try_as_object_ref().unwrap();
-    let list = unsafe { ptr.as_mut() }.try_as_list_mut().unwrap();
-
-    list.items.push(elt);
-    Value::Nil
+pub struct VmOptions<'a> {
+    pub stdout: Box<&'a mut dyn std::io::Write>,
+    pub stderr: Box<&'a mut dyn std::io::Write>,
 }
 
 struct Frame {
@@ -73,7 +55,7 @@ pub enum VmError {
     Key { value: Value, key: Value },
 }
 
-impl Vm {
+impl Vm<'_> {
     fn push(&mut self, value: Value) {
         self.runtime.push(value)
     }
@@ -99,7 +81,7 @@ impl Vm {
     }
 }
 
-impl Vm {
+impl Vm<'_> {
     fn call_value(&mut self, argc: u8) -> VmResult<()> {
         let callee = self.peek(argc as usize)?;
         let Some(ptr) = callee.try_as_object_ref() else {
@@ -114,7 +96,7 @@ impl Vm {
                 let ret = {
                     let argv = self.runtime.argv(argc as usize);
 
-                    (f.inner)(argc, argv)
+                    (f.inner)(&mut self.opts, argc, argv)
                 };
 
                 // Replace the whole call frame (including the callee) with the return value.
@@ -159,17 +141,16 @@ impl Vm {
     }
 
     #[instrument(level = "trace", ret, skip(self))]
-    fn capture_upvalue(&mut self, bp: usize, location: u8, index: u8) -> ObjPtr {
-        match location {
-            1 => {
+    fn capture_upvalue(&mut self, bp: usize, capture: Capture) -> ObjPtr {
+        match capture {
+            Capture::Local(index) => {
                 let slot = bp + index as usize;
                 self.runtime.capture_local(slot)
             }
-            0 => {
+            Capture::Nonlocal(index) => {
                 // This points to wherever the _parent's_ upvalue does.
                 self.runtime.recapture_upvalue(bp, index as usize)
             }
-            other => panic!("invalid upvalue location: {:?}", other),
         }
     }
 
@@ -179,15 +160,24 @@ impl Vm {
     }
 }
 
-impl Vm {
-    pub fn new() -> Self {
-        let mut vm = Self::default();
-        vm.define_host_func("print", host_print);
-        vm.define_host_type("List", vec![("append", host_list_append)]);
+impl<'fd> Vm<'fd> {
+    pub fn new(opts: VmOptions<'fd>) -> Self {
+        let mut vm = Self {
+            opts,
+            frames: Vec::new(),
+            runtime: Runtime::default(),
+        };
+
+        vm.define_host_func("print", host::print);
+        vm.define_host_func("println", host::println);
+
+        vm.define_host_type("object", vec![]);
+        vm.define_host_type("List", vec![("append", host::list_append)]);
+
         vm
     }
 
-    pub fn define_host_func(&mut self, name: &'static str, f: RuntimeFn) {
+    pub fn define_host_func(&mut self, name: &'static str, f: HostFn) {
         let name = String::from(name);
 
         let obj = Object::HostFunc(HostFunc {
@@ -199,11 +189,7 @@ impl Vm {
         self.runtime.define_global(name, Value::Object(ptr));
     }
 
-    pub fn define_host_type(
-        &mut self,
-        name: &'static str,
-        methods: Vec<(&'static str, RuntimeFn)>,
-    ) {
+    pub fn define_host_type(&mut self, name: &'static str, methods: Vec<(&'static str, HostFn)>) {
         let ty_name = String::from(name);
 
         let ty = Object::Type(Type::new(ty_name.clone()));
@@ -730,38 +716,24 @@ impl Vm {
                     self.call_value(argc)?;
                 }
 
-                Op::Closure(idx) => {
+                Op::Closure(idx, upvalue_count, upvalues) => {
                     let frame = frame!();
                     let chunk = chunk!(frame);
                     let bp = frame.bp;
                     let func = chunk.constants[idx as usize].try_as_func_ref().unwrap();
+
+                    assert_eq!(upvalue_count as usize, upvalues.len());
+                    assert_eq!(upvalue_count, func.upvalues);
 
                     let mut closure = Closure {
                         func: Arc::new(func.clone()),
                         upvalues: Vec::with_capacity(func.upvalues as usize),
                     };
 
-                    // This instruction is variable-length. There are two additional bytes for each
-                    // upvalue.
-                    //
-                    // Temporarily copy the program counter to avoid borrow checker issues on
-                    // `frame`.
-                    let mut pc = frame.pc;
-                    let chunk = chunk.clone();
-                    for _ in 0..func.upvalues {
-                        let location = chunk.code[pc];
-                        pc += 1;
-
-                        let index = chunk.code[pc];
-                        pc += 1;
-
-                        let ptr = self.capture_upvalue(bp, location, index);
+                    for upvalue in upvalues {
+                        let ptr = self.capture_upvalue(bp, upvalue);
                         closure.upvalues.push(ptr);
                     }
-                    assert_eq!(closure.func.upvalues as usize, closure.upvalues.len());
-
-                    // And now put the new pc back where it belongs (after all the upvalue data).
-                    frame!().pc = pc;
 
                     let obj = Object::Closure(closure);
                     let ptr = self.runtime.alloc(obj);

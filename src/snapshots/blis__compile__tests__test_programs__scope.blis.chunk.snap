@@ -1,0 +1,57 @@
+---
+source: src/compile.rs
+description: "let a = {\n    \"a\"\n};\nlet aa = {\n    if true { a } else { 2 }\n};\na = nil;\n\nlet b = if \"true\" { \"one\" } else { \"two\" };\nb = if b { a } else { b };\n"
+input_file: test_programs/scope.blis
+---
+DisassembledChunk(
+  constants: [
+    String("a"),
+    Rational(((1, [
+      2,
+    ]), (1, [
+      1,
+    ]))),
+    String("true"),
+    String("one"),
+    String("two"),
+  ],
+  globals: [
+    "a",
+    "aa",
+    "b",
+  ],
+  code: [
+    Constant(0),
+    PopUnderN(0),
+    DefineGlobal(0),
+    True,
+    JumpFalsePop(10),
+    GetGlobal(0),
+    PopUnderN(0),
+    Jump(7),
+    Constant(1),
+    PopUnderN(0),
+    PopUnderN(0),
+    DefineGlobal(1),
+    Nil,
+    SetGlobal(0),
+    Constant(2),
+    JumpFalsePop(10),
+    Constant(3),
+    PopUnderN(0),
+    Jump(7),
+    Constant(4),
+    PopUnderN(0),
+    DefineGlobal(2),
+    GetGlobal(2),
+    JumpFalsePop(10),
+    GetGlobal(0),
+    PopUnderN(0),
+    Jump(7),
+    GetGlobal(2),
+    PopUnderN(0),
+    SetGlobal(2),
+    Nil,
+    Return,
+  ],
+)

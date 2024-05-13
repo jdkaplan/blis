@@ -1,0 +1,373 @@
+---
+source: src/parse/parser.rs
+description: "func main() {\n    func outer(x) {\n        println(\"outer\");\n\n        func middle(name) {\n            println(\"middle\", name);\n\n            func inner() {\n                println(\"inner\", name);\n                println(x);\n                x = x + 1;\n                println(x);\n                println(\"-----\");\n            }\n\n            inner\n        }\n\n        middle\n    }\n\n    let middle = outer(0);\n    let inner1 = middle(\"first\");\n    inner1();\n    inner1();\n\n    let inner2 = middle(\"second\");\n    inner2();\n\n    middle = nil;\n\n    inner1();\n    inner1 = nil;\n\n    inner2();\n    inner2 = nil;\n}\n\nmain();\n"
+input_file: test_programs/closures_stress.blis
+---
+Program(
+  decls: [
+    Func(Func(
+      ident: Identifier(
+        name: "main",
+      ),
+      params: [],
+      body: Block(
+        decls: [
+          Func(Func(
+            ident: Identifier(
+              name: "outer",
+            ),
+            params: [
+              Identifier(
+                name: "x",
+              ),
+            ],
+            body: Block(
+              decls: [
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                      name: "println",
+                    )))), [
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("outer"))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ])))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Func(Func(
+                  ident: Identifier(
+                    name: "middle",
+                  ),
+                  params: [
+                    Identifier(
+                      name: "name",
+                    ),
+                  ],
+                  body: Block(
+                    decls: [
+                      Statement(Expression(LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                            name: "println",
+                          )))), [
+                            LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("middle"))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                            LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                  name: "name",
+                                ))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                          ])))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )))),
+                      Func(Func(
+                        ident: Identifier(
+                          name: "inner",
+                        ),
+                        params: [],
+                        body: Block(
+                          decls: [
+                            Statement(Expression(LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                                  name: "println",
+                                )))), [
+                                  LogicOr(LogicOr(
+                                    first: LogicAnd(
+                                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("inner"))))))))),
+                                      rest: [],
+                                    ),
+                                    rest: [],
+                                  )),
+                                  LogicOr(LogicOr(
+                                    first: LogicAnd(
+                                      first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                        name: "name",
+                                      ))))))))),
+                                      rest: [],
+                                    ),
+                                    rest: [],
+                                  )),
+                                ])))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )))),
+                            Statement(Expression(LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                                  name: "println",
+                                )))), [
+                                  LogicOr(LogicOr(
+                                    first: LogicAnd(
+                                      first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                        name: "x",
+                                      ))))))))),
+                                      rest: [],
+                                    ),
+                                    rest: [],
+                                  )),
+                                ])))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )))),
+                            Statement(Assignment(Assignment(
+                              place: Identifier(Identifier(
+                                name: "x",
+                              )),
+                              expr: LogicOr(LogicOr(
+                                first: LogicAnd(
+                                  first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                    name: "x",
+                                  ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                                    1,
+                                  ])))))))))),
+                                  rest: [],
+                                ),
+                                rest: [],
+                              )),
+                            ))),
+                            Statement(Expression(LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                                  name: "println",
+                                )))), [
+                                  LogicOr(LogicOr(
+                                    first: LogicAnd(
+                                      first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                        name: "x",
+                                      ))))))))),
+                                      rest: [],
+                                    ),
+                                    rest: [],
+                                  )),
+                                ])))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )))),
+                            Statement(Expression(LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                                  name: "println",
+                                )))), [
+                                  LogicOr(LogicOr(
+                                    first: LogicAnd(
+                                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("-----"))))))))),
+                                      rest: [],
+                                    ),
+                                    rest: [],
+                                  )),
+                                ])))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )))),
+                          ],
+                          expr: None,
+                        ),
+                      )),
+                    ],
+                    expr: Some(LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                          name: "inner",
+                        ))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    ))),
+                  ),
+                )),
+              ],
+              expr: Some(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                    name: "middle",
+                  ))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              ))),
+            ),
+          )),
+          Let(Let(
+            ident: Identifier(
+              name: "middle",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                  name: "outer",
+                )))), [
+                  LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ])))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Let(Let(
+            ident: Identifier(
+              name: "inner1",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                  name: "middle",
+                )))), [
+                  LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("first"))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ])))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "inner1",
+              )))), [])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "inner1",
+              )))), [])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Let(Let(
+            ident: Identifier(
+              name: "inner2",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                  name: "middle",
+                )))), [
+                  LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("second"))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ])))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "inner2",
+              )))), [])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "middle",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "inner1",
+              )))), [])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "inner1",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "inner2",
+              )))), [])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "inner2",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Nil)))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+        ],
+        expr: None,
+      ),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "main",
+        )))), [])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

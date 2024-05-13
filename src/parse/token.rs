@@ -1,4 +1,6 @@
-#[derive(Debug, Copy, Clone, Default)]
+use serde::Serialize;
+
+#[derive(Debug, Copy, Clone, Default, Serialize)]
 pub struct Lexeme<'source> {
     pub token: Token,
     pub text: &'source str,
@@ -15,14 +17,14 @@ impl Lexeme<'_> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct LexemeOwned {
     pub token: Token,
     pub text: String,
     pub line: usize,
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, Hash, Serialize)]
 pub enum Token {
     // Single-character tokens
     LeftParen,

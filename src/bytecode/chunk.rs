@@ -1,6 +1,9 @@
+use std::io;
+
 use num_rational::BigRational;
 use serde::{Deserialize, Serialize};
 
+use crate::bytecode::disassembly::DisassembledChunk;
 use crate::bytecode::{Func, Op, OpError};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, strum::EnumIs, strum::EnumTryAs)]
@@ -28,6 +31,7 @@ impl std::fmt::Debug for Chunk {
     }
 }
 
+// Code
 impl Chunk {
     pub fn push(&mut self, op: Op) {
         self.code.extend(op.to_bytes())
@@ -46,6 +50,7 @@ impl Chunk {
     }
 }
 
+// Globals
 impl Chunk {
     pub fn define_global(&mut self, name: String) -> u8 {
         let id = self.make_global(name);
@@ -79,6 +84,7 @@ impl Chunk {
 #[derive(Debug, Copy, Clone)]
 pub struct PendingJump(usize);
 
+// Jumps
 impl Chunk {
     #[must_use = "set_jump_target"]
     pub fn prepare_jump(&mut self, op: Op) -> PendingJump {
@@ -91,7 +97,9 @@ impl Chunk {
         let idx = jump.0;
         let target = self.code.len();
 
-        let offset: i16 = (target - idx)
+        let offset: u16 = target
+            .checked_sub(idx)
+            .expect("jump is always backwards")
             .try_into()
             .expect("jump offset fits in two bytes");
 
@@ -116,8 +124,9 @@ pub enum ChunkWriteError {
     Serialize(postcard::Error),
 }
 
+// Compiled files
 impl Chunk {
-    pub fn read(r: impl std::io::Read) -> Result<Self, ChunkReadError> {
+    pub fn read(r: impl io::Read) -> Result<Self, ChunkReadError> {
         let mut extra_bytes = Vec::new();
 
         let (chunk, (_, _)) =
@@ -130,7 +139,7 @@ impl Chunk {
         }
     }
 
-    pub fn write(&self, w: impl std::io::Write) -> Result<(), ChunkWriteError> {
+    pub fn write(&self, w: impl io::Write) -> Result<(), ChunkWriteError> {
         postcard::to_io(self, w).map_err(ChunkWriteError::Serialize)?;
         Ok(())
     }
@@ -174,5 +183,11 @@ impl Iterator for CodeIterator<'_> {
                 Some(Err(err))
             }
         }
+    }
+}
+
+impl Chunk {
+    pub fn disassemble(&self) -> DisassembledChunk {
+        self.into()
     }
 }

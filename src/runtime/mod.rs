@@ -3,13 +3,15 @@ use tracing::trace;
 
 pub mod func;
 pub mod heap;
+pub mod host;
 pub mod object;
 pub mod strings;
 pub mod upvalue;
 pub mod value;
 
-pub use func::{BoundMethod, Closure, HostFunc, RuntimeFn};
+pub use func::{BoundMethod, Closure, HostFunc};
 pub use heap::{Gc, GcRoots, Heap, ObjPtr, Trace};
+pub use host::HostFn;
 pub use object::{Instance, List, Object, Type};
 pub use strings::{InternedString, Strings};
 pub use upvalue::{Upvalue, Upvalues};

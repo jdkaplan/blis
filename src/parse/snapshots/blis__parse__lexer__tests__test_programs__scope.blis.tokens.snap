@@ -1,0 +1,267 @@
+---
+source: src/parse/lexer.rs
+description: "let a = {\n    \"a\"\n};\nlet aa = {\n    if true { a } else { 2 }\n};\na = nil;\n\nlet b = if \"true\" { \"one\" } else { \"two\" };\nb = if b { a } else { b };\n"
+input_file: test_programs/scope.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"a\"",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "aa",
+    line: 4,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 4,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 4,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 5,
+  ),
+  Lexeme(
+    token: True,
+    text: "true",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 5,
+  ),
+  Lexeme(
+    token: Else,
+    text: "else",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 5,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 6,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 7,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 7,
+  ),
+  Lexeme(
+    token: Nil,
+    text: "nil",
+    line: 7,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 7,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 9,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 9,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 9,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"true\"",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 9,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"one\"",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 9,
+  ),
+  Lexeme(
+    token: Else,
+    text: "else",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 9,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"two\"",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 10,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 10,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 10,
+  ),
+  Lexeme(
+    token: Else,
+    text: "else",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 10,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 10,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 11,
+  ),
+]

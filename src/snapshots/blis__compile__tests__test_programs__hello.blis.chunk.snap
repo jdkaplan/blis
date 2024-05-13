@@ -1,0 +1,21 @@
+---
+source: src/compile.rs
+description: "println(\"Hello, World!\");\n"
+input_file: test_programs/hello.blis
+---
+DisassembledChunk(
+  constants: [
+    String("Hello, World!"),
+  ],
+  globals: [
+    "println",
+  ],
+  code: [
+    GetGlobal(0),
+    Constant(0),
+    Call(1),
+    Pop,
+    Nil,
+    Return,
+  ],
+)

@@ -3,19 +3,19 @@ let b = "b";
 let c = "c";
 
 let x = a;
-print(x);
+println(x);
 
 x = a + a;
-print(x);
+println(x);
 
 x = x + b;
-print(x);
+println(x);
 
 x = x + x;
-print(x);
+println(x);
 
 a = x + x;
-print(a);
+println(a);
 
 a = nil;
 b = nil;

@@ -38,6 +38,18 @@ impl<'source> Lexer<'source> {
         }
     }
 
+    pub fn all_tokens(mut self) -> Vec<Lexeme<'source>> {
+        let mut tokens = Vec::new();
+        loop {
+            let next = self.scan_next();
+            tokens.push(next);
+
+            if next.token == Token::Eof {
+                return tokens;
+            }
+        }
+    }
+
     #[instrument(level = "trace", ret)]
     pub fn scan_next(&mut self) -> Lexeme<'source> {
         self.skip_ignored();
@@ -267,4 +279,29 @@ fn is_digit(c: char) -> bool {
 
 fn keyword_or_identifier(text: &str) -> Token {
     Token::match_keyword(text).unwrap_or(Token::Identifier)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use rstest::rstest;
+
+    use crate::testing::snapshot_name;
+
+    use super::Lexer;
+
+    #[rstest]
+    fn test_programs(#[files("test_programs/**/*.blis")] path: PathBuf) {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let tokens = Lexer::new(&source).all_tokens();
+
+        insta::with_settings!({
+            input_file => &path,
+            description => source.clone(),
+            omit_expression => true,
+        }, {
+            insta::assert_ron_snapshot!(snapshot_name(&path, "tokens"), tokens);
+        })
+    }
 }

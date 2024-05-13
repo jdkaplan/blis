@@ -1,0 +1,505 @@
+---
+source: src/parse/parser.rs
+description: "func main() {\n    let x = 0;\n    loop twice {\n        if x >= 2 {\n            break;\n        }\n\n        println(\"twice before\", x);\n        x = x + 1;\n        println(\"twice after \", x);\n    }\n    println(\"out of twice\", x);\n\n    loop outer {\n        if x < 0 {\n            println(\"break outer\", x);\n            break;\n        }\n\n        loop inner {\n            loop {\n                break;\n            }\n\n            if x > 2 {\n                println(\"break inner\", x);\n                break;\n            }\n\n            println(\"inner before\", x);\n            x = x + 1;\n            println(\"inner after \", x);\n        }\n        println(\"out of inner\", x);\n        // x = 3\n\n        if x > 2 {\n            x = -1;\n            continue;\n        }\n\n        println(\"never happens\");\n        x = x - 1;\n    }\n    println(\"out of outer\", x);\n}\n\nmain();\n"
+input_file: test_programs/loops.blis
+---
+Program(
+  decls: [
+    Func(Func(
+      ident: Identifier(
+        name: "main",
+      ),
+      params: [],
+      body: Block(
+        decls: [
+          Let(Let(
+            ident: Identifier(
+              name: "x",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Statement(Loop(Loop(
+            label: Some(Identifier(
+              name: "twice",
+            )),
+            body: Block(
+              decls: [
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(If(If(
+                      condition: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Ge(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "x",
+                          )))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                            2,
+                          ])))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      consequent: Block(
+                        decls: [
+                          Statement(Break(Break(
+                            label: None,
+                          ))),
+                        ],
+                        expr: None,
+                      ),
+                      alternative: None,
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                      name: "println",
+                    )))), [
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("twice before"))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "x",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ])))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Assignment(Assignment(
+                  place: Identifier(Identifier(
+                    name: "x",
+                  )),
+                  expr: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "x",
+                      ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                        1,
+                      ])))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                      name: "println",
+                    )))), [
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("twice after "))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "x",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ])))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+              ],
+              expr: None,
+            ),
+          ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("out of twice"))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "x",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Loop(Loop(
+            label: Some(Identifier(
+              name: "outer",
+            )),
+            body: Block(
+              decls: [
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(If(If(
+                      condition: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Lt(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "x",
+                          )))))))), Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      consequent: Block(
+                        decls: [
+                          Statement(Expression(LogicOr(LogicOr(
+                            first: LogicAnd(
+                              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                                name: "println",
+                              )))), [
+                                LogicOr(LogicOr(
+                                  first: LogicAnd(
+                                    first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("break outer"))))))))),
+                                    rest: [],
+                                  ),
+                                  rest: [],
+                                )),
+                                LogicOr(LogicOr(
+                                  first: LogicAnd(
+                                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                      name: "x",
+                                    ))))))))),
+                                    rest: [],
+                                  ),
+                                  rest: [],
+                                )),
+                              ])))))),
+                              rest: [],
+                            ),
+                            rest: [],
+                          )))),
+                          Statement(Break(Break(
+                            label: None,
+                          ))),
+                        ],
+                        expr: None,
+                      ),
+                      alternative: None,
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Loop(Loop(
+                  label: Some(Identifier(
+                    name: "inner",
+                  )),
+                  body: Block(
+                    decls: [
+                      Statement(Loop(Loop(
+                        label: None,
+                        body: Block(
+                          decls: [
+                            Statement(Break(Break(
+                              label: None,
+                            ))),
+                          ],
+                          expr: None,
+                        ),
+                      ))),
+                      Statement(Expression(LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(If(If(
+                            condition: LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Gt(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                  name: "x",
+                                )))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                                  2,
+                                ])))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                            consequent: Block(
+                              decls: [
+                                Statement(Expression(LogicOr(LogicOr(
+                                  first: LogicAnd(
+                                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                                      name: "println",
+                                    )))), [
+                                      LogicOr(LogicOr(
+                                        first: LogicAnd(
+                                          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("break inner"))))))))),
+                                          rest: [],
+                                        ),
+                                        rest: [],
+                                      )),
+                                      LogicOr(LogicOr(
+                                        first: LogicAnd(
+                                          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                            name: "x",
+                                          ))))))))),
+                                          rest: [],
+                                        ),
+                                        rest: [],
+                                      )),
+                                    ])))))),
+                                    rest: [],
+                                  ),
+                                  rest: [],
+                                )))),
+                                Statement(Break(Break(
+                                  label: None,
+                                ))),
+                              ],
+                              expr: None,
+                            ),
+                            alternative: None,
+                          )))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )))),
+                      Statement(Expression(LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                            name: "println",
+                          )))), [
+                            LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("inner before"))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                            LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                  name: "x",
+                                ))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                          ])))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )))),
+                      Statement(Assignment(Assignment(
+                        place: Identifier(Identifier(
+                          name: "x",
+                        )),
+                        expr: LogicOr(LogicOr(
+                          first: LogicAnd(
+                            first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                              name: "x",
+                            ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                              1,
+                            ])))))))))),
+                            rest: [],
+                          ),
+                          rest: [],
+                        )),
+                      ))),
+                      Statement(Expression(LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                            name: "println",
+                          )))), [
+                            LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("inner after "))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                            LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                  name: "x",
+                                ))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                          ])))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )))),
+                    ],
+                    expr: None,
+                  ),
+                ))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                      name: "println",
+                    )))), [
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("out of inner"))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "x",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ])))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(If(If(
+                      condition: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Gt(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "x",
+                          )))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                            2,
+                          ])))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      consequent: Block(
+                        decls: [
+                          Statement(Assignment(Assignment(
+                            place: Identifier(Identifier(
+                              name: "x",
+                            )),
+                            expr: LogicOr(LogicOr(
+                              first: LogicAnd(
+                                first: Value(Value(Value(Value(Neg(Value(Value(Atom(Literal(Integer((1, [
+                                  1,
+                                ]))))))))))),
+                                rest: [],
+                              ),
+                              rest: [],
+                            )),
+                          ))),
+                          Statement(Continue(Continue(
+                            label: None,
+                          ))),
+                        ],
+                        expr: None,
+                      ),
+                      alternative: None,
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                      name: "println",
+                    )))), [
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("never happens"))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ])))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Assignment(Assignment(
+                  place: Identifier(Identifier(
+                    name: "x",
+                  )),
+                  expr: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Sub(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "x",
+                      ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                        1,
+                      ])))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ))),
+              ],
+              expr: None,
+            ),
+          ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("out of outer"))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "x",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+        ],
+        expr: None,
+      ),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "main",
+        )))), [])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

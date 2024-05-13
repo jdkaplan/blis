@@ -2,17 +2,17 @@ func main() {
     let one = new_thing("uno");
     let two = new_thing("dos");
 
-    print(one);
-    print(one.id, one.name);
+    println(one);
+    println(one.id, one.name);
 
-    print(two);
-    print(two.id, two.name);
+    println(two);
+    println(two.id, two.name);
 
     one.two = two;
     two.one = one;
 
-    print(one.two);
-    print(two.one);
+    println(one.two);
+    println(two.one);
 }
 
 let counter = 0;

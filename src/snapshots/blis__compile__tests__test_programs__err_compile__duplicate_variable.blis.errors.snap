@@ -1,0 +1,10 @@
+---
+source: src/compile.rs
+description: "func main() {\n    let a = 0;\n    let a = 1;\n}\n"
+input_file: test_programs/err_compile/duplicate_variable.blis
+---
+CompileErrors([
+  DuplicateVariable(Identifier(
+    name: "a",
+  )),
+])

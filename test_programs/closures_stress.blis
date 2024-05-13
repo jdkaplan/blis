@@ -1,16 +1,16 @@
 func main() {
     func outer(x) {
-        print("outer");
+        println("outer");
 
         func middle(name) {
-            print("middle", name);
+            println("middle", name);
 
             func inner() {
-                print("inner", name);
-                print(x);
+                println("inner", name);
+                println(x);
                 x = x + 1;
-                print(x);
-                print("-----");
+                println(x);
+                println("-----");
             }
 
             inner

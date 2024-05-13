@@ -42,7 +42,7 @@ impl fmt::Display for Object {
 
             Object::BoundMethod(b) => write!(f, "bound method {}", b.name()),
             Object::Closure(o) => write!(f, "closure {}", o.func.name),
-            Object::HostFunc(v) => write!(f, "func {:?}", v.name),
+            Object::HostFunc(v) => write!(f, "func {}", v.name),
 
             Object::Type(t) => write!(f, "type {}", t.name),
 
