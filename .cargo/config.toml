@@ -1,0 +1,2 @@
+[alias]
+deny = ["bin", "cargo-deny"]

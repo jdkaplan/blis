@@ -1,0 +1,15 @@
+[licenses]
+version = 2
+
+# Require extra-high confidence. Default was 0.8
+confidence-threshold = 0.93
+allow = [
+    "Apache-2.0",
+    "BlueOak-1.0.0",
+    "MIT",
+    "Unicode-DFS-2016",
+    "Zlib",
+]
+
+[bans]
+wildcards = "warn"
