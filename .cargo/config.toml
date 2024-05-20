@@ -1,4 +1,6 @@
 [alias]
 deny = ["bin", "cargo-deny"]
+insta = ["bin", "cargo-insta"]
+make = ["bin", "cargo-make"]
 nextest = ["bin", "cargo-nextest"]
 tarpaulin = ["bin", "cargo-tarpaulin"]

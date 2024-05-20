@@ -43,5 +43,7 @@ opt-level = 3
 
 [package.metadata.bin]
 cargo-deny = { version = "0.14.23" }
-cargo-tarpaulin = { version = "0.30.0" }
+cargo-insta = { version = "1.39.0" }
+cargo-make = { version = '0.37.12' }
 cargo-nextest = { version = "0.9.70" }
+cargo-tarpaulin = { version = "0.30.0" }

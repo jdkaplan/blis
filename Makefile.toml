@@ -1,0 +1,35 @@
+[config]
+default_to_workspace = false
+skip_core_tasks = true
+
+[tasks.test]
+description = "Run tests and review snapshots"
+command = "cargo"
+args = [
+    "insta", "test",
+    "--review",
+    "--unreferenced=delete",
+    "--test-runner=nextest",
+    # Run tests with `gc_tombstone` on so that object IDs don't get reused in
+    # snapshot test output.
+    "--features=gc_tombstone",
+]
+
+[tasks.coverage]
+description = "Run tests to show a coverage report"
+command = "cargo"
+args = [
+    "tarpaulin",
+    "--skip-clean",
+    "--target-dir", "target/coverage",
+    "--out", "html",
+    "--output-dir", "coverage",
+    # Run tests with `gc_tombstone` on so that object IDs don't get reused in
+    # snapshot test output.
+    "--features=gc_tombstone",
+]
+
+[tasks.deny]
+description = "Run cargo-deny checks"
+command = "cargo"
+args = ["deny", "check"]
