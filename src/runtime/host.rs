@@ -14,16 +14,10 @@ pub fn print(opts: &mut VmOptions<'_>, _argc: u8, argv: &[Value]) -> Value {
     Value::Nil
 }
 
-pub fn println(opts: &mut VmOptions<'_>, _argc: u8, argv: &[Value]) -> Value {
-    if let Some(first) = argv.first() {
-        write!(opts.stdout, "{}", first).unwrap();
-        for v in &argv[1..] {
-            write!(opts.stdout, " {}", v).unwrap();
-        }
-    }
-
+pub fn println(opts: &mut VmOptions<'_>, argc: u8, argv: &[Value]) -> Value {
+    let v = print(opts, argc, argv);
     writeln!(opts.stdout).unwrap();
-    Value::Nil
+    v
 }
 
 pub fn list_append(_: &mut VmOptions<'_>, argc: u8, argv: &[Value]) -> Value {

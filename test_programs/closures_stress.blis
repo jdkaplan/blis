@@ -29,9 +29,11 @@ func main() {
 
     middle = nil;
 
+    println(inner1);
     inner1();
     inner1 = nil;
 
+    println(inner2);
     inner2();
     inner2 = nil;
 }

@@ -1,0 +1,21 @@
+---
+source: src/parse/parser.rs
+description: "not_defined = 0;\n"
+input_file: test_programs/err_runtime/undefined_global_write.blis
+---
+Program(
+  decls: [
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "not_defined",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+  ],
+)

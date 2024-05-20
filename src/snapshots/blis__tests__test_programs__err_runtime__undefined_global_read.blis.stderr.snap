@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "let a = not_defined;\n"
+input_file: test_programs/err_runtime/undefined_global_read.blis
+---
+

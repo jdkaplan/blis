@@ -1,6 +1,6 @@
 ---
 source: src/parse/parser.rs
-description: "func main() {\n    func outer(x) {\n        println(\"outer\");\n\n        func middle(name) {\n            println(\"middle\", name);\n\n            func inner() {\n                println(\"inner\", name);\n                println(x);\n                x = x + 1;\n                println(x);\n                println(\"-----\");\n            }\n\n            inner\n        }\n\n        middle\n    }\n\n    let middle = outer(0);\n    let inner1 = middle(\"first\");\n    inner1();\n    inner1();\n\n    let inner2 = middle(\"second\");\n    inner2();\n\n    middle = nil;\n\n    inner1();\n    inner1 = nil;\n\n    inner2();\n    inner2 = nil;\n}\n\nmain();\n"
+description: "func main() {\n    func outer(x) {\n        println(\"outer\");\n\n        func middle(name) {\n            println(\"middle\", name);\n\n            func inner() {\n                println(\"inner\", name);\n                println(x);\n                x = x + 1;\n                println(x);\n                println(\"-----\");\n            }\n\n            inner\n        }\n\n        middle\n    }\n\n    let middle = outer(0);\n    let inner1 = middle(\"first\");\n    inner1();\n    inner1();\n\n    let inner2 = middle(\"second\");\n    inner2();\n\n    middle = nil;\n\n    println(inner1);\n    inner1();\n    inner1 = nil;\n\n    println(inner2);\n    inner2();\n    inner2 = nil;\n}\n\nmain();\n"
 input_file: test_programs/closures_stress.blis
 ---
 Program(
@@ -317,6 +317,25 @@ Program(
           Statement(Expression(LogicOr(LogicOr(
             first: LogicAnd(
               first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "inner1",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
                 name: "inner1",
               )))), [])))))),
               rest: [],
@@ -335,6 +354,25 @@ Program(
               rest: [],
             )),
           ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "inner2",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
           Statement(Expression(LogicOr(LogicOr(
             first: LogicAnd(
               first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(

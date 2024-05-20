@@ -5,6 +5,7 @@ let this = OpenStruct{
 };
 this.b = "b";
 
+println(OpenStruct);
 println(this);
 println(this.a);
 println(this.b);

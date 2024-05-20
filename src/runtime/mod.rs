@@ -153,13 +153,6 @@ impl Runtime {
             None => Err(RuntimeError::UndefinedGlobal { name: name.into() }),
         }
     }
-
-    pub fn get_global_mut(&mut self, name: &str) -> RuntimeResult<&mut Value> {
-        match self.globals.get_mut(name) {
-            Some(value) => Ok(value),
-            None => Err(RuntimeError::UndefinedGlobal { name: name.into() }),
-        }
-    }
 }
 
 // Builtins

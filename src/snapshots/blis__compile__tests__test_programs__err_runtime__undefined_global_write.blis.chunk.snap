@@ -1,0 +1,21 @@
+---
+source: src/compile.rs
+description: "not_defined = 0;\n"
+input_file: test_programs/err_runtime/undefined_global_write.blis
+---
+DisassembledChunk(
+  constants: [
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+  ],
+  globals: [
+    "not_defined",
+  ],
+  code: [
+    Constant(0),
+    SetGlobal(0),
+    Nil,
+    Return,
+  ],
+)

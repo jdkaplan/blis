@@ -1,0 +1,37 @@
+---
+source: src/parse/lexer.rs
+description: "let a = not_defined;\n"
+input_file: test_programs/err_runtime/undefined_global_read.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "not_defined",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

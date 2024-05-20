@@ -1,0 +1,32 @@
+---
+source: src/parse/lexer.rs
+description: "not_defined = 0;\n"
+input_file: test_programs/err_runtime/undefined_global_write.blis
+---
+[
+  Lexeme(
+    token: Identifier,
+    text: "not_defined",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "0",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

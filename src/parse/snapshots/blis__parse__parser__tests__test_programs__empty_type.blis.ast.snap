@@ -1,6 +1,6 @@
 ---
 source: src/parse/parser.rs
-description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
+description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(OpenStruct);\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
 input_file: test_programs/empty_type.blis
 ---
 Program(
@@ -52,6 +52,25 @@ Program(
         rest: [],
       )),
     ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "OpenStruct",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
     Statement(Expression(LogicOr(LogicOr(
       first: LogicAnd(
         first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(

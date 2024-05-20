@@ -1,6 +1,6 @@
 ---
 source: src/parse/lexer.rs
-description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
+description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(OpenStruct);\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
 input_file: test_programs/empty_type.blis
 ---
 [
@@ -116,7 +116,7 @@ input_file: test_programs/empty_type.blis
   ),
   Lexeme(
     token: Identifier,
-    text: "this",
+    text: "OpenStruct",
     line: 8,
   ),
   Lexeme(
@@ -145,63 +145,88 @@ input_file: test_programs/empty_type.blis
     line: 9,
   ),
   Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "this",
+    line: 10,
+  ),
+  Lexeme(
     token: Dot,
     text: ".",
-    line: 9,
+    line: 10,
   ),
   Lexeme(
     token: Identifier,
     text: "a",
-    line: 9,
+    line: 10,
   ),
   Lexeme(
     token: RightParen,
     text: ")",
-    line: 9,
+    line: 10,
   ),
   Lexeme(
     token: Semicolon,
     text: ";",
-    line: 9,
+    line: 10,
   ),
   Lexeme(
     token: Identifier,
     text: "println",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: LeftParen,
     text: "(",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: Identifier,
     text: "this",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: Dot,
     text: ".",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: Identifier,
     text: "b",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: RightParen,
     text: ")",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: Semicolon,
     text: ";",
-    line: 10,
+    line: 11,
   ),
   Lexeme(
     token: Eof,
     text: "",
-    line: 11,
+    line: 12,
   ),
 ]

@@ -1,0 +1,23 @@
+---
+source: src/parse/parser.rs
+description: "let a = not_defined;\n"
+input_file: test_programs/err_runtime/undefined_global_read.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "a",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+            name: "not_defined",
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+  ],
+)

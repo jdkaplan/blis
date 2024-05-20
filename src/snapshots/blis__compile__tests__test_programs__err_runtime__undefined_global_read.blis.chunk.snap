@@ -1,0 +1,18 @@
+---
+source: src/compile.rs
+description: "let a = not_defined;\n"
+input_file: test_programs/err_runtime/undefined_global_read.blis
+---
+DisassembledChunk(
+  constants: [],
+  globals: [
+    "not_defined",
+    "a",
+  ],
+  code: [
+    GetGlobal(0),
+    DefineGlobal(1),
+    Nil,
+    Return,
+  ],
+)

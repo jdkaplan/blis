@@ -16,6 +16,12 @@ func main() {
     println(one["two"]);
     println(two.one);
     println(two["one"]);
+
+    println(Counter.new);
+    println(one.incr);
+    println(one.add);
+    println(two.incr);
+    println(two.add);
 }
 
 let id = 0;
