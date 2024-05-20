@@ -15,4 +15,4 @@ input_file: test_programs/objects.blis
 <bound method incr 0x000000000004>
 <bound method add 0x000000000005>
 <bound method incr 0x000000000006>
-<bound method add 0x000000000006>
+<bound method add 0x000000000007>
