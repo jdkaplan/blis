@@ -1,0 +1,22 @@
+---
+source: src/parse/lexer.rs
+description: "type T // needs `;` or `with { ... }`\n"
+input_file: test_programs/err_parse/missing_semicolon_type.blis
+---
+[
+  Lexeme(
+    token: Type,
+    text: "type",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "T",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

@@ -1,0 +1,10 @@
+type OpenStruct;
+
+let this = OpenStruct{
+    a = "a",
+};
+this.b = "b";
+
+println(this);
+println(this.a);
+println(this.b);

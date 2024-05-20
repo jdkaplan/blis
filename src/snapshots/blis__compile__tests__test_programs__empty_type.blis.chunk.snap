@@ -1,0 +1,50 @@
+---
+source: src/compile.rs
+description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
+input_file: test_programs/empty_type.blis
+---
+DisassembledChunk(
+  constants: [
+    String("OpenStruct"),
+    String("a"),
+    String("a"),
+    String("b"),
+    String("b"),
+    String("a"),
+    String("b"),
+  ],
+  globals: [
+    "OpenStruct",
+    "this",
+    "println",
+  ],
+  code: [
+    Type(0),
+    DefineGlobal(0),
+    GetGlobal(0),
+    Object,
+    Constant(2),
+    SetField(1),
+    DefineGlobal(1),
+    GetGlobal(1),
+    Constant(4),
+    SetField(3),
+    Pop,
+    GetGlobal(2),
+    GetGlobal(1),
+    Call(1),
+    Pop,
+    GetGlobal(2),
+    GetGlobal(1),
+    GetField(5),
+    Call(1),
+    Pop,
+    GetGlobal(2),
+    GetGlobal(1),
+    GetField(6),
+    Call(1),
+    Pop,
+    Nil,
+    Return,
+  ],
+)

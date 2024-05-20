@@ -1,0 +1,15 @@
+---
+source: src/parse/parser.rs
+description: "type T // needs `;` or `with { ... }`\n"
+input_file: test_programs/err_parse/missing_semicolon_type.blis
+---
+ParseErrors([
+  Syntax(SyntaxError(
+    expected: Semicolon,
+    actual: Some(LexemeOwned(
+      token: Eof,
+      text: "",
+      line: 2,
+    )),
+  )),
+])

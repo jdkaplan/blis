@@ -1,0 +1,207 @@
+---
+source: src/parse/lexer.rs
+description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
+input_file: test_programs/empty_type.blis
+---
+[
+  Lexeme(
+    token: Type,
+    text: "type",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "OpenStruct",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "this",
+    line: 3,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "OpenStruct",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 4,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 4,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"a\"",
+    line: 4,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 4,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "this",
+    line: 6,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 6,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 6,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"b\"",
+    line: 6,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 8,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "this",
+    line: 8,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 8,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "this",
+    line: 9,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "this",
+    line: 10,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "b",
+    line: 10,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 10,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 10,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 11,
+  ),
+]

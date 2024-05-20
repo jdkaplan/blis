@@ -1,7 +1,7 @@
 ---
 source: src/parse/parser.rs
 description: "println(\"Hello, World\")\n"
-input_file: test_programs/err_parse/missing_semicolon.blis
+input_file: test_programs/err_parse/missing_semicolon_statement.blis
 ---
 ParseErrors([
   Syntax(SyntaxError(

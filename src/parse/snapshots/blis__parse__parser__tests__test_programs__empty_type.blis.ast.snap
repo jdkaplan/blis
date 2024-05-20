@@ -1,0 +1,117 @@
+---
+source: src/parse/parser.rs
+description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
+input_file: test_programs/empty_type.blis
+---
+Program(
+  decls: [
+    Type(Type(
+      ident: Identifier(
+        name: "OpenStruct",
+      ),
+      methods: [],
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "this",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Object(Object(
+            ty: Identifier(
+              name: "OpenStruct",
+            ),
+            fields: [
+              (Identifier(
+                name: "a",
+              ), LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("a"))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              ))),
+            ],
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Assignment(Assignment(
+      place: Field(Value(Atom(Identifier(Identifier(
+        name: "this",
+      )))), Identifier(
+        name: "b",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("b"))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "this",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Field(Value(Atom(Identifier(Identifier(
+                name: "this",
+              )))), Identifier(
+                name: "a",
+              ))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Field(Value(Atom(Identifier(Identifier(
+                name: "this",
+              )))), Identifier(
+                name: "b",
+              ))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

@@ -302,14 +302,15 @@ impl<'source> Parser<'source> {
 
         // TODO(types): parse field specs here
 
-        let methods = if let Some(_kw) = self.take(Token::With) {
+        if let Some(_kw) = self.take(Token::With) {
             let open = self.must_take(Token::LeftBrace)?;
-            self.type_methods(open)?
+            let methods = self.type_methods(open)?;
+            Ok(Type { ident, methods })
         } else {
-            Vec::new()
-        };
-
-        Ok(Type { ident, methods })
+            let methods = vec![];
+            self.must_take(Token::Semicolon)?;
+            Ok(Type { ident, methods })
+        }
     }
 
     #[instrument(level = "trace", ret, skip(self))]

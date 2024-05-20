@@ -1,0 +1,8 @@
+---
+source: src/lib.rs
+description: "type OpenStruct;\n\nlet this = OpenStruct{\n    a = \"a\",\n};\nthis.b = \"b\";\n\nprintln(this);\nprintln(this.a);\nprintln(this.b);\n"
+input_file: test_programs/empty_type.blis
+---
+<instance of OpenStruct 0x000000000001>
+a
+b
