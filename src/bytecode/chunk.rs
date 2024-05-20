@@ -42,12 +42,24 @@ impl Chunk {
     }
 
     pub fn add_constant(&mut self, constant: Constant) -> u8 {
+        // Reuse existing constants when possible.
+        if let Some(idx) = self.find_constant(&constant) {
+            return idx;
+        }
+
         let idx = self.constants.len();
         assert!(idx < u8::MAX.into());
 
-        // TODO: Reuse existing constant if already registered
         self.constants.push(constant);
         idx as u8
+    }
+
+    fn find_constant(&self, constant: &Constant) -> Option<u8> {
+        // TODO: HashMap/BTreeMap?
+        self.constants
+            .iter()
+            .position(|c| c == constant)
+            .map(|idx| idx.try_into().expect("add_constant enforces count"))
     }
 }
 
@@ -59,6 +71,7 @@ impl Chunk {
     }
 
     fn find_global(&self, name: &str) -> Option<u8> {
+        // TODO: HashMap/BTreeMap?
         self.globals
             .iter()
             .position(|g| g == name)

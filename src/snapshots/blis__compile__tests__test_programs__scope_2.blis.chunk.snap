@@ -10,11 +10,6 @@ DisassembledChunk(
     ]), (1, [
       1,
     ]))),
-    Rational(((1, [
-      1,
-    ]), (1, [
-      1,
-    ]))),
   ],
   globals: [
     "x",
@@ -24,7 +19,7 @@ DisassembledChunk(
     Constant(0),
     DefineGlobal(0),
     GetGlobal(0),
-    Constant(1),
+    Constant(0),
     Add,
     Nil,
     PopUnderN(1),

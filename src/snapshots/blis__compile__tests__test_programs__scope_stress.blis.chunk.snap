@@ -81,11 +81,6 @@ DisassembledChunk(
             1,
           ]))),
           Rational(((1, [
-            4,
-          ]), (1, [
-            1,
-          ]))),
-          Rational(((1, [
             5,
           ]), (1, [
             1,
@@ -105,8 +100,8 @@ DisassembledChunk(
           Constant(2),
           GetGlobal(0),
           GetLocal(1),
+          Constant(2),
           Constant(3),
-          Constant(4),
           Call(3),
           Pop,
           Nil,
