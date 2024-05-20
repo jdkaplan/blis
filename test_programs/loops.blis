@@ -2,7 +2,7 @@ func main() {
     let x = 0;
     loop twice {
         if x >= 2 {
-            break;
+            break twice;
         }
 
         println("twice before", x);

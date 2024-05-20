@@ -1,0 +1,47 @@
+---
+source: src/parse/lexer.rs
+description: "loop outer {\n    continue inner;\n}\n"
+input_file: test_programs/err_compile/continue_label_missing.blis
+---
+[
+  Lexeme(
+    token: Loop,
+    text: "loop",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "outer",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Continue,
+    text: "continue",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "inner",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 3,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 4,
+  ),
+]

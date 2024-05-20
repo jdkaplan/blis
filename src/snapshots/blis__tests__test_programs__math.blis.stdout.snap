@@ -1,6 +1,24 @@
 ---
 source: src/lib.rs
-description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n"
+description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n\nprintln( 22 %  7);\nprintln(-22 %  7);\nprintln(-22 % -7);\nprintln( 22 % -7);\nprintln( 1.23 %  1.0);\nprintln(-1.23 %  1.0);\nprintln(-1.23 % -1.0);\nprintln( 1.23 % -1.0);\nprintln( 22/7 %  1);\nprintln(-22/7 %  1);\nprintln(-22/7 % -1);\nprintln( 22/7 % -1);\n\nprintln(0 == 1);\nprintln(0 != 1);\nprintln(0 <  1);\nprintln(0 <= 1);\nprintln(0 >  1);\nprintln(0 >= 1);\n"
 input_file: test_programs/math.blis
 ---
 -22/5
+1
+-1
+-1
+1
+0.22999999999999998
+-0.22999999999999998
+-0.22999999999999998
+0.22999999999999998
+1/7
+-1/7
+-1/7
+1/7
+false
+true
+true
+true
+false
+false

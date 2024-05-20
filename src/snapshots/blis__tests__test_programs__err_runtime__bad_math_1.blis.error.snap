@@ -1,6 +1,6 @@
 ---
 source: src/lib.rs
 description: "println(\"1\" + 1);\n"
-input_file: test_programs/err_runtime/bad_math.blis
+input_file: test_programs/err_runtime/bad_math_1.blis
 ---
 type error: cannot perform arithmetic with `String("1")` and `Rational(Ratio { numer: 1, denom: 1 })`

@@ -40,6 +40,12 @@ pub enum CompileError {
     #[error("`self` used outside of method definition")]
     SelfOutsideMethod,
 
+    #[error("no prior label for `break`: {}", .0.name)]
+    NoBreakLabel(Identifier),
+
+    #[error("no prior label for `continue`: {}", .0.name)]
+    NoContinueLabel(Identifier),
+
     #[error("{0}")]
     Other(String), // TODO: Define other compile errors
 }
@@ -748,7 +754,6 @@ impl Compiler {
             Primary::If(if_) => self.expr_if(if_),
             Primary::Atom(atom) => self.atom(atom),
             Primary::Group(expr) => self.expression(expr),
-            Primary::Object(obj) => self.expr_object(obj),
         }
     }
 
@@ -1272,10 +1277,7 @@ impl Loops {
                     return Ok(());
                 }
             }
-            Err(CompileError::Other(format!(
-                "no label for break: {:?}",
-                name
-            )))
+            Err(CompileError::NoBreakLabel(name.clone()))
         } else {
             let lp = self.0.last_mut().ok_or(CompileError::Other(String::from(
                 "break statement outside of loop",
@@ -1293,10 +1295,7 @@ impl Loops {
                     return Ok(lp);
                 }
             }
-            Err(CompileError::Other(format!(
-                "no label for continue: {:?}",
-                name
-            )))
+            Err(CompileError::NoContinueLabel(name.clone()))
         } else {
             self.0.last().ok_or(CompileError::Other(String::from(
                 "continue statement outside of loop",

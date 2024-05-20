@@ -1,0 +1,24 @@
+---
+source: src/parse/parser.rs
+description: "loop outer {\n    break inner;\n}\n"
+input_file: test_programs/err_compile/break_label_missing.blis
+---
+Program(
+  decls: [
+    Statement(Loop(Loop(
+      label: Some(Identifier(
+        name: "outer",
+      )),
+      body: Block(
+        decls: [
+          Statement(Break(Break(
+            label: Some(Identifier(
+              name: "inner",
+            )),
+          ))),
+        ],
+        expr: None,
+      ),
+    ))),
+  ],
+)

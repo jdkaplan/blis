@@ -174,7 +174,6 @@ pub enum Primary {
     Block(Block),
     If(If),
     Group(Box<Expression>),
-    Object(Object),
 
     Atom(Atom),
 }
@@ -193,7 +192,7 @@ pub struct List {
 impl Primary {
     pub fn self_terminating(&self) -> bool {
         match self {
-            Primary::Block(_) | Primary::If(_) | Primary::Object(_) => true,
+            Primary::Block(_) | Primary::If(_) => true,
             Primary::Atom(_) | Primary::Group(_) => false,
         }
     }

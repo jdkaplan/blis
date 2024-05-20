@@ -1,0 +1,10 @@
+---
+source: src/compile.rs
+description: "loop outer {\n    continue inner;\n}\n"
+input_file: test_programs/err_compile/continue_label_missing.blis
+---
+CompileErrors([
+  NoContinueLabel(Identifier(
+    name: "inner",
+  )),
+])

@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "println(1 + 2.0);\n"
+input_file: test_programs/err_runtime/bad_math_2.blis
+---
+

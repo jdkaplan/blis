@@ -1,16 +1,16 @@
 ---
 source: src/compile.rs
-description: "println(\"1\" + 1);\n"
-input_file: test_programs/err_runtime/bad_math.blis
+description: "println(1 + 2.0);\n"
+input_file: test_programs/err_runtime/bad_math_2.blis
 ---
 DisassembledChunk(
   constants: [
-    String("1"),
     Rational(((1, [
       1,
     ]), (1, [
       1,
     ]))),
+    Float(2.0),
   ],
   globals: [
     "println",

@@ -1,6 +1,6 @@
 ---
 source: src/compile.rs
-description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n"
+description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n\nprintln( 22 %  7);\nprintln(-22 %  7);\nprintln(-22 % -7);\nprintln( 22 % -7);\nprintln( 1.23 %  1.0);\nprintln(-1.23 %  1.0);\nprintln(-1.23 % -1.0);\nprintln( 1.23 % -1.0);\nprintln( 22/7 %  1);\nprintln(-22/7 %  1);\nprintln(-22/7 % -1);\nprintln( 22/7 % -1);\n\nprintln(0 == 1);\nprintln(0 != 1);\nprintln(0 <  1);\nprintln(0 <= 1);\nprintln(0 >  1);\nprintln(0 >= 1);\n"
 input_file: test_programs/math.blis
 ---
 DisassembledChunk(
@@ -40,6 +40,162 @@ DisassembledChunk(
     ]), (1, [
       1,
     ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Float(1.23),
+    Float(1.0),
+    Float(1.23),
+    Float(1.0),
+    Float(1.23),
+    Float(1.0),
+    Float(1.23),
+    Float(1.0),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      22,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      7,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
   ],
   globals: [
     "v",
@@ -62,6 +218,134 @@ DisassembledChunk(
     DefineGlobal(0),
     GetGlobal(1),
     GetGlobal(0),
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(7),
+    Constant(8),
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(9),
+    Neg,
+    Constant(10),
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(11),
+    Neg,
+    Constant(12),
+    Neg,
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(13),
+    Constant(14),
+    Neg,
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(15),
+    Constant(16),
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(17),
+    Neg,
+    Constant(18),
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(19),
+    Neg,
+    Constant(20),
+    Neg,
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(21),
+    Constant(22),
+    Neg,
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(23),
+    Constant(24),
+    Div,
+    Constant(25),
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(26),
+    Neg,
+    Constant(27),
+    Div,
+    Constant(28),
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(29),
+    Neg,
+    Constant(30),
+    Div,
+    Constant(31),
+    Neg,
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(32),
+    Constant(33),
+    Div,
+    Constant(34),
+    Neg,
+    Rem,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(35),
+    Constant(36),
+    Eq,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(37),
+    Constant(38),
+    Ne,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(39),
+    Constant(40),
+    Lt,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(41),
+    Constant(42),
+    Le,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(43),
+    Constant(44),
+    Gt,
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(45),
+    Constant(46),
+    Ge,
     Call(1),
     Pop,
     Nil,

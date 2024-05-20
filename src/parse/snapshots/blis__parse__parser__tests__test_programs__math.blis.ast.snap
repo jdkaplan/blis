@@ -1,6 +1,6 @@
 ---
 source: src/parse/parser.rs
-description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n"
+description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n\nprintln( 22 %  7);\nprintln(-22 %  7);\nprintln(-22 % -7);\nprintln( 22 % -7);\nprintln( 1.23 %  1.0);\nprintln(-1.23 %  1.0);\nprintln(-1.23 % -1.0);\nprintln( 1.23 % -1.0);\nprintln( 22/7 %  1);\nprintln(-22/7 %  1);\nprintln(-22/7 % -1);\nprintln( 22/7 % -1);\n\nprintln(0 == 1);\nprintln(0 != 1);\nprintln(0 <  1);\nprintln(0 <= 1);\nprintln(0 >  1);\nprintln(0 >= 1);\n"
 input_file: test_programs/math.blis
 ---
 Program(
@@ -47,6 +47,364 @@ Program(
               first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
                 name: "v",
               ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Neg(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ])))))))), Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Neg(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ])))))))), Neg(Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ]))))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ]))))))), Neg(Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ]))))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Value(Value(Atom(Literal(Float(1.23)))))), Value(Value(Atom(Literal(Float(1.0))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Neg(Value(Value(Atom(Literal(Float(1.23))))))), Value(Value(Atom(Literal(Float(1.0))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Neg(Value(Value(Atom(Literal(Float(1.23))))))), Neg(Value(Value(Atom(Literal(Float(1.0)))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Value(Value(Value(Atom(Literal(Float(1.23)))))), Neg(Value(Value(Atom(Literal(Float(1.0)))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Div(Value(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Div(Value(Neg(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ])))))))), Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Div(Value(Neg(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ])))))))), Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ]))))))), Neg(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ]))))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Rem(Div(Value(Value(Value(Atom(Literal(Integer((1, [
+                22,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                7,
+              ]))))))), Neg(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ]))))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Eq(Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))), Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Ne(Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))), Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Lt(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, []))))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Le(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, []))))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Gt(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, []))))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Ge(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, []))))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                1,
+              ])))))))))),
               rest: [],
             ),
             rest: [],

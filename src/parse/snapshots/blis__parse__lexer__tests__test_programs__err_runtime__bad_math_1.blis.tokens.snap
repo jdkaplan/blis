@@ -1,0 +1,47 @@
+---
+source: src/parse/lexer.rs
+description: "println(\"1\" + 1);\n"
+input_file: test_programs/err_runtime/bad_math_1.blis
+---
+[
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"1\"",
+    line: 1,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

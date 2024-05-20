@@ -1,2 +1,22 @@
 let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;
 println(v);
+
+println( 22 %  7);
+println(-22 %  7);
+println(-22 % -7);
+println( 22 % -7);
+println( 1.23 %  1.0);
+println(-1.23 %  1.0);
+println(-1.23 % -1.0);
+println( 1.23 % -1.0);
+println( 22/7 %  1);
+println(-22/7 %  1);
+println(-22/7 % -1);
+println( 22/7 % -1);
+
+println(0 == 1);
+println(0 != 1);
+println(0 <  1);
+println(0 <= 1);
+println(0 >  1);
+println(0 >= 1);

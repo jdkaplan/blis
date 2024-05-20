@@ -1,7 +1,7 @@
 ---
 source: src/parse/parser.rs
-description: "println(\"1\" + 1);\n"
-input_file: test_programs/err_runtime/bad_math.blis
+description: "println(1 + 2.0);\n"
+input_file: test_programs/err_runtime/bad_math_2.blis
 ---
 Program(
   decls: [
@@ -12,9 +12,9 @@ Program(
         )))), [
           LogicOr(LogicOr(
             first: LogicAnd(
-              first: Value(Value(Add(Value(Value(Value(Value(Atom(Literal(String("1"))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+              first: Value(Value(Add(Value(Value(Value(Value(Atom(Literal(Integer((1, [
                 1,
-              ])))))))))),
+              ])))))))), Value(Value(Value(Atom(Literal(Float(2.0))))))))),
               rest: [],
             ),
             rest: [],

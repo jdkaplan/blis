@@ -1,6 +1,6 @@
 ---
 source: src/parse/parser.rs
-description: "func main() {\n    let x = 0;\n    loop twice {\n        if x >= 2 {\n            break;\n        }\n\n        println(\"twice before\", x);\n        x = x + 1;\n        println(\"twice after \", x);\n    }\n    println(\"out of twice\", x);\n\n    loop outer {\n        if x < 0 {\n            println(\"break outer\", x);\n            break;\n        }\n\n        loop inner {\n            loop {\n                break;\n            }\n\n            if x > 2 {\n                println(\"break inner\", x);\n                break;\n            }\n\n            println(\"inner before\", x);\n            x = x + 1;\n            println(\"inner after \", x);\n        }\n        println(\"out of inner\", x);\n        // x = 3\n\n        if x > 2 {\n            x = -1;\n            continue;\n        }\n\n        println(\"never happens\");\n        x = x - 1;\n    }\n    println(\"out of outer\", x);\n}\n\nmain();\n"
+description: "func main() {\n    let x = 0;\n    loop twice {\n        if x >= 2 {\n            break twice;\n        }\n\n        println(\"twice before\", x);\n        x = x + 1;\n        println(\"twice after \", x);\n    }\n    println(\"out of twice\", x);\n\n    loop outer {\n        if x < 0 {\n            println(\"break outer\", x);\n            break;\n        }\n\n        loop inner {\n            loop {\n                break;\n            }\n\n            if x > 2 {\n                println(\"break inner\", x);\n                break;\n            }\n\n            println(\"inner before\", x);\n            x = x + 1;\n            println(\"inner after \", x);\n        }\n        println(\"out of inner\", x);\n        // x = 3\n\n        if x > 2 {\n            x = -1;\n            continue;\n        }\n\n        println(\"never happens\");\n        x = x - 1;\n    }\n    println(\"out of outer\", x);\n}\n\nmain();\n"
 input_file: test_programs/loops.blis
 ---
 Program(
@@ -47,7 +47,9 @@ Program(
                       consequent: Block(
                         decls: [
                           Statement(Break(Break(
-                            label: None,
+                            label: Some(Identifier(
+                              name: "twice",
+                            )),
                           ))),
                         ],
                         expr: None,

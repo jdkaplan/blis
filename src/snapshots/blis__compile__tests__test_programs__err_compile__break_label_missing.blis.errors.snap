@@ -1,0 +1,10 @@
+---
+source: src/compile.rs
+description: "loop outer {\n    break inner;\n}\n"
+input_file: test_programs/err_compile/break_label_missing.blis
+---
+CompileErrors([
+  NoBreakLabel(Identifier(
+    name: "inner",
+  )),
+])
