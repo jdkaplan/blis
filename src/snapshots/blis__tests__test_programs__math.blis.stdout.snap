@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n"
+input_file: test_programs/math.blis
+---
+-22/5

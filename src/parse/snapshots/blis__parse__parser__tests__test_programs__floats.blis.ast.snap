@@ -1,0 +1,152 @@
+---
+source: src/parse/parser.rs
+description: "let pos_inf =  1.0/0.0;\nlet neg_inf = -1.0/0.0;\nlet nan     =  0.0/0.0;\n\nprintln(pos_inf, pos_inf == pos_inf);\nprintln(neg_inf, neg_inf == neg_inf);\nprintln(nan, nan == nan);\n\nprintln(0.1 + 0.2);\n"
+input_file: test_programs/floats.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "pos_inf",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Div(Value(Value(Value(Atom(Literal(Float(1.0)))))), Value(Value(Atom(Literal(Float(0.0))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "neg_inf",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Div(Value(Neg(Value(Value(Atom(Literal(Float(1.0))))))), Value(Value(Atom(Literal(Float(0.0))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "nan",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Div(Value(Value(Value(Atom(Literal(Float(0.0)))))), Value(Value(Atom(Literal(Float(0.0))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "pos_inf",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "pos_inf",
+              ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "pos_inf",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "neg_inf",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "neg_inf",
+              ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "neg_inf",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "nan",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "nan",
+              ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "nan",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Add(Value(Value(Value(Value(Atom(Literal(Float(0.1))))))), Value(Value(Value(Atom(Literal(Float(0.2))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

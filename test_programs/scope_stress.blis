@@ -1,0 +1,22 @@
+let x = 1;
+
+func f(x, y, z) {
+    let x = x + 10;
+    let y = x + 20;
+
+    {
+        let z = z;
+        println(x, y, z);
+    }
+
+    println(x, y, z);
+}
+
+func main() {
+    f(x, 2, 3);
+
+    let x = 4;
+    f(x, 4, 5);
+}
+
+main();

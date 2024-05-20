@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "let cond = 1 and 2 or true and false;\nif cond or !cond {\n    println(cond);\n}\n"
+input_file: test_programs/logic.blis
+---
+2

@@ -1,0 +1,52 @@
+---
+source: src/parse/lexer.rs
+description: "let x = true || 3;\n"
+input_file: test_programs/err_parse/unexpected_character.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: True,
+    text: "true",
+    line: 1,
+  ),
+  Lexeme(
+    token: ErrorUnrecognizedCharacter,
+    text: "|",
+    line: 1,
+  ),
+  Lexeme(
+    token: ErrorUnrecognizedCharacter,
+    text: "|",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "3",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

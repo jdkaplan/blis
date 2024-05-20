@@ -1,0 +1,110 @@
+---
+source: src/compile.rs
+description: "func fib(n) {\n    if n <= 1 {\n        return n;\n    }\n\n    fib(n - 1) + fib(n - 2)\n}\n\nlet i = 0;\nloop {\n    if i > 10 {\n        break;\n    }\n\n    println(fib(i));\n\n    i = i + 1;\n}\n"
+input_file: test_programs/fibonacci.blis
+---
+DisassembledChunk(
+  constants: [
+    Func(DisassembledFunc(
+      name: "fib",
+      arity: 1,
+      upvalues: 0,
+      chunk: DisassembledChunk(
+        constants: [
+          Rational(((1, [
+            1,
+          ]), (1, [
+            1,
+          ]))),
+          Rational(((1, [
+            1,
+          ]), (1, [
+            1,
+          ]))),
+          Rational(((1, [
+            2,
+          ]), (1, [
+            1,
+          ]))),
+        ],
+        globals: [
+          "fib",
+        ],
+        code: [
+          GetLocal(1),
+          Constant(0),
+          Le,
+          JumpFalsePop(9),
+          GetLocal(1),
+          Return,
+          Nil,
+          PopUnderN(0),
+          Nil,
+          Pop,
+          GetGlobal(0),
+          GetLocal(1),
+          Constant(1),
+          Sub,
+          Call(1),
+          GetGlobal(0),
+          GetLocal(1),
+          Constant(2),
+          Sub,
+          Call(1),
+          Add,
+          PopUnderN(0),
+          Return,
+        ],
+      ),
+    )),
+    Rational(((0, []), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      10,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+  ],
+  globals: [
+    "fib",
+    "i",
+    "println",
+  ],
+  code: [
+    Closure(0, 0, []),
+    DefineGlobal(0),
+    Constant(1),
+    DefineGlobal(1),
+    GetGlobal(1),
+    Constant(2),
+    Gt,
+    JumpFalsePop(11),
+    PopN(0),
+    Jump(32),
+    Nil,
+    PopUnderN(0),
+    Nil,
+    Pop,
+    GetGlobal(2),
+    GetGlobal(0),
+    GetGlobal(1),
+    Call(1),
+    Call(1),
+    Pop,
+    GetGlobal(1),
+    Constant(3),
+    Add,
+    SetGlobal(1),
+    Nil,
+    PopUnderN(0),
+    Loop(39),
+    Nil,
+    Return,
+  ],
+)

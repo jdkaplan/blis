@@ -1,0 +1,18 @@
+---
+source: src/parse/parser.rs
+description: "self;\n"
+input_file: test_programs/err_compile/self_outside_method_script.blis
+---
+Program(
+  decls: [
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+          name: "self",
+        ))))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

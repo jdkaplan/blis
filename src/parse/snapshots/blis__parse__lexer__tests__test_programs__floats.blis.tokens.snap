@@ -1,0 +1,292 @@
+---
+source: src/parse/lexer.rs
+description: "let pos_inf =  1.0/0.0;\nlet neg_inf = -1.0/0.0;\nlet nan     =  0.0/0.0;\n\nprintln(pos_inf, pos_inf == pos_inf);\nprintln(neg_inf, neg_inf == neg_inf);\nprintln(nan, nan == nan);\n\nprintln(0.1 + 0.2);\n"
+input_file: test_programs/floats.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "pos_inf",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Float,
+    text: "1.0",
+    line: 1,
+  ),
+  Lexeme(
+    token: Slash,
+    text: "/",
+    line: 1,
+  ),
+  Lexeme(
+    token: Float,
+    text: "0.0",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "neg_inf",
+    line: 2,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 2,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 2,
+  ),
+  Lexeme(
+    token: Float,
+    text: "1.0",
+    line: 2,
+  ),
+  Lexeme(
+    token: Slash,
+    text: "/",
+    line: 2,
+  ),
+  Lexeme(
+    token: Float,
+    text: "0.0",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "nan",
+    line: 3,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 3,
+  ),
+  Lexeme(
+    token: Float,
+    text: "0.0",
+    line: 3,
+  ),
+  Lexeme(
+    token: Slash,
+    text: "/",
+    line: 3,
+  ),
+  Lexeme(
+    token: Float,
+    text: "0.0",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "pos_inf",
+    line: 5,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "pos_inf",
+    line: 5,
+  ),
+  Lexeme(
+    token: EqualEqual,
+    text: "==",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "pos_inf",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 6,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "neg_inf",
+    line: 6,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "neg_inf",
+    line: 6,
+  ),
+  Lexeme(
+    token: EqualEqual,
+    text: "==",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "neg_inf",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 6,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 7,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "nan",
+    line: 7,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "nan",
+    line: 7,
+  ),
+  Lexeme(
+    token: EqualEqual,
+    text: "==",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "nan",
+    line: 7,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 7,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 7,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 9,
+  ),
+  Lexeme(
+    token: Float,
+    text: "0.1",
+    line: 9,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 9,
+  ),
+  Lexeme(
+    token: Float,
+    text: "0.2",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 10,
+  ),
+]

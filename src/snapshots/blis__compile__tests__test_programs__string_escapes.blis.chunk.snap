@@ -1,0 +1,24 @@
+---
+source: src/compile.rs
+description: "let escapade=\"a\\\\b\\0c\\'\\\"d\\ne\\r\\nf\\tg\\x\\x7e\\u\\u{26C4}\";\nprintln(escapade);\n"
+input_file: test_programs/string_escapes.blis
+---
+DisassembledChunk(
+  constants: [
+    String("a\\b\0c\'\"d\ne\r\nf\tg\\x~\\u⛄"),
+  ],
+  globals: [
+    "escapade",
+    "println",
+  ],
+  code: [
+    Constant(0),
+    DefineGlobal(0),
+    GetGlobal(1),
+    GetGlobal(0),
+    Call(1),
+    Pop,
+    Nil,
+    Return,
+  ],
+)

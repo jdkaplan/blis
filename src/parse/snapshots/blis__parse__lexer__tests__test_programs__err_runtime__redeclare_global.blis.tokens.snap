@@ -1,0 +1,62 @@
+---
+source: src/parse/lexer.rs
+description: "let a = 1;\nlet a = 2;\n"
+input_file: test_programs/err_runtime/redeclare_global.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "a",
+    line: 2,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 2,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 3,
+  ),
+]

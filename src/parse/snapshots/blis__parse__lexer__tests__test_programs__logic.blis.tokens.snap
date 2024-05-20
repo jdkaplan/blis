@@ -1,0 +1,127 @@
+---
+source: src/parse/lexer.rs
+description: "let cond = 1 and 2 or true and false;\nif cond or !cond {\n    println(cond);\n}\n"
+input_file: test_programs/logic.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "cond",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 1,
+  ),
+  Lexeme(
+    token: And,
+    text: "and",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 1,
+  ),
+  Lexeme(
+    token: Or,
+    text: "or",
+    line: 1,
+  ),
+  Lexeme(
+    token: True,
+    text: "true",
+    line: 1,
+  ),
+  Lexeme(
+    token: And,
+    text: "and",
+    line: 1,
+  ),
+  Lexeme(
+    token: False,
+    text: "false",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "cond",
+    line: 2,
+  ),
+  Lexeme(
+    token: Or,
+    text: "or",
+    line: 2,
+  ),
+  Lexeme(
+    token: Bang,
+    text: "!",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "cond",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "cond",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 4,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 5,
+  ),
+]

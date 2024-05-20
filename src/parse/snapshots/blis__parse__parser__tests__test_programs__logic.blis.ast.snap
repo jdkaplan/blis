@@ -1,0 +1,83 @@
+---
+source: src/parse/parser.rs
+description: "let cond = 1 and 2 or true and false;\nif cond or !cond {\n    println(cond);\n}\n"
+input_file: test_programs/logic.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "cond",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            1,
+          ])))))))))),
+          rest: [
+            Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+              2,
+            ])))))))))),
+          ],
+        ),
+        rest: [
+          LogicAnd(
+            first: Value(Value(Value(Value(Value(Value(Atom(Literal(Boolean(true))))))))),
+            rest: [
+              Value(Value(Value(Value(Value(Value(Atom(Literal(Boolean(false))))))))),
+            ],
+          ),
+        ],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(If(If(
+          condition: LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "cond",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [
+              LogicAnd(
+                first: Value(Value(Value(Value(Not(Value(Value(Atom(Identifier(Identifier(
+                  name: "cond",
+                )))))))))),
+                rest: [],
+              ),
+            ],
+          )),
+          consequent: Block(
+            decls: [
+              Statement(Expression(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                    name: "println",
+                  )))), [
+                    LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                          name: "cond",
+                        ))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )),
+                  ])))))),
+                  rest: [],
+                ),
+                rest: [],
+              )))),
+            ],
+            expr: None,
+          ),
+          alternative: None,
+        )))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

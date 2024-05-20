@@ -78,11 +78,19 @@ pub enum Token {
 
     // Synthetic tokens
     #[default]
-    Error,
     Eof,
+    ErrorUnterminatedString,
+    ErrorUnrecognizedCharacter,
 }
 
 impl Token {
+    pub fn is_error(&self) -> bool {
+        matches!(
+            self,
+            Token::ErrorUnterminatedString | Token::ErrorUnrecognizedCharacter
+        )
+    }
+
     pub fn match_keyword(text: &str) -> Option<Self> {
         match text {
             "and" => Some(Token::And),

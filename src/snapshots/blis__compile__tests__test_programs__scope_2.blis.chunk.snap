@@ -1,0 +1,39 @@
+---
+source: src/compile.rs
+description: "let x = 1;\n{\n    let x = x + 1;\n}\nprintln(x);\n"
+input_file: test_programs/scope_2.blis
+---
+DisassembledChunk(
+  constants: [
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+    Rational(((1, [
+      1,
+    ]), (1, [
+      1,
+    ]))),
+  ],
+  globals: [
+    "x",
+    "println",
+  ],
+  code: [
+    Constant(0),
+    DefineGlobal(0),
+    GetGlobal(0),
+    Constant(1),
+    Add,
+    Nil,
+    PopUnderN(1),
+    Pop,
+    GetGlobal(1),
+    GetGlobal(0),
+    Call(1),
+    Pop,
+    Nil,
+    Return,
+  ],
+)

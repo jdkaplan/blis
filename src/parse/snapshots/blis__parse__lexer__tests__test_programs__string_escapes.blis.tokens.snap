@@ -1,0 +1,62 @@
+---
+source: src/parse/lexer.rs
+description: "let escapade=\"a\\\\b\\0c\\'\\\"d\\ne\\r\\nf\\tg\\x\\x7e\\u\\u{26C4}\";\nprintln(escapade);\n"
+input_file: test_programs/string_escapes.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "escapade",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: String,
+    text: "\"a\\\\b\\0c\\\'\\\"d\\ne\\r\\nf\\tg\\x\\x7e\\u\\u{26C4}\"",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "escapade",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 3,
+  ),
+]

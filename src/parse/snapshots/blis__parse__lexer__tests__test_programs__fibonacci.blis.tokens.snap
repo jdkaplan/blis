@@ -1,0 +1,307 @@
+---
+source: src/parse/lexer.rs
+description: "func fib(n) {\n    if n <= 1 {\n        return n;\n    }\n\n    fib(n - 1) + fib(n - 2)\n}\n\nlet i = 0;\nloop {\n    if i > 10 {\n        break;\n    }\n\n    println(fib(i));\n\n    i = i + 1;\n}\n"
+input_file: test_programs/fibonacci.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "fib",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "n",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "n",
+    line: 2,
+  ),
+  Lexeme(
+    token: LessEqual,
+    text: "<=",
+    line: 2,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 2,
+  ),
+  Lexeme(
+    token: Return,
+    text: "return",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "n",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "fib",
+    line: 6,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "n",
+    line: 6,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 6,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 6,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "fib",
+    line: 6,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 6,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "n",
+    line: 6,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 6,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 6,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 7,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "i",
+    line: 9,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 9,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "0",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: Loop,
+    text: "loop",
+    line: 10,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 10,
+  ),
+  Lexeme(
+    token: If,
+    text: "if",
+    line: 11,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "i",
+    line: 11,
+  ),
+  Lexeme(
+    token: Greater,
+    text: ">",
+    line: 11,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "10",
+    line: 11,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 11,
+  ),
+  Lexeme(
+    token: Break,
+    text: "break",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 13,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "fib",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "i",
+    line: 15,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 15,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 15,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "i",
+    line: 17,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 17,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "i",
+    line: 17,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 17,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 17,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 17,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 18,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 19,
+  ),
+]

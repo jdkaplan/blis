@@ -1,0 +1,60 @@
+---
+source: src/parse/parser.rs
+description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n"
+input_file: test_programs/math.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "v",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Add(Sub(Add(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            1,
+          ])))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+            2,
+          ])))))))), Value(Value(Value(Group(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Mul(Div(Mul(Value(Value(Value(Atom(Literal(Integer((1, [
+                3,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                4,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                5,
+              ]))))))), Value(Value(Atom(Literal(Integer((1, [
+                6,
+              ])))))))))),
+              rest: [],
+            ),
+            rest: [],
+          ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+            7,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "v",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+description: "let pos_inf =  1.0/0.0;\nlet neg_inf = -1.0/0.0;\nlet nan     =  0.0/0.0;\n\nprintln(pos_inf, pos_inf == pos_inf);\nprintln(neg_inf, neg_inf == neg_inf);\nprintln(nan, nan == nan);\n\nprintln(0.1 + 0.2);\n"
+input_file: test_programs/floats.blis
+---
+inf true
+-inf true
+NaN false
+0.30000000000000004

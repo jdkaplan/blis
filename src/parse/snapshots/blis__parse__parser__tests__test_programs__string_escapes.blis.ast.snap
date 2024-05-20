@@ -1,0 +1,40 @@
+---
+source: src/parse/parser.rs
+description: "let escapade=\"a\\\\b\\0c\\'\\\"d\\ne\\r\\nf\\tg\\x\\x7e\\u\\u{26C4}\";\nprintln(escapade);\n"
+input_file: test_programs/string_escapes.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "escapade",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("a\\b\0c\'\"d\ne\r\nf\tg\\x~\\u⛄"))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "escapade",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

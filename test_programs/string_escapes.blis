@@ -1,0 +1,2 @@
+let escapade="a\\b\0c\'\"d\ne\r\nf\tg\x\x7e\u\u{26C4}";
+println(escapade);

@@ -1,0 +1,8 @@
+---
+source: src/lib.rs
+description: "let haiku = \"multiline strings are\nsurprisingly easier\nimplementation\";\n\nprint(haiku);\n"
+input_file: test_programs/multiline_strings.blis
+---
+multiline strings are
+surprisingly easier
+implementation

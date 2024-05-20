@@ -1,0 +1,22 @@
+---
+source: src/parse/lexer.rs
+description: "self;\n"
+input_file: test_programs/err_compile/self_outside_method_script.blis
+---
+[
+  Lexeme(
+    token: Self_,
+    text: "self",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 2,
+  ),
+]

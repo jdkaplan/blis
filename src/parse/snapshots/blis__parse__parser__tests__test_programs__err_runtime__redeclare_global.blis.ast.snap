@@ -1,0 +1,37 @@
+---
+source: src/parse/parser.rs
+description: "let a = 1;\nlet a = 2;\n"
+input_file: test_programs/err_runtime/redeclare_global.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "a",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            1,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "a",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            2,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+  ],
+)

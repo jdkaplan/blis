@@ -186,7 +186,9 @@ impl<'fd> Vm<'fd> {
         });
         let ptr = self.runtime.alloc(obj);
 
-        self.runtime.define_global(name, Value::Object(ptr));
+        self.runtime
+            .define_global(name, Value::Object(ptr))
+            .expect("host definitions have unique names");
     }
 
     pub fn define_host_type(&mut self, name: &'static str, methods: Vec<(&'static str, HostFn)>) {
@@ -196,7 +198,8 @@ impl<'fd> Vm<'fd> {
         let ty_ptr = self.runtime.alloc(ty);
 
         self.runtime
-            .define_global(ty_name.clone(), Value::Object(ty_ptr));
+            .define_global(ty_name.clone(), Value::Object(ty_ptr))
+            .expect("host definitions have unique names");
 
         for (name, method) in methods {
             let method_name = String::from(name);
@@ -280,24 +283,28 @@ impl<'fd> Vm<'fd> {
 
             macro_rules! jump_forward {
                 ($delta:expr) => {{
+                    let delta = $delta;
+                    assert_ne!(delta, 0, "must jump by a nonzero amount");
+
                     let pc = &mut frame!().pc;
 
                     // pc was already moved past this op. Put it back before jumping.
                     *pc = pc.checked_sub(op.size_bytes()).unwrap();
 
-                    let delta = $delta;
                     *pc = pc.checked_add(delta as usize).unwrap();
                 }};
             }
 
             macro_rules! jump_back {
                 ($delta:expr) => {{
+                    let delta = $delta;
+                    assert_ne!(delta, 0, "must jump by a nonzero amount");
+
                     let pc = &mut frame!().pc;
 
                     // pc was already moved past this op. Put it back before jumping.
                     *pc = pc.checked_sub(op.size_bytes()).unwrap();
 
-                    let delta = $delta;
                     *pc = pc.checked_sub(delta as usize).unwrap();
                 }};
             }
@@ -534,7 +541,7 @@ impl<'fd> Vm<'fd> {
                     let chunk = chunk!(frame!());
                     let name = chunk.globals[idx as usize].clone();
                     let value = self.pop()?;
-                    self.runtime.define_global(name, value);
+                    self.runtime.define_global(name, value)?;
                 }
                 Op::GetGlobal(idx) => {
                     let chunk = chunk!(frame!());

@@ -1,0 +1,187 @@
+---
+source: src/parse/parser.rs
+description: "func fib(n) {\n    if n <= 1 {\n        return n;\n    }\n\n    fib(n - 1) + fib(n - 2)\n}\n\nlet i = 0;\nloop {\n    if i > 10 {\n        break;\n    }\n\n    println(fib(i));\n\n    i = i + 1;\n}\n"
+input_file: test_programs/fibonacci.blis
+---
+Program(
+  decls: [
+    Func(Func(
+      ident: Identifier(
+        name: "fib",
+      ),
+      params: [
+        Identifier(
+          name: "n",
+        ),
+      ],
+      body: Block(
+        decls: [
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(If(If(
+                condition: LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Le(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "n",
+                    )))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                      1,
+                    ])))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                consequent: Block(
+                  decls: [
+                    Statement(Return(Return(
+                      expr: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "n",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ))),
+                  ],
+                  expr: None,
+                ),
+                alternative: None,
+              )))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+        ],
+        expr: Some(LogicOr(LogicOr(
+          first: LogicAnd(
+            first: Value(Value(Add(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+              name: "fib",
+            )))), [
+              LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Sub(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                    name: "n",
+                  ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                    1,
+                  ])))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              )),
+            ])))), Value(Value(Call(Value(Atom(Identifier(Identifier(
+              name: "fib",
+            )))), [
+              LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Sub(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                    name: "n",
+                  ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                    2,
+                  ])))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              )),
+            ])))))),
+            rest: [],
+          ),
+          rest: [],
+        ))),
+      ),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "i",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Loop(Loop(
+      label: None,
+      body: Block(
+        decls: [
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(If(If(
+                condition: LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Gt(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "i",
+                    )))))))), Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                      10,
+                    ])))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                consequent: Block(
+                  decls: [
+                    Statement(Break(Break(
+                      label: None,
+                    ))),
+                  ],
+                  expr: None,
+                ),
+                alternative: None,
+              )))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "println",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                      name: "fib",
+                    )))), [
+                      LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "i",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                    ])))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "i",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                  name: "i",
+                ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                  1,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+        ],
+        expr: None,
+      ),
+    ))),
+  ],
+)

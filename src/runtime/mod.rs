@@ -41,6 +41,9 @@ pub enum RuntimeError {
 
     #[error("name error: global variable `{}` was not defined", name)]
     UndefinedGlobal { name: String },
+
+    #[error("name error: global variable `{}` was already declared", name)]
+    RedeclaredGlobal { name: String },
 }
 
 // Stack
@@ -127,9 +130,11 @@ impl Runtime {
 
 // Globals
 impl Runtime {
-    pub fn define_global(&mut self, name: String, value: Value) {
-        let prev = self.globals.insert(name, value);
-        assert_eq!(prev, None);
+    pub fn define_global(&mut self, name: String, value: Value) -> RuntimeResult<()> {
+        match self.globals.insert(name.clone(), value) {
+            Some(_prev) => Err(RuntimeError::RedeclaredGlobal { name }),
+            None => Ok(()),
+        }
     }
 
     pub fn set_global(&mut self, name: String, value: Value) -> RuntimeResult<()> {

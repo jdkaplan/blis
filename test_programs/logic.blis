@@ -1,0 +1,4 @@
+let cond = 1 and 2 or true and false;
+if cond or !cond {
+    println(cond);
+}

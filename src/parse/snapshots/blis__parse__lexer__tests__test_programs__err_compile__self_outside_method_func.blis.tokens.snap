@@ -1,0 +1,52 @@
+---
+source: src/parse/lexer.rs
+description: "func g() {\n    self;\n}\n"
+input_file: test_programs/err_compile/self_outside_method_func.blis
+---
+[
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "g",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Self_,
+    text: "self",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 3,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 4,
+  ),
+]

@@ -1,0 +1,8 @@
+---
+source: src/compile.rs
+description: "type T with {\n    func f() {\n        self.thing;\n    }\n}\n"
+input_file: test_programs/err_compile/self_outside_method_associated.blis
+---
+CompileErrors([
+  SelfOutsideMethod,
+])

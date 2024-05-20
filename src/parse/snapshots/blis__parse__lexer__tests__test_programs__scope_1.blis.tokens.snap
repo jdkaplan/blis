@@ -1,7 +1,7 @@
 ---
 source: src/parse/lexer.rs
 description: "let a = {\n    \"a\"\n};\nlet aa = {\n    if true { a } else { 2 }\n};\na = nil;\n\nlet b = if \"true\" { \"one\" } else { \"two\" };\nb = if b { a } else { b };\n"
-input_file: test_programs/scope.blis
+input_file: test_programs/scope_1.blis
 ---
 [
   Lexeme(

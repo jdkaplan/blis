@@ -1,0 +1,9 @@
+---
+source: src/lib.rs
+description: "let x = 1;\n\nfunc f(x, y, z) {\n    let x = x + 10;\n    let y = x + 20;\n\n    {\n        let z = z;\n        println(x, y, z);\n    }\n\n    println(x, y, z);\n}\n\nfunc main() {\n    f(x, 2, 3);\n\n    let x = 4;\n    f(x, 4, 5);\n}\n\nmain();\n"
+input_file: test_programs/scope_stress.blis
+---
+11 31 3
+11 31 3
+14 34 5
+14 34 5

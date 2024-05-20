@@ -1,0 +1,126 @@
+---
+source: src/parse/lexer.rs
+description: "*<<==!=>=>!+-*%/()[]{}:;,."
+---
+[
+  Lexeme(
+    token: Star,
+    text: "*",
+    line: 1,
+  ),
+  Lexeme(
+    token: Less,
+    text: "<",
+    line: 1,
+  ),
+  Lexeme(
+    token: LessEqual,
+    text: "<=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: BangEqual,
+    text: "!=",
+    line: 1,
+  ),
+  Lexeme(
+    token: GreaterEqual,
+    text: ">=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Greater,
+    text: ">",
+    line: 1,
+  ),
+  Lexeme(
+    token: Bang,
+    text: "!",
+    line: 1,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 1,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 1,
+  ),
+  Lexeme(
+    token: Star,
+    text: "*",
+    line: 1,
+  ),
+  Lexeme(
+    token: Percent,
+    text: "%",
+    line: 1,
+  ),
+  Lexeme(
+    token: Slash,
+    text: "/",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBracket,
+    text: "[",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightBracket,
+    text: "]",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 1,
+  ),
+  Lexeme(
+    token: ErrorUnrecognizedCharacter,
+    text: ":",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 1,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 1,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 1,
+  ),
+]

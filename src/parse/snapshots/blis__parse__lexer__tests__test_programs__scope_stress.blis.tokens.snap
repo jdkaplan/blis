@@ -1,0 +1,452 @@
+---
+source: src/parse/lexer.rs
+description: "let x = 1;\n\nfunc f(x, y, z) {\n    let x = x + 10;\n    let y = x + 20;\n\n    {\n        let z = z;\n        println(x, y, z);\n    }\n\n    println(x, y, z);\n}\n\nfunc main() {\n    f(x, 2, 3);\n\n    let x = 4;\n    f(x, 4, 5);\n}\n\nmain();\n"
+input_file: test_programs/scope_stress.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "f",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 3,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "y",
+    line: 3,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "z",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 3,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 3,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 4,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 4,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 4,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "10",
+    line: 4,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 4,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "y",
+    line: 5,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 5,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 5,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "20",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 7,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "z",
+    line: 8,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "z",
+    line: 8,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 8,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 9,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 9,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "y",
+    line: 9,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 9,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "z",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 9,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 9,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 10,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 12,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 12,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "y",
+    line: 12,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 12,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "z",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 12,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 12,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 13,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 15,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 15,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 15,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "f",
+    line: 16,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 16,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 16,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 16,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 16,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 16,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "3",
+    line: 16,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 16,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 16,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 18,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 18,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 18,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "4",
+    line: 18,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 18,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "f",
+    line: 19,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 19,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 19,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 19,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "4",
+    line: 19,
+  ),
+  Lexeme(
+    token: Comma,
+    text: ",",
+    line: 19,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "5",
+    line: 19,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 19,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 19,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 20,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "main",
+    line: 22,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 22,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 22,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 22,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 23,
+  ),
+]

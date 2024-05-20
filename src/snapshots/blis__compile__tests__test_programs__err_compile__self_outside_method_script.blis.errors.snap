@@ -1,0 +1,8 @@
+---
+source: src/compile.rs
+description: "self;\n"
+input_file: test_programs/err_compile/self_outside_method_script.blis
+---
+CompileErrors([
+  SelfOutsideMethod,
+])

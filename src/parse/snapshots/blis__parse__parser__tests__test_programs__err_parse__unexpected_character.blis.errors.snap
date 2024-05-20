@@ -1,0 +1,15 @@
+---
+source: src/parse/parser.rs
+description: "let x = true || 3;\n"
+input_file: test_programs/err_parse/unexpected_character.blis
+---
+ParseErrors([
+  Syntax(SyntaxError(
+    expected: Semicolon,
+    actual: Some(LexemeOwned(
+      token: ErrorUnrecognizedCharacter,
+      text: "|",
+      line: 1,
+    )),
+  )),
+])

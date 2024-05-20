@@ -1,0 +1,107 @@
+---
+source: src/parse/lexer.rs
+description: "let x = 1;\n{\n    let x = x + 1;\n}\nprintln(x);\n"
+input_file: test_programs/scope_2.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 2,
+  ),
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 3,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 3,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 3,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 4,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 5,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 5,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "x",
+    line: 5,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 5,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 5,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 6,
+  ),
+]

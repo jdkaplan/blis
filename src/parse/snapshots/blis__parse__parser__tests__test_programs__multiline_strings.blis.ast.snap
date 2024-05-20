@@ -1,0 +1,40 @@
+---
+source: src/parse/parser.rs
+description: "let haiku = \"multiline strings are\nsurprisingly easier\nimplementation\";\n\nprintln(haiku);\n"
+input_file: test_programs/multiline_strings.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "haiku",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(String("multiline strings are\nsurprisingly easier\nimplementation"))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "haiku",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

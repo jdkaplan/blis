@@ -1,8 +1,6 @@
 use num_bigint::BigInt;
 use serde::Serialize;
 
-use crate::parse::Token;
-
 #[derive(Debug, Clone, Serialize)]
 pub struct Program {
     pub decls: Vec<Declaration>,
@@ -22,6 +20,7 @@ pub enum Statement {
     Break(Break),
     Continue(Continue),
     Loop(Loop),
+    Return(Return),
 
     Assignment(Assignment),
     Expression(Expression),
@@ -222,7 +221,7 @@ pub enum Place {
 }
 
 #[derive(thiserror::Error, Debug, Clone, Serialize)]
-#[error("cannot assign to `{:?}`, wanted {:?}", target, Token::Identifier)]
+#[error("cannot assign to `{:?}`", target)]
 pub struct PlaceError {
     pub target: Expression,
 }
@@ -275,6 +274,12 @@ impl TryFrom<Expression> for Place {
                     return Err(PlaceError { target });
                 };
 
+                // Prevent assigning to `self` to avoid implying that the receiver can be changed
+                // that way.
+                if ident.name == "self" {
+                    return Err(PlaceError { target });
+                }
+
                 Ok(Place::Identifier(ident.clone()))
             }
             Call::Field(obj, ident) => Ok(Place::Field(*obj.clone(), ident.clone())),
@@ -315,6 +320,11 @@ pub struct Let {
 pub struct Loop {
     pub label: Option<Identifier>,
     pub body: Block,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Return {
+    pub expr: Expression,
 }
 
 #[derive(Debug, Clone, Serialize)]

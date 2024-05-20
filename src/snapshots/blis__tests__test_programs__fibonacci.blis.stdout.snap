@@ -1,0 +1,16 @@
+---
+source: src/lib.rs
+description: "func fib(n) {\n    if n <= 1 {\n        return n;\n    }\n\n    fib(n - 1) + fib(n - 2)\n}\n\nlet i = 0;\nloop {\n    if i > 10 {\n        break;\n    }\n\n    println(fib(i));\n\n    i = i + 1;\n}\n"
+input_file: test_programs/fibonacci.blis
+---
+0
+1
+1
+2
+3
+5
+8
+13
+21
+34
+55

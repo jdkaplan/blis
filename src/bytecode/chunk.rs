@@ -34,7 +34,7 @@ impl std::fmt::Debug for Chunk {
 // Code
 impl Chunk {
     pub fn push(&mut self, op: Op) {
-        self.code.extend(op.to_bytes())
+        self.push_bytes(&op.to_bytes())
     }
 
     pub fn push_bytes(&mut self, bytes: &[u8]) {
@@ -45,6 +45,7 @@ impl Chunk {
         let idx = self.constants.len();
         assert!(idx < u8::MAX.into());
 
+        // TODO: Reuse existing constant if already registered
         self.constants.push(constant);
         idx as u8
     }
@@ -52,10 +53,9 @@ impl Chunk {
 
 // Globals
 impl Chunk {
-    pub fn define_global(&mut self, name: String) -> u8 {
+    pub fn define_global(&mut self, name: String) {
         let id = self.make_global(name);
         self.push(Op::DefineGlobal(id));
-        id
     }
 
     fn find_global(&self, name: &str) -> Option<u8> {

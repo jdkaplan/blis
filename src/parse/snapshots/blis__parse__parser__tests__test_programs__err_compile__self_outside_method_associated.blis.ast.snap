@@ -1,0 +1,39 @@
+---
+source: src/parse/parser.rs
+description: "type T with {\n    func f() {\n        self.thing;\n    }\n}\n"
+input_file: test_programs/err_compile/self_outside_method_associated.blis
+---
+Program(
+  decls: [
+    Type(Type(
+      ident: Identifier(
+        name: "T",
+      ),
+      methods: [
+        Method(
+          self_: false,
+          ident: Identifier(
+            name: "f",
+          ),
+          params: [],
+          body: Block(
+            decls: [
+              Statement(Expression(LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Value(Value(Value(Field(Value(Atom(Identifier(Identifier(
+                    name: "self",
+                  )))), Identifier(
+                    name: "thing",
+                  ))))))),
+                  rest: [],
+                ),
+                rest: [],
+              )))),
+            ],
+            expr: None,
+          ),
+        ),
+      ],
+    )),
+  ],
+)

@@ -1,0 +1,5 @@
+let haiku = "multiline strings are
+surprisingly easier
+implementation";
+
+println(haiku);

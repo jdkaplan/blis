@@ -1,13 +1,13 @@
-use std::iter::Peekable;
 use std::num::ParseFloatError;
 use std::str::Chars;
 
 use itertools::{peek_nth, PeekNth};
 use num_bigint::{BigInt, ParseBigIntError};
 use serde::Serialize;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 
 use crate::parse::ast::*;
+use crate::parse::lexer::TokensEndless;
 use crate::parse::{Lexeme, LexemeOwned, Lexer, Token};
 
 #[derive(thiserror::Error, Debug, Serialize)]
@@ -74,20 +74,9 @@ pub enum ParseError {
 
 pub struct Parser<'source> {
     previous: Lexeme<'source>,
-    lexer: PeekNth<Lexer<'source>>,
+    tokens: PeekNth<TokensEndless<'source>>,
     errors: Vec<ParseError>,
     panicking: bool,
-}
-
-impl std::fmt::Debug for Parser<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Parser")
-            .field("previous", &self.previous)
-            .field("lexer", &"(...)")
-            .field("errors", &format!("({} errors)", self.errors.len()))
-            .field("panicking", &self.panicking)
-            .finish()
-    }
 }
 
 #[derive(thiserror::Error, Debug, Clone, Serialize)]
@@ -99,10 +88,11 @@ pub struct SyntaxError {
 
 impl<'source> Parser<'source> {
     fn new(source: &'source str) -> Self {
-        let mut lexer = peek_nth(Lexer::new(source));
+        let lexer = Lexer::new(source).tokens_endless();
+        let mut tokens = peek_nth(lexer);
         Self {
-            previous: *lexer.peek().expect("Lexer Iterator always emits Some"),
-            lexer,
+            previous: *tokens.peek().expect("TokensEndless"),
+            tokens,
             errors: Vec::new(),
             panicking: false,
         }
@@ -160,9 +150,7 @@ impl<'source> Parser<'source> {
     }
 
     fn peek_nth(&mut self, n: usize) -> &Lexeme<'source> {
-        self.lexer
-            .peek_nth(n)
-            .expect("Lexer Iterator always emits Some")
+        self.tokens.peek_nth(n).expect("TokensEndless")
     }
 
     fn check(&mut self, token: Token) -> bool {
@@ -171,18 +159,23 @@ impl<'source> Parser<'source> {
 
     fn advance(&mut self) {
         loop {
-            self.previous = self.lexer.next().expect("Lexer Iterator always emits Some");
-            if self.previous.token != Token::Error {
+            let prev = self.previous;
+            let next = self.tokens.next().expect("TokensEndless");
+            debug!({ ?prev, ?next }, "advance");
+
+            self.previous = next;
+
+            if self.previous.token.is_error() || self.previous.token == Token::Eof {
                 break;
             }
             self.error(ParseError::Lexer(self.previous.to_owned()));
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn take(&mut self, token: Token) -> Option<Lexeme<'source>> {
         if self.check(token) {
-            return self.lexer.next();
+            return self.tokens.next();
         }
         None
     }
@@ -191,7 +184,7 @@ impl<'source> Parser<'source> {
         self.take(token).ok_or_else(|| {
             let err = ParseError::Syntax(SyntaxError {
                 expected: token,
-                actual: self.lexer.peek().map(|l| l.to_owned()),
+                actual: self.tokens.peek().map(|l| l.to_owned()),
             });
             self.error(err)
         })
@@ -199,59 +192,73 @@ impl<'source> Parser<'source> {
 
     fn error(&mut self, err: ParseError) -> FailedParse {
         debug!({ ?err }, "parse error");
-        self.errors.push(err);
-        self.panicking = true;
+
+        if !self.panicking {
+            self.errors.push(err);
+            self.panicking = true;
+        }
+
         FailedParse
     }
 
     fn synchronize(&mut self) {
         debug!("synchronizing parser");
-        self.panicking = false;
 
         while !self.check(Token::Eof) {
             // We just consumed a terminator, so we should be ready for another statement.
             match self.previous.token {
-                Token::Semicolon | Token::RightBrace => return,
-                _ => {}
+                Token::Semicolon | Token::RightBrace => {
+                    return;
+                }
+                _ => {
+                    trace!({ prev = ?self.previous }, "previous was not a terminator");
+                }
             }
 
             // The next token could start a statement, so resume from here.
-            match self.peek().token {
-                Token::Func | Token::Let | Token::Loop | Token::If | Token::Return => return,
-                _ => {}
+            let next = self.peek();
+            match next.token {
+                Token::Func
+                | Token::If
+                | Token::Let
+                | Token::Loop
+                | Token::Type
+                | Token::Return => return,
+                _ => {
+                    trace!({ ?next }, "next is not a start keyword");
+                }
             }
 
             // No obvious recovery, so keep going.
             self.advance();
-            let prev = self.previous;
-            let next = self.peek();
-            debug!({ ?prev, ?next }, "advance");
         }
+
+        self.panicking = false;
     }
 }
 
 impl<'source> Parser<'source> {
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn program(&mut self) -> Program {
         let mut decls = Vec::new();
 
         while !self.check(Token::Eof) {
             match self.declaration() {
                 Ok(decl) => decls.push(decl),
-                Err(_) => self.synchronize(),
+                Err(FailedParse) => self.synchronize(),
             };
         }
 
         Program { decls }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn block(&mut self) -> Fallible<Block> {
         let open = self.must_take(Token::LeftBrace)?;
         self.expr_block(open)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn declaration(&mut self) -> Fallible<Declaration> {
         if let Some(decl) = self.decl_only()? {
             Ok(decl)
@@ -260,13 +267,13 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn block_declaration(&mut self) -> Fallible<Either<Declaration, Expression>> {
         let either = self.decl_or_expr()?;
         Ok(either)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn decl_or_expr(&mut self) -> Fallible<Either<Declaration, Expression>> {
         if let Some(decl) = self.decl_only()? {
             return Ok(Either::L(decl));
@@ -276,7 +283,7 @@ impl<'source> Parser<'source> {
         Ok(either.map_l(Declaration::Statement))
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn decl_only(&mut self) -> Fallible<Option<Declaration>> {
         if let Some(kw) = self.take(Token::Type) {
             self.decl_struct(kw).map(Declaration::Type).map(Some)
@@ -289,10 +296,9 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn decl_struct(&mut self, _kw: Lexeme<'_>) -> Fallible<Type> {
-        let ident = self.must_take(Token::Identifier)?;
-        let ident = Identifier::new(ident.text);
+        let ident = self.must_identifier()?;
 
         // TODO(types): parse field specs here
 
@@ -306,7 +312,7 @@ impl<'source> Parser<'source> {
         Ok(Type { ident, methods })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn type_methods(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Method>> {
         let mut methods = Vec::new();
 
@@ -323,10 +329,9 @@ impl<'source> Parser<'source> {
         Ok(methods)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn decl_let(&mut self, _kw: Lexeme<'_>) -> Fallible<Let> {
-        let ident = self.must_take(Token::Identifier)?;
-        let ident = Identifier::new(ident.text);
+        let ident = self.must_identifier()?;
 
         // TODO: Allow declaring without a value for conditional init
         self.must_take(Token::Equal)?;
@@ -337,7 +342,7 @@ impl<'source> Parser<'source> {
         Ok(Let { ident, expr })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn decl_method(&mut self, kw: Lexeme<'_>) -> Fallible<Method> {
         let mut self_ = false;
         if let Some(_kw) = self.take(Token::Self_) {
@@ -355,10 +360,9 @@ impl<'source> Parser<'source> {
         })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn decl_func(&mut self, _kw: Lexeme<'_>) -> Fallible<Func> {
-        let ident = self.must_take(Token::Identifier)?;
-        let ident = Identifier::new(ident.text);
+        let ident = self.must_identifier()?;
 
         let open = self.must_take(Token::LeftParen)?;
         let params = self.parameters(open)?;
@@ -372,7 +376,7 @@ impl<'source> Parser<'source> {
         })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn parameters(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Identifier>> {
         let mut params = Vec::new();
 
@@ -381,8 +385,8 @@ impl<'source> Parser<'source> {
                 break;
             }
 
-            let name = self.must_take(Token::Identifier)?;
-            params.push(Identifier::new(name.text));
+            let param = self.must_identifier()?;
+            params.push(param);
 
             if let Some(_sep) = self.take(Token::Comma) {
                 continue;
@@ -397,7 +401,7 @@ impl<'source> Parser<'source> {
 }
 
 impl<'source> Parser<'source> {
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn statement(&mut self) -> Fallible<Statement> {
         if let Some(stmt) = self.stmt_kw()? {
             return Ok(stmt);
@@ -415,7 +419,7 @@ impl<'source> Parser<'source> {
         Ok(Statement::Expression(expr))
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn stmt_or_expr(&mut self) -> Fallible<Either<Statement, Expression>> {
         if let Some(stmt) = self.stmt_kw()? {
             return Ok(Either::L(stmt));
@@ -437,7 +441,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn stmt_kw(&mut self) -> Fallible<Option<Statement>> {
         if let Some(kw) = self.take(Token::Break) {
             self.stmt_break(kw).map(Statement::Break).map(Some)
@@ -445,12 +449,14 @@ impl<'source> Parser<'source> {
             self.stmt_continue(kw).map(Statement::Continue).map(Some)
         } else if let Some(kw) = self.take(Token::Loop) {
             self.stmt_loop(kw).map(Statement::Loop).map(Some)
+        } else if let Some(kw) = self.take(Token::Return) {
+            self.stmt_return(kw).map(Statement::Return).map(Some)
         } else {
             Ok(None)
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn stmt_break(&mut self, _kw: Lexeme<'source>) -> Fallible<Break> {
         let label = self
             .take(Token::Identifier)
@@ -460,7 +466,7 @@ impl<'source> Parser<'source> {
         Ok(Break { label })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn stmt_continue(&mut self, _kw: Lexeme<'source>) -> Fallible<Continue> {
         let label = self
             .take(Token::Identifier)
@@ -470,7 +476,7 @@ impl<'source> Parser<'source> {
         Ok(Continue { label })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn stmt_loop(&mut self, _kw: Lexeme<'source>) -> Fallible<Loop> {
         let label = self
             .take(Token::Identifier)
@@ -480,7 +486,14 @@ impl<'source> Parser<'source> {
         Ok(Loop { label, body })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
+    fn stmt_return(&mut self, _kw: Lexeme<'source>) -> Fallible<Return> {
+        let expr = self.expression()?;
+        self.must_take(Token::Semicolon)?;
+        Ok(Return { expr })
+    }
+
+    #[instrument(level = "trace", ret, skip(self))]
     fn assign_or_expr(&mut self) -> Fallible<Either<Assignment, Expression>> {
         let expr = self.expression()?;
 
@@ -506,17 +519,17 @@ enum ExprMode {
 }
 
 impl<'source> Parser<'source> {
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn expression(&mut self) -> Fallible<Expression> {
         self.logic_or(ExprMode::All).map(Expression::LogicOr)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn expr_no_object(&mut self) -> Fallible<Expression> {
         self.logic_or(ExprMode::NoObject).map(Expression::LogicOr)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn logic_or(&mut self, mode: ExprMode) -> Fallible<LogicOr> {
         let first = self.logic_and(mode)?;
 
@@ -529,7 +542,7 @@ impl<'source> Parser<'source> {
         Ok(LogicOr { first, rest })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn logic_and(&mut self, mode: ExprMode) -> Fallible<LogicAnd> {
         let first = self.equality(mode)?;
 
@@ -542,7 +555,7 @@ impl<'source> Parser<'source> {
         Ok(LogicAnd { first, rest })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn equality(&mut self, mode: ExprMode) -> Fallible<Equality> {
         let mut a = self.comparison(mode).map(Equality::Value)?;
 
@@ -564,7 +577,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn comparison(&mut self, mode: ExprMode) -> Fallible<Comparison> {
         let mut a = self.term(mode).map(Comparison::Value)?;
 
@@ -588,7 +601,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn term(&mut self, mode: ExprMode) -> Fallible<Term> {
         let mut a = self.factor(mode).map(Term::Value)?;
 
@@ -610,7 +623,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn factor(&mut self, mode: ExprMode) -> Fallible<Factor> {
         let mut a = self.unary(mode).map(Factor::Value)?;
 
@@ -633,7 +646,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn unary(&mut self, mode: ExprMode) -> Fallible<Unary> {
         enum Op {
             Neg,
@@ -668,7 +681,7 @@ impl<'source> Parser<'source> {
         Ok(a)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn call(&mut self, mode: ExprMode) -> Fallible<Call> {
         let mut callee = self.primary(mode).map(Call::Value)?;
 
@@ -699,7 +712,7 @@ impl<'source> Parser<'source> {
         Ok(callee)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn arguments(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Expression>> {
         let mut args = Vec::new();
 
@@ -722,7 +735,7 @@ impl<'source> Parser<'source> {
         Ok(args)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn primary(&mut self, mode: ExprMode) -> Fallible<Primary> {
         if let Some(open) = self.take(Token::LeftBrace) {
             self.expr_block(open).map(Primary::Block)
@@ -737,7 +750,7 @@ impl<'source> Parser<'source> {
 }
 
 impl<'source> Parser<'source> {
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn atom(&mut self, mode: ExprMode) -> Fallible<Atom> {
         if let Some(ident) = self.take(Token::Self_) {
             let ident = Identifier::new(ident.text);
@@ -772,7 +785,7 @@ impl<'source> Parser<'source> {
         self.literal().map(Atom::Literal)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn list_items(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<Expression>> {
         let mut args = Vec::new();
 
@@ -795,13 +808,13 @@ impl<'source> Parser<'source> {
         Ok(args)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn must_identifier(&mut self) -> Fallible<Identifier> {
         let ident = self.must_take(Token::Identifier)?;
         Ok(Identifier::new(ident.text))
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn expr_block(&mut self, _open: Lexeme<'_>) -> Fallible<Block> {
         let mut decls = Vec::new();
 
@@ -833,7 +846,7 @@ impl<'source> Parser<'source> {
         Ok(Block { decls, expr: None })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn expr_if(&mut self, _kw: Lexeme<'_>) -> Fallible<If> {
         // Even Rust resolves the parser ambiguity this way, so do the same for now!
         let condition = self.expr_no_object()?;
@@ -851,20 +864,20 @@ impl<'source> Parser<'source> {
         })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn expr_group(&mut self, _open: Lexeme<'_>) -> Fallible<Expression> {
         let expr = self.expression()?;
         self.must_take(Token::RightParen)?;
         Ok(expr)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn expr_object(&mut self, ty: Identifier, open: Lexeme<'_>) -> Fallible<Object> {
         let fields = self.object_fields(open)?;
         Ok(Object { ty, fields })
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn object_fields(&mut self, _open: Lexeme<'_>) -> Fallible<Vec<(Identifier, Expression)>> {
         let mut fields = Vec::new();
 
@@ -873,8 +886,7 @@ impl<'source> Parser<'source> {
                 break;
             }
 
-            let name = self.must_take(Token::Identifier)?;
-            let ident = Identifier::new(name.text);
+            let ident = self.must_identifier()?;
 
             self.must_take(Token::Equal)?;
 
@@ -892,7 +904,7 @@ impl<'source> Parser<'source> {
         Ok(fields)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn literal(&mut self) -> Fallible<Literal> {
         if let Some(_nil) = self.take(Token::Nil) {
             Ok(Literal::Nil)
@@ -920,14 +932,14 @@ impl<'source> Parser<'source> {
         }
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn integer(&mut self, text: &str) -> Fallible<Literal> {
         text.parse::<BigInt>()
             .map(Literal::Integer)
             .map_err(|err| self.error(ParseError::ParseInt(err)))
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace", ret, skip(self))]
     fn float(&mut self, text: &str) -> Fallible<Literal> {
         text.parse::<f64>()
             .map(Literal::Float)
@@ -937,7 +949,7 @@ impl<'source> Parser<'source> {
 
 fn unescape_string(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
-    let mut chars = s.chars().peekable();
+    let mut chars = peek_nth(s.chars());
     while let Some(c) = chars.next() {
         match c {
             '\\' => out.extend(unescape_sequence(&mut chars).into_iter()),
@@ -947,7 +959,7 @@ fn unescape_string(s: &str) -> String {
     out
 }
 
-fn unescape_sequence(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
+fn unescape_sequence(chars: &mut PeekNth<Chars<'_>>) -> Vec<char> {
     let Some(ty) = chars.next() else {
         return Vec::new();
     };
@@ -960,8 +972,14 @@ fn unescape_sequence(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
         'n' => vec!['\n'],
         'r' => vec!['\r'],
         't' => vec!['\t'],
-        'x' => unescape_ascii(chars),
-        'u' => unescape_unicode(chars),
+        'x' => match unescape_ascii(chars) {
+            Some(a) => vec![a],
+            None => vec!['\\', 'x'],
+        },
+        'u' => match unescape_unicode(chars) {
+            Some(u) => vec![u],
+            None => vec!['\\', 'u'],
+        },
 
         // This was not a recognized escape sequence. Treat it as the literal text it was: a
         // backslash and whatever character came after.
@@ -969,78 +987,93 @@ fn unescape_sequence(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
     }
 }
 
-fn unescape_ascii(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
-    let mut taken = vec!['\\', 'x'];
-
-    macro_rules! next_digit {
-        () => {{
-            let Some(c) = chars.next() else {
-                return taken;
+fn unescape_ascii(chars: &mut PeekNth<Chars<'_>>) -> Option<char> {
+    macro_rules! peek_digit {
+        ($n:expr) => {{
+            let Some(c) = chars.peek_nth($n) else {
+                return None;
             };
-            taken.push(c);
 
             let Some(d) = c.to_digit(16) else {
-                return taken;
+                return None;
             };
             d
         }};
     }
 
-    let hi = next_digit!();
-    let lo = next_digit!();
-    char::from_u32((hi << 4) | lo)
-        .map(|c| vec![c])
-        .unwrap_or(taken)
+    let hi = peek_digit!(0);
+    let lo = peek_digit!(1);
+    let unescaped = char::from_u32((hi << 4) | lo)?;
+
+    chars.next().expect("peek 0");
+    chars.next().expect("peek 1");
+    Some(unescaped)
 }
 
-fn unescape_unicode(chars: &mut Peekable<Chars<'_>>) -> Vec<char> {
-    let mut v = 0u32;
-    let mut taken = vec!['\\', 'u'];
-
-    macro_rules! next_digit {
-        () => {{
-            let Some(c) = chars.next() else {
-                return taken;
+fn unescape_unicode(chars: &mut PeekNth<Chars<'_>>) -> Option<char> {
+    macro_rules! peek_digit {
+        ($n:expr) => {{
+            let Some(c) = chars.peek_nth($n) else {
+                return None;
             };
-            taken.push(c);
 
             let Some(d) = c.to_digit(16) else {
-                return taken;
+                return None;
             };
             d
         }};
     }
 
     macro_rules! peek {
-        () => {{
-            let Some(c) = chars.peek() else {
-                return taken;
+        ($n:expr) => {{
+            let Some(c) = chars.peek_nth($n) else {
+                return None;
             };
             c
         }};
     }
 
-    if peek!() != &'{' {
-        return taken;
+    if peek!(0) != &'{' {
+        return None;
     }
-    taken.push(chars.next().unwrap()); // peek {
+
+    let mut v = 0u32;
+    let mut n = 1;
 
     loop {
-        if peek!() == &'}' {
-            taken.push(chars.next().unwrap()); // peek }
+        if peek!(n) == &'}' {
             break;
         }
 
-        // If there wasn't a closing brace after `\u{` + 6 digits, this escape sequence is invalid.
+        // If there wasn't a closing brace after `{` + 6 digits, this escape sequence is invalid.
         // Treat it as literal text and restart the unescaping process.
-        if taken.len() > 3 + 6 {
-            return taken;
+        if n > 1 + 6 {
+            return None;
         }
-        let d = next_digit!();
+        let d = peek_digit!(n);
         v = (v << 4) | d;
+        n += 1;
     }
 
-    char::from_u32(v).map(|c| vec![c]).unwrap_or(taken)
+    if n == 1 {
+        // This was an empty escape sequence, so ignore it.
+        //
+        //     \u{}
+        //     __01
+        //
+        return None;
+    }
+
+    let unescaped = char::from_u32(v)?;
+
+    // \u{abcdef}
+    // __01234567
+    //          n
+    for _ in 0..=n {
+        chars.next().expect("peek loop");
+    }
+
+    Some(unescaped)
 }
 
 #[cfg(test)]

@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "let x = 1;\n{\n    let x = x + 1;\n}\nprint(x);\n"
+input_file: test_programs/scope_2.blis
+---
+1

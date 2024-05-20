@@ -1,0 +1,29 @@
+---
+source: src/parse/parser.rs
+description: "func g() {\n    self;\n}\n"
+input_file: test_programs/err_compile/self_outside_method_func.blis
+---
+Program(
+  decls: [
+    Func(Func(
+      ident: Identifier(
+        name: "g",
+      ),
+      params: [],
+      body: Block(
+        decls: [
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "self",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+        ],
+        expr: None,
+      ),
+    )),
+  ],
+)

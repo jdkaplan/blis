@@ -1,0 +1,8 @@
+---
+source: src/compile.rs
+description: "func g() {\n    self;\n}\n"
+input_file: test_programs/err_compile/self_outside_method_func.blis
+---
+CompileErrors([
+  SelfOutsideMethod,
+])

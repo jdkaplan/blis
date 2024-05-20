@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use num_rational::BigRational;
 use serde::Serialize;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 
 use crate::bytecode;
 use crate::bytecode::chunk::PendingJump;
@@ -37,6 +37,9 @@ pub enum CompileError {
     )]
     DuplicateVariable(Identifier),
 
+    #[error("`self` used outside of method definition")]
+    SelfOutsideMethod,
+
     #[error("{0}")]
     Other(String), // TODO: Define other compile errors
 }
@@ -48,7 +51,6 @@ type Fallible<T> = Result<T, FailedCodegen>;
 #[derive(Debug)]
 struct FailedCodegen;
 
-#[derive(Debug)]
 pub struct Compiler {
     stack: Vec<Rc<RefCell<FuncBuilder>>>,
     errors: Vec<CompileError>,
@@ -68,8 +70,8 @@ impl Compiler {
         FailedCodegen
     }
 
-    fn start(&mut self) -> FuncRef {
-        let func = FuncBuilder::default();
+    fn start(&mut self, mode: FuncMode) -> FuncRef {
+        let func = FuncBuilder::new(mode);
         let rc = Rc::new(RefCell::new(func));
         self.stack.push(rc.clone());
         FuncRef(rc)
@@ -80,17 +82,20 @@ impl Compiler {
         FuncRef(last.clone())
     }
 
-    fn finish(&mut self, handle: FuncRef) -> FuncBuilder {
+    fn finish(&mut self, name: &str, handle: FuncRef) -> FuncBuilder {
         // This handle should be the last external reference (created by start). Drop it early so
         // the unwrapping below can succeed.
         drop(handle);
 
         let last = self.stack.pop().expect("paired with start call");
         let last = Rc::try_unwrap(last).expect("no remaining references from inner funcs");
-        last.into_inner()
+        let last = last.into_inner();
+
+        debug_chunk(name, &last.chunk);
+        last
     }
 
-    #[instrument(level = "debug", ret)]
+    #[instrument(level = "debug", skip_all, ret)]
     pub fn compile(program: &Program) -> Result<Chunk, CompileErrors> {
         let mut driver = Self::new();
 
@@ -98,30 +103,12 @@ impl Compiler {
             return Err(CompileErrors(driver.errors));
         };
 
-        let chunk = func.chunk;
-
-        for (idx, val) in chunk.constants.iter().enumerate() {
-            debug!({ ?idx, ?val }, "constant");
-        }
-
-        for (idx, name) in chunk.globals.iter().enumerate() {
-            debug!({ ?idx, ?name }, "global");
-        }
-
-        for res in chunk.iter_code() {
-            let Ok((pc, op)) = res else {
-                debug!({ ?res }, "chunk error");
-                break;
-            };
-            debug!({ ?pc, ?op }, "code");
-        }
-
-        Ok(chunk)
+        Ok(func.chunk)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn program(&mut self, program: &Program) -> Fallible<FuncBuilder> {
-        let current = self.start();
+        let current = self.start(FuncMode::Script);
 
         // Reserve stack slot 0 for the currently-executing program.
         current
@@ -134,10 +121,10 @@ impl Compiler {
         current.push(Op::Nil);
         current.push(Op::Return);
 
-        Ok(self.finish(current))
+        Ok(self.finish("<script>", current))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn block(&mut self, block: &Block) -> Fallible<()> {
         let func = self.current();
         func.begin_scope();
@@ -159,7 +146,7 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn declaration(&mut self, decl: &Declaration) -> Fallible<()> {
         match decl {
             Declaration::Func(func) => self.decl_func(func),
@@ -169,7 +156,7 @@ impl Compiler {
         }
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn decl_type(&mut self, ty: &Type) -> Fallible<()> {
         // Make the name immediately available for use so it can be used inside the definition
         // itself.
@@ -195,14 +182,13 @@ impl Compiler {
         }
 
         if slot == Slot::Global {
-            let global = current.make_global(&ty.ident);
-            current.push(Op::DefineGlobal(global));
+            current.define_global(&ty.ident);
         }
 
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn decl_method(&mut self, method: &Method) -> Fallible<()> {
         let arity = method.params.len();
         let arity: u8 = arity.try_into().expect("parser enforces limit");
@@ -214,15 +200,21 @@ impl Compiler {
             .map_err(|err| self.error(err))?;
 
         let (bfunc, upvalues) = {
-            let current = self.start();
+            let mode = if method.self_ {
+                FuncMode::Method
+            } else {
+                FuncMode::AssociatedFunc
+            };
+            let current = self.start(mode);
 
             current.begin_scope();
 
             // Reserve a slot for the receiver.
             if method.self_ {
-                current
+                let slot = current
                     .reserve_local(Identifier::new("self"))
                     .map_err(|err| self.error(err))?;
+                current.init_local(slot);
             }
 
             for param in &method.params {
@@ -238,7 +230,7 @@ impl Compiler {
             // There's no end_scope() call here because the Return instruction will pop the whole
             // call frame.
 
-            let builder = self.finish(current);
+            let builder = self.finish(&method.ident.name, current);
 
             let bfunc = bytecode::Func {
                 name: method.ident.name.clone(),
@@ -259,7 +251,7 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn decl_func(&mut self, func: &Func) -> Fallible<()> {
         let arity = func.params.len();
         let arity: u8 = arity.try_into().expect("parser enforces limit");
@@ -273,7 +265,7 @@ impl Compiler {
         enclosing.init_local(slot);
 
         let (bfunc, upvalues) = {
-            let current = self.start();
+            let current = self.start(FuncMode::FreeFunc);
 
             current.begin_scope();
 
@@ -295,7 +287,7 @@ impl Compiler {
             // There's no end_scope() call here because the Return instruction will pop the whole
             // call frame.
 
-            let builder = self.finish(current);
+            let builder = self.finish(&func.ident.name, current);
 
             let bfunc = bytecode::Func {
                 name: func.ident.name.clone(),
@@ -315,14 +307,13 @@ impl Compiler {
         ));
 
         if slot == Slot::Global {
-            let global = enclosing.make_global(&func.ident);
-            enclosing.push(Op::DefineGlobal(global));
+            enclosing.define_global(&func.ident);
         }
 
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn decl_let(&mut self, let_: &Let) -> Fallible<()> {
         let current = self.current();
 
@@ -333,20 +324,20 @@ impl Compiler {
         self.expression(&let_.expr)?;
 
         if slot == Slot::Global {
-            let global = current.make_global(&let_.ident);
-            current.push(Op::DefineGlobal(global));
+            current.define_global(&let_.ident);
         }
 
         current.init_local(slot);
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn statement(&mut self, stmt: &Statement) -> Fallible<()> {
         match stmt {
             Statement::Break(break_) => self.stmt_break(break_),
             Statement::Continue(continue_) => self.stmt_continue(continue_),
             Statement::Loop(loop_) => self.stmt_loop(loop_),
+            Statement::Return(return_) => self.stmt_return(return_),
             Statement::Assignment(assign) => self.stmt_assign(assign),
             Statement::Expression(expr) => {
                 self.expression(expr)?;
@@ -356,7 +347,7 @@ impl Compiler {
         }
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn stmt_break(&mut self, break_: &Break) -> Fallible<()> {
         let current = self.current();
 
@@ -364,13 +355,13 @@ impl Compiler {
         let n: u8 = locals.len().try_into().unwrap();
         current.push(Op::PopN(n));
 
-        let jump = current.prepare_jump(Op::Jump(u16::MAX));
+        let jump = current.prepare_jump(Op::Jump(0));
         current
             .add_break(&break_.label, jump)
             .map_err(|err| self.error(err))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn stmt_continue(&mut self, continue_: &Continue) -> Fallible<()> {
         let current = self.current();
 
@@ -383,7 +374,7 @@ impl Compiler {
             .map_err(|err| self.error(err))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn stmt_loop(&mut self, loop_: &Loop) -> Fallible<()> {
         let current = self.current();
 
@@ -409,7 +400,17 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
+    fn stmt_return(&mut self, return_: &Return) -> Fallible<()> {
+        let current = self.current();
+
+        self.expression(&return_.expr)?;
+        current.push(Op::Return);
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip_all)]
     fn stmt_assign(&mut self, assign: &Assignment) -> Fallible<()> {
         let current = self.current();
 
@@ -453,6 +454,10 @@ impl Compiler {
                 // ident = expr
                 self.expression(&assign.expr)?;
 
+                if ident.name == "self" {
+                    todo!("error: cannot assign to receiver");
+                }
+
                 if let Some((slot, _local)) = current.resolve_local(ident) {
                     current.push(Op::SetLocal(slot));
                 } else if let Some(upvalue) = self.resolve_upvalue(ident) {
@@ -467,7 +472,7 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     fn resolve_upvalue(&mut self, ident: &Identifier) -> Option<Upvalue> {
         // This may walk the entire stack, so prepare the references. The current compiler is
         // special (we already know it doesn't bind this variable), so pop it off immediately.
@@ -508,13 +513,13 @@ impl Compiler {
         Some(upvalue)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn expression(&mut self, expr: &Expression) -> Fallible<()> {
         let Expression::LogicOr(or) = expr;
         self.logic_or(or)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn logic_or(&mut self, or: &LogicOr) -> Fallible<()> {
         let current = self.current();
 
@@ -526,7 +531,7 @@ impl Compiler {
         let mut shorts = Vec::new();
         for and in &or.rest {
             // jump_true_peek 'short_circuit
-            let short = current.prepare_jump(Op::JumpTruePeek(u16::MAX));
+            let short = current.prepare_jump(Op::JumpTruePeek(0));
             shorts.push(short);
 
             // pop ; <a> was falsey
@@ -555,7 +560,7 @@ impl Compiler {
         let mut shorts = Vec::new();
         for eq in &and.rest {
             // jump_false_peek 'short_circuit
-            let short = current.prepare_jump(Op::JumpFalsePeek(u16::MAX));
+            let short = current.prepare_jump(Op::JumpFalsePeek(0));
             shorts.push(short);
 
             // pop ; <a> was truthy
@@ -736,7 +741,7 @@ impl Compiler {
         }
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn primary(&mut self, primary: &Primary) -> Fallible<()> {
         match primary {
             Primary::Block(block) => self.block(block),
@@ -747,7 +752,7 @@ impl Compiler {
         }
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn atom(&mut self, atom: &Atom) -> Fallible<()> {
         match atom {
             Atom::Identifier(ident) => self.expr_identifier(ident),
@@ -757,7 +762,7 @@ impl Compiler {
         }
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn expr_if(&mut self, if_: &If) -> Fallible<()> {
         let current = self.current();
 
@@ -765,7 +770,7 @@ impl Compiler {
         self.expression(&if_.condition)?;
 
         // jump_false_pop 'skip_conseq [peek cond]
-        let skip_conseq = current.prepare_jump(Op::JumpFalsePop(u16::MAX));
+        let skip_conseq = current.prepare_jump(Op::JumpFalsePop(0));
 
         // <consequent>
         self.block(&if_.consequent)?;
@@ -778,7 +783,7 @@ impl Compiler {
         };
 
         // jump 'skip_alt
-        let skip_alt = current.prepare_jump(Op::Jump(u16::MAX));
+        let skip_alt = current.prepare_jump(Op::Jump(0));
 
         // 'skip_conseq:
         current.set_jump_target(skip_conseq);
@@ -792,7 +797,7 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn expr_object(&mut self, obj: &Object) -> Fallible<()> {
         let current = self.current();
 
@@ -809,7 +814,7 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn expr_list(&mut self, list: &List) -> Fallible<()> {
         let len: u8 = list.items.len().try_into().expect("time for BigList");
 
@@ -824,9 +829,23 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn expr_identifier(&mut self, ident: &Identifier) -> Fallible<()> {
         let current = self.current();
+
+        if ident.name == "self" {
+            match current.mode() {
+                FuncMode::Script | FuncMode::FreeFunc | FuncMode::AssociatedFunc => {
+                    return Err(self.error(CompileError::SelfOutsideMethod));
+                }
+                FuncMode::Method => {
+                    let (slot, _local) =
+                        current.resolve_local(ident).expect("method defines `self`");
+                    current.push(Op::GetLocal(slot));
+                    return Ok(());
+                }
+            }
+        }
 
         if let Some((slot, _local)) = current.resolve_local(ident) {
             current.push(Op::GetLocal(slot));
@@ -839,7 +858,7 @@ impl Compiler {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     fn expr_literal(&mut self, lit: &Literal) -> Fallible<()> {
         let current = self.current();
 
@@ -874,18 +893,43 @@ impl Compiler {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum FuncMode {
+    Script,
+    FreeFunc,
+    AssociatedFunc,
+    Method,
+}
+
+#[derive(Debug)]
 struct FuncBuilder {
+    mode: FuncMode,
     chunk: Chunk,
     locals: Locals,
     upvalues: Upvalues,
     labels: Loops,
 }
 
+impl FuncBuilder {
+    fn new(mode: FuncMode) -> Self {
+        Self {
+            mode,
+            chunk: Chunk::default(),
+            locals: Locals::default(),
+            upvalues: Upvalues::default(),
+            labels: Loops::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct FuncRef(Rc<RefCell<FuncBuilder>>);
 
 impl FuncRef {
+    fn mode(&self) -> FuncMode {
+        self.0.borrow().mode
+    }
+
     fn begin_scope(&self) {
         let mut func = self.0.borrow_mut();
         func.locals.begin_scope()
@@ -955,6 +999,11 @@ impl FuncRef {
 
         let mut func = self.0.borrow_mut();
         func.chunk.add_constant(name)
+    }
+
+    fn define_global(&self, ident: &Identifier) {
+        let mut func = self.0.borrow_mut();
+        func.chunk.define_global(ident.name.clone())
     }
 
     fn make_global(&self, ident: &Identifier) -> u8 {
@@ -1078,7 +1127,7 @@ impl Locals {
     #[instrument(level = "trace")]
     fn resolve<'a>(&'a self, name: &str) -> Option<(u8, &'a Local)> {
         for (slot, var) in self.iter_slots() {
-            if var.ident.name == name {
+            if var.ident.name == name && var.initialized {
                 let slot: u8 = slot.try_into().expect("Too many locals!");
                 return Some((slot, var));
             }
@@ -1253,6 +1302,26 @@ impl Loops {
                 "continue statement outside of loop",
             )))
         }
+    }
+}
+
+fn debug_chunk(name: &str, chunk: &Chunk) {
+    debug!({ ?name }, "compiled chunk");
+
+    for (idx, val) in chunk.constants.iter().enumerate() {
+        trace!({ ?idx, ?val }, "constant");
+    }
+
+    for (idx, name) in chunk.globals.iter().enumerate() {
+        trace!({ ?idx, ?name }, "global");
+    }
+
+    for res in chunk.iter_code() {
+        let Ok((pc, op)) = res else {
+            trace!({ ?res }, "chunk error");
+            break;
+        };
+        trace!({ ?pc, ?op }, "code");
     }
 }
 

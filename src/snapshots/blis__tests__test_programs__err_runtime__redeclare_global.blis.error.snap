@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+description: "let a = 1;\nlet a = 2;\n"
+input_file: test_programs/err_runtime/redeclare_global.blis
+---
+name error: global variable `a` was already declared

@@ -1,0 +1,87 @@
+---
+source: src/parse/lexer.rs
+description: "type T with {\n    func f() {\n        self.thing;\n    }\n}\n"
+input_file: test_programs/err_compile/self_outside_method_associated.blis
+---
+[
+  Lexeme(
+    token: Type,
+    text: "type",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "T",
+    line: 1,
+  ),
+  Lexeme(
+    token: With,
+    text: "with",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 1,
+  ),
+  Lexeme(
+    token: Func,
+    text: "func",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "f",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftBrace,
+    text: "{",
+    line: 2,
+  ),
+  Lexeme(
+    token: Self_,
+    text: "self",
+    line: 3,
+  ),
+  Lexeme(
+    token: Dot,
+    text: ".",
+    line: 3,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "thing",
+    line: 3,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 3,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 4,
+  ),
+  Lexeme(
+    token: RightBrace,
+    text: "}",
+    line: 5,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 6,
+  ),
+]

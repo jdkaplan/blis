@@ -1,0 +1,69 @@
+---
+source: src/parse/parser.rs
+description: "let x = 1;\n{\n    let x = x + 1;\n}\nprintln(x);\n"
+input_file: test_programs/scope_2.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "x",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            1,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Value(Block(Block(
+          decls: [
+            Let(Let(
+              ident: Identifier(
+                name: "x",
+              ),
+              expr: LogicOr(LogicOr(
+                first: LogicAnd(
+                  first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                    name: "x",
+                  ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                    1,
+                  ])))))))))),
+                  rest: [],
+                ),
+                rest: [],
+              )),
+            )),
+          ],
+          expr: None,
+        )))))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+    Statement(Expression(LogicOr(LogicOr(
+      first: LogicAnd(
+        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+          name: "println",
+        )))), [
+          LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                name: "x",
+              ))))))))),
+              rest: [],
+            ),
+            rest: [],
+          )),
+        ])))))),
+        rest: [],
+      ),
+      rest: [],
+    )))),
+  ],
+)

@@ -20,11 +20,57 @@ impl std::fmt::Debug for Lexer<'_> {
     }
 }
 
-impl<'source> Iterator for Lexer<'source> {
+pub struct Tokens<'source> {
+    lexer: Lexer<'source>,
+    done: bool,
+}
+
+impl<'source> Tokens<'source> {
+    fn new(lexer: Lexer<'source>) -> Self {
+        Self { lexer, done: false }
+    }
+}
+
+impl<'source> Iterator for Tokens<'source> {
     type Item = Lexeme<'source>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.scan_next())
+        if self.done {
+            return None;
+        }
+
+        let next = self.lexer.scan_next();
+        if next.token == Token::Eof {
+            self.done = true;
+        }
+        Some(next)
+    }
+}
+
+pub struct TokensEndless<'source> {
+    lexer: Lexer<'source>,
+    eof: Option<Lexeme<'source>>,
+}
+
+impl<'source> TokensEndless<'source> {
+    fn new(lexer: Lexer<'source>) -> Self {
+        Self { lexer, eof: None }
+    }
+}
+
+impl<'source> Iterator for TokensEndless<'source> {
+    type Item = Lexeme<'source>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(eof) = self.eof {
+            return Some(eof);
+        }
+
+        let next = self.lexer.scan_next();
+        if next.token == Token::Eof {
+            self.eof = Some(next);
+        }
+        Some(next)
     }
 }
 
@@ -38,16 +84,15 @@ impl<'source> Lexer<'source> {
         }
     }
 
-    pub fn all_tokens(mut self) -> Vec<Lexeme<'source>> {
-        let mut tokens = Vec::new();
-        loop {
-            let next = self.scan_next();
-            tokens.push(next);
+    /// Creates a consuming iterator that produces each token in the source.
+    pub fn tokens(self) -> Tokens<'source> {
+        Tokens::new(self)
+    }
 
-            if next.token == Token::Eof {
-                return tokens;
-            }
-        }
+    /// Creates a consuming iterator that produces each token in the source. This
+    /// version repeats the final EOF forever instead of returning None.
+    pub fn tokens_endless(self) -> TokensEndless<'source> {
+        TokensEndless::new(self)
     }
 
     #[instrument(level = "trace", ret)]
@@ -113,7 +158,7 @@ impl<'source> Lexer<'source> {
             c if is_alpha(c) => self.scan_identifier(),
             c if is_digit(c) => self.scan_number(),
 
-            _ => self.error("unexpected character"),
+            _ => self.make(Token::ErrorUnrecognizedCharacter),
         }
     }
 
@@ -182,6 +227,10 @@ impl<'source> Lexer<'source> {
     }
 
     fn scan_string(&mut self) -> Lexeme<'source> {
+        // Multiline strings may change the current line. This Lexeme should contain the starting
+        // line rather than the ending one.
+        let line = self.line;
+
         while self.peek() != '"' && !self.at_eof() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -203,11 +252,14 @@ impl<'source> Lexer<'source> {
         }
 
         if self.at_eof() {
-            return self.error("unterminated string");
+            return self.make(Token::ErrorUnterminatedString);
         }
 
         self.advance(); // peek `"`
-        self.make(Token::String)
+
+        let mut lexeme = self.make(Token::String);
+        lexeme.line = line;
+        lexeme
     }
 
     fn at_eof(&self) -> bool {
@@ -259,14 +311,6 @@ impl<'source> Lexer<'source> {
             line: self.line,
         }
     }
-
-    fn error<'msg>(&self, msg: &'msg str) -> Lexeme<'msg> {
-        Lexeme {
-            token: Token::Error,
-            text: msg,
-            line: self.line,
-        }
-    }
 }
 
 fn is_alpha(c: char) -> bool {
@@ -294,7 +338,7 @@ mod tests {
     #[rstest]
     fn test_programs(#[files("test_programs/**/*.blis")] path: PathBuf) {
         let source = std::fs::read_to_string(&path).unwrap();
-        let tokens = Lexer::new(&source).all_tokens();
+        let tokens: Vec<_> = Lexer::new(&source).tokens().collect();
 
         insta::with_settings!({
             input_file => &path,
@@ -302,6 +346,19 @@ mod tests {
             omit_expression => true,
         }, {
             insta::assert_ron_snapshot!(snapshot_name(&path, "tokens"), tokens);
+        })
+    }
+
+    #[test]
+    fn test_special_characters() {
+        let source = "*<<==!=>=>!+-*%/()[]{}:;,.";
+        let tokens: Vec<_> = Lexer::new(source).tokens().collect();
+
+        insta::with_settings!({
+            description => source,
+            omit_expression => true,
+        }, {
+            insta::assert_ron_snapshot!(tokens);
         })
     }
 }

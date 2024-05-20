@@ -1,0 +1,132 @@
+---
+source: src/parse/lexer.rs
+description: "let v = 1 + 2 - (3 * 4 / 5 * 6) + 7;\nprintln(v);\n"
+input_file: test_programs/math.blis
+---
+[
+  Lexeme(
+    token: Let,
+    text: "let",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "v",
+    line: 1,
+  ),
+  Lexeme(
+    token: Equal,
+    text: "=",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "1",
+    line: 1,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "2",
+    line: 1,
+  ),
+  Lexeme(
+    token: Minus,
+    text: "-",
+    line: 1,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "3",
+    line: 1,
+  ),
+  Lexeme(
+    token: Star,
+    text: "*",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "4",
+    line: 1,
+  ),
+  Lexeme(
+    token: Slash,
+    text: "/",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "5",
+    line: 1,
+  ),
+  Lexeme(
+    token: Star,
+    text: "*",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "6",
+    line: 1,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 1,
+  ),
+  Lexeme(
+    token: Plus,
+    text: "+",
+    line: 1,
+  ),
+  Lexeme(
+    token: Integer,
+    text: "7",
+    line: 1,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 1,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "println",
+    line: 2,
+  ),
+  Lexeme(
+    token: LeftParen,
+    text: "(",
+    line: 2,
+  ),
+  Lexeme(
+    token: Identifier,
+    text: "v",
+    line: 2,
+  ),
+  Lexeme(
+    token: RightParen,
+    text: ")",
+    line: 2,
+  ),
+  Lexeme(
+    token: Semicolon,
+    text: ";",
+    line: 2,
+  ),
+  Lexeme(
+    token: Eof,
+    text: "",
+    line: 3,
+  ),
+]

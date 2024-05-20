@@ -1,2 +1,4 @@
 [alias]
 deny = ["bin", "cargo-deny"]
+nextest = ["bin", "cargo-nextest"]
+tarpaulin = ["bin", "cargo-tarpaulin"]
