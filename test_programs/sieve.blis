@@ -1,0 +1,76 @@
+// Sieve of Eratosthenes
+
+let n = 100;
+let sieve = [];
+
+// initialize the list
+let i = 0;
+loop {
+    if i == n {
+        break;
+    }
+
+    sieve.append(i);
+    i = i + 1;
+}
+
+
+// cross off composites by marking them false
+func crossout(prime) {
+    let next = 0;
+    let i = 2;
+    loop {
+        next = prime * i;
+        if next >= n {
+            break;
+        }
+
+        sieve[next] = false;
+        i = i + 1;    
+    }
+}
+
+// finds the next prime in the sieve if there is one
+func find(prime) {
+    let next = prime + 1;
+    loop {
+        if next == n {
+            break;
+        }
+
+        if sieve[next] {
+            break;
+        }
+
+        next = next + 1;
+    }
+    next
+}
+
+sieve[0] = false;
+sieve[1] = false;
+let prime = 2;
+let next = 0;
+loop {
+    crossout(prime);
+    next = find(prime);
+    if next == n {
+        break;
+    }
+
+    prime = next;
+}
+
+
+// print the results
+i = 0;
+loop {
+    if i == n {
+        break;
+    }
+
+    if sieve[i] {
+        println(sieve[i]);
+    }
+    i = i + 1;
+}

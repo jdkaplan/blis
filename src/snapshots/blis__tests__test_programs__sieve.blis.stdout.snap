@@ -1,0 +1,30 @@
+---
+source: src/lib.rs
+description: "// Sieve of Eratosthenes\n\nlet n = 100;\nlet sieve = [];\n\n// initialize the list\nlet i = 0;\nloop {\n    if i == n {\n        break;\n    }\n\n    sieve.append(i);\n    i = i + 1;\n}\n\n\n// cross off composites by marking them false\nfunc crossout(prime) {\n    let next = 0;\n    let i = 2;\n    loop {\n        next = prime * i;\n        if next >= n {\n            break;\n        }\n\n        sieve[next] = false;\n        i = i + 1;    \n    }\n}\n\n// finds the next prime in the sieve if there is one\nfunc find(prime) {\n    let next = prime + 1;\n    loop {\n        if next == n {\n            break;\n        }\n\n        if sieve[next] {\n            break;\n        }\n\n        next = next + 1;\n    }\n    next\n}\n\nsieve[0] = false;\nsieve[1] = false;\nlet prime = 2;\nlet next = 0;\nloop {\n    crossout(prime);\n    next = find(prime);\n    if next == n {\n        break;\n    }\n\n    prime = next;\n}\n\n\n// print the results\ni = 0;\nloop {\n    if i == n {\n        break;\n    }\n\n    if sieve[i] {\n        println(sieve[i]);\n    }\n    i = i + 1;\n}\n"
+input_file: test_programs/sieve.blis
+---
+2
+3
+5
+7
+11
+13
+17
+19
+23
+29
+31
+37
+41
+43
+47
+53
+59
+61
+67
+71
+73
+79
+83
+89
+97

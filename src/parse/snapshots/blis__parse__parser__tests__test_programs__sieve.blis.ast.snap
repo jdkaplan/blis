@@ -1,0 +1,655 @@
+---
+source: src/parse/parser.rs
+description: "// Sieve of Eratosthenes\n\nlet n = 100;\nlet sieve = [];\n\n// initialize the list\nlet i = 0;\nloop {\n    if i == n {\n        break;\n    }\n\n    sieve.append(i);\n    i = i + 1;\n}\n\n\n// cross off composites by marking them false\nfunc crossout(prime) {\n    let next = 0;\n    let i = 2;\n    loop {\n        next = prime * i;\n        if next >= n {\n            break;\n        }\n\n        sieve[next] = false;\n        i = i + 1;    \n    }\n}\n\n// finds the next prime in the sieve if there is one\nfunc find(prime) {\n    let next = prime + 1;\n    loop {\n        if next == n {\n            break;\n        }\n\n        if sieve[next] {\n            break;\n        }\n\n        next = next + 1;\n    }\n    next\n}\n\nsieve[0] = false;\nsieve[1] = false;\nlet prime = 2;\nlet next = 0;\nloop {\n    crossout(prime);\n    next = find(prime);\n    if next == n {\n        break;\n    }\n\n    prime = next;\n}\n\n\n// print the results\ni = 0;\nloop {\n    if i == n {\n        break;\n    }\n\n    if sieve[i] {\n        println(sieve[i]);\n    }\n    i = i + 1;\n}\n"
+input_file: test_programs/sieve.blis
+---
+Program(
+  decls: [
+    Let(Let(
+      ident: Identifier(
+        name: "n",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            100,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "sieve",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(List(List(
+            items: [],
+          ))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "i",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Loop(Loop(
+      label: None,
+      body: Block(
+        decls: [
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(If(If(
+                condition: LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "i",
+                    ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "n",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                consequent: Block(
+                  decls: [
+                    Statement(Break(Break(
+                      label: None,
+                    ))),
+                  ],
+                  expr: None,
+                ),
+                alternative: None,
+              )))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Field(Value(Atom(Identifier(Identifier(
+                name: "sieve",
+              )))), Identifier(
+                name: "append",
+              )), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "i",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "i",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                  name: "i",
+                ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                  1,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+        ],
+        expr: None,
+      ),
+    ))),
+    Func(Func(
+      ident: Identifier(
+        name: "crossout",
+      ),
+      params: [
+        Identifier(
+          name: "prime",
+        ),
+      ],
+      body: Block(
+        decls: [
+          Let(Let(
+            ident: Identifier(
+              name: "next",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Let(Let(
+            ident: Identifier(
+              name: "i",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+                  2,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Statement(Loop(Loop(
+            label: None,
+            body: Block(
+              decls: [
+                Statement(Assignment(Assignment(
+                  place: Identifier(Identifier(
+                    name: "next",
+                  )),
+                  expr: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Mul(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "prime",
+                      )))))), Value(Value(Atom(Identifier(Identifier(
+                        name: "i",
+                      ))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(If(If(
+                      condition: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Ge(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "next",
+                          )))))))), Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "n",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      consequent: Block(
+                        decls: [
+                          Statement(Break(Break(
+                            label: None,
+                          ))),
+                        ],
+                        expr: None,
+                      ),
+                      alternative: None,
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Assignment(Assignment(
+                  place: Index(Value(Atom(Identifier(Identifier(
+                    name: "sieve",
+                  )))), LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "next",
+                      ))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  ))),
+                  expr: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Literal(Boolean(false))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ))),
+                Statement(Assignment(Assignment(
+                  place: Identifier(Identifier(
+                    name: "i",
+                  )),
+                  expr: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "i",
+                      ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                        1,
+                      ])))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ))),
+              ],
+              expr: None,
+            ),
+          ))),
+        ],
+        expr: None,
+      ),
+    )),
+    Func(Func(
+      ident: Identifier(
+        name: "find",
+      ),
+      params: [
+        Identifier(
+          name: "prime",
+        ),
+      ],
+      body: Block(
+        decls: [
+          Let(Let(
+            ident: Identifier(
+              name: "next",
+            ),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                  name: "prime",
+                ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                  1,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          )),
+          Statement(Loop(Loop(
+            label: None,
+            body: Block(
+              decls: [
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(If(If(
+                      condition: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "next",
+                          ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                            name: "n",
+                          ))))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      consequent: Block(
+                        decls: [
+                          Statement(Break(Break(
+                            label: None,
+                          ))),
+                        ],
+                        expr: None,
+                      ),
+                      alternative: None,
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Expression(LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(If(If(
+                      condition: LogicOr(LogicOr(
+                        first: LogicAnd(
+                          first: Value(Value(Value(Value(Value(Index(Value(Atom(Identifier(Identifier(
+                            name: "sieve",
+                          )))), LogicOr(LogicOr(
+                            first: LogicAnd(
+                              first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                name: "next",
+                              ))))))))),
+                              rest: [],
+                            ),
+                            rest: [],
+                          )))))))),
+                          rest: [],
+                        ),
+                        rest: [],
+                      )),
+                      consequent: Block(
+                        decls: [
+                          Statement(Break(Break(
+                            label: None,
+                          ))),
+                        ],
+                        expr: None,
+                      ),
+                      alternative: None,
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )))),
+                Statement(Assignment(Assignment(
+                  place: Identifier(Identifier(
+                    name: "next",
+                  )),
+                  expr: LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "next",
+                      ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                        1,
+                      ])))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ))),
+              ],
+              expr: None,
+            ),
+          ))),
+        ],
+        expr: Some(LogicOr(LogicOr(
+          first: LogicAnd(
+            first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+              name: "next",
+            ))))))))),
+            rest: [],
+          ),
+          rest: [],
+        ))),
+      ),
+    )),
+    Statement(Assignment(Assignment(
+      place: Index(Value(Atom(Identifier(Identifier(
+        name: "sieve",
+      )))), LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      ))),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Boolean(false))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Assignment(Assignment(
+      place: Index(Value(Atom(Identifier(Identifier(
+        name: "sieve",
+      )))), LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            1,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      ))),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Boolean(false))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Let(Let(
+      ident: Identifier(
+        name: "prime",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((1, [
+            2,
+          ])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Let(Let(
+      ident: Identifier(
+        name: "next",
+      ),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    )),
+    Statement(Loop(Loop(
+      label: None,
+      body: Block(
+        decls: [
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                name: "crossout",
+              )))), [
+                LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "prime",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+              ])))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "next",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                  name: "find",
+                )))), [
+                  LogicOr(LogicOr(
+                    first: LogicAnd(
+                      first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                        name: "prime",
+                      ))))))))),
+                      rest: [],
+                    ),
+                    rest: [],
+                  )),
+                ])))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(If(If(
+                condition: LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "next",
+                    ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "n",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                consequent: Block(
+                  decls: [
+                    Statement(Break(Break(
+                      label: None,
+                    ))),
+                  ],
+                  expr: None,
+                ),
+                alternative: None,
+              )))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "prime",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                  name: "next",
+                ))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+        ],
+        expr: None,
+      ),
+    ))),
+    Statement(Assignment(Assignment(
+      place: Identifier(Identifier(
+        name: "i",
+      )),
+      expr: LogicOr(LogicOr(
+        first: LogicAnd(
+          first: Value(Value(Value(Value(Value(Value(Atom(Literal(Integer((0, [])))))))))),
+          rest: [],
+        ),
+        rest: [],
+      )),
+    ))),
+    Statement(Loop(Loop(
+      label: None,
+      body: Block(
+        decls: [
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(If(If(
+                condition: LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Eq(Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "i",
+                    ))))))))), Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                      name: "n",
+                    ))))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                consequent: Block(
+                  decls: [
+                    Statement(Break(Break(
+                      label: None,
+                    ))),
+                  ],
+                  expr: None,
+                ),
+                alternative: None,
+              )))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Expression(LogicOr(LogicOr(
+            first: LogicAnd(
+              first: Value(Value(Value(Value(Value(Value(If(If(
+                condition: LogicOr(LogicOr(
+                  first: LogicAnd(
+                    first: Value(Value(Value(Value(Value(Index(Value(Atom(Identifier(Identifier(
+                      name: "sieve",
+                    )))), LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                          name: "i",
+                        ))))))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )))))))),
+                    rest: [],
+                  ),
+                  rest: [],
+                )),
+                consequent: Block(
+                  decls: [
+                    Statement(Expression(LogicOr(LogicOr(
+                      first: LogicAnd(
+                        first: Value(Value(Value(Value(Value(Call(Value(Atom(Identifier(Identifier(
+                          name: "println",
+                        )))), [
+                          LogicOr(LogicOr(
+                            first: LogicAnd(
+                              first: Value(Value(Value(Value(Value(Index(Value(Atom(Identifier(Identifier(
+                                name: "sieve",
+                              )))), LogicOr(LogicOr(
+                                first: LogicAnd(
+                                  first: Value(Value(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                                    name: "i",
+                                  ))))))))),
+                                  rest: [],
+                                ),
+                                rest: [],
+                              )))))))),
+                              rest: [],
+                            ),
+                            rest: [],
+                          )),
+                        ])))))),
+                        rest: [],
+                      ),
+                      rest: [],
+                    )))),
+                  ],
+                  expr: None,
+                ),
+                alternative: None,
+              )))))))),
+              rest: [],
+            ),
+            rest: [],
+          )))),
+          Statement(Assignment(Assignment(
+            place: Identifier(Identifier(
+              name: "i",
+            )),
+            expr: LogicOr(LogicOr(
+              first: LogicAnd(
+                first: Value(Value(Add(Value(Value(Value(Value(Atom(Identifier(Identifier(
+                  name: "i",
+                ))))))), Value(Value(Value(Atom(Literal(Integer((1, [
+                  1,
+                ])))))))))),
+                rest: [],
+              ),
+              rest: [],
+            )),
+          ))),
+        ],
+        expr: None,
+      ),
+    ))),
+  ],
+)
