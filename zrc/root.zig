@@ -21,6 +21,7 @@ pub fn add(a: i32, b: i32) i32 {
 }
 
 test "basic add functionality" {
+    _ = @import("vm.zig");
     _ = Op;
     try std.testing.expect(add(3, 7) == 10);
 }

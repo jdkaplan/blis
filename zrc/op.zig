@@ -55,7 +55,9 @@ pub const Op = enum(u7) {
     pub const ScanError = std.Io.Reader.Error || error{UnknownOpcode};
 
     // TODO: Debug info
-    pub fn scan(reader: *std.Io.Reader) ScanError!Result {
+    pub fn scan(bytes: []const u8) ScanError!Result {
+        var reader: std.Io.Reader = .fixed(bytes);
+
         const byte = try reader.takeByte();
         const op: Op = switch (byte) {
             0x0...0xa, 0x10, 0x11, 0x20...0x23, 0x26...0x2e, 0x30...0x3c, 0x60...0x65 => @enumFromInt(byte),
@@ -68,14 +70,71 @@ pub const Op = enum(u7) {
             .dyn => blk: {
                 _ = try reader.peekByte();
                 const upvalue_count = try reader.peekByte();
-                break :blk .{ .dyn = .{ .op = op, .len = upvalue_count + 2 } };
+                break :blk .{ .dyn = .{ .op = op, .bytes = try reader.take(upvalue_count + 2) } };
             },
         };
     }
 
     pub const Tag = enum { one, two, three, dyn };
 
-    pub const Result = union(enum) {
+    pub fn tag(self: Op) Tag {
+        return switch (self) {
+            .@"return",
+            .pop,
+            .nil,
+            .false,
+            .true,
+            .object,
+            .not,
+            .eq,
+            .ne,
+            .gt,
+            .ge,
+            .lt,
+            .le,
+            .neg,
+            .add,
+            .sub,
+            .mul,
+            .div,
+            .rem,
+            .get_index,
+            .set_index,
+            => .one,
+
+            .constant,
+            .pop_n,
+            .pop_under_n,
+            .list,
+            .type,
+            .call,
+            .get_local,
+            .set_local,
+            .get_upvalue,
+            .set_upvalue,
+            .define_global,
+            .get_global,
+            .set_global,
+            .get_field,
+            .set_field,
+            .get_method,
+            .set_method,
+            => .two,
+
+            .jump,
+            .jump_false_peek,
+            .jump_false_pop,
+            .jump_true_peek,
+            .jump_true_pop,
+            .loop,
+            => .three,
+
+            .closure,
+            => .dyn,
+        };
+    }
+
+    pub const Result = union(Tag) {
         one: Op,
         two: struct {
             op: Op,
@@ -87,8 +146,17 @@ pub const Op = enum(u7) {
         },
         dyn: struct {
             op: Op,
-            len: usize,
+            bytes: []const u8,
         },
+
+        pub fn len(self: @This()) usize {
+            return switch (self) {
+                .one => 1,
+                .two => 2,
+                .three => 3,
+                .dyn => |op| op.bytes.len,
+            };
+        }
     };
 };
 
